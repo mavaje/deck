@@ -1,99 +1,122 @@
 import {Card, Identifier} from "./scryfall/types";
 import {API} from "./scryfall/api";
-import {get_language} from "./languages";
+import {LanguageCode, match_language, ENGLISH} from "./language";
+import {ConditionCode, match_condition} from "./condition";
+import {BoardCode, match_board} from "./board";
 
 export class DeckCard {
 
     static REGEXP = new RegExp([
         '^',
-        '((?<quantity>\\d{1,3})x?\\s)?',
-        '(?<name>[^([^#*\\s]+(\\s+[^#*^[\\s]+)*?(\\s*\\(Used\\))?)?',
+        '((?<quantity>\\d{1,3})[x*×]?\\s)?',
+        '(?<name>[^([^#*]+?(\\s*\\(Used\\))?)?',
         '(\\((?<set>[0-9A-Z]{3,5})((:|\\)\\s*)(?<collector_number>[^)[(#*:\\s]+))?\\)?)?',
-        '(?<extra>([#*^[]|lang:).*)?',
+        '(?<extra>([#*^[]).*)?',
         '$'
     ].join('\\s*'), 'i');
 
     raw?: string;
 
-    quantity: number;
+    name?: string = null;
+    set?: string = null;
+    collector_number?: string = null;
+    language?: LanguageCode = ENGLISH;
 
-    name?: string;
-    set?: string;
-    collector_number?: string;
-    language?: string;
+    quantity: number = 1;
+    board: BoardCode = 'main';
     is_foil: boolean = false;
-
-    is_commander: boolean = false;
-    is_companion: boolean = false;
+    condition?: ConditionCode = null;
 
     tags: string[] = [];
 
-    card: Card = null;
+    card: Card;
+    card_lang: Card;
     not_found: boolean = false;
 
-    static parse(input: string): DeckCard {
+    constructor(card: Partial<DeckCard> = {}) {
+        Object.assign(this, card);
+    }
+
+    static parse(
+        input: string,
+        default_board: BoardCode = 'main',
+    ): DeckCard {
         const match = this.REGEXP.exec(input);
         if (!match) return null;
 
-        const card = new DeckCard();
-
-        card.raw = input;
-
         const {
             quantity = '1',
-            name,
-            set,
-            collector_number,
+            name = null,
+            set = null,
+            collector_number = null,
             extra,
         } = match.groups;
 
-        if (!name && !(set && collector_number)) return null;
+        const card = new DeckCard({
+            raw: input,
+            quantity: Number.parseInt(quantity),
+            name,
+            set: set?.toUpperCase() ?? null,
+            collector_number,
+            board: default_board,
+        });
 
-        card.quantity = Number.parseInt(quantity);
-        card.name = name;
-        card.set = set?.toLowerCase();
-        card.collector_number = collector_number?.toLowerCase();
+        if (!card.is_valid()) return null;
 
         if (extra) {
-            for (const match of extra.matchAll(/\*(?<tag>[A-Z ]+)\*/gi)) {
-                const {tag} = match.groups;
-                switch (tag.toLowerCase()) {
-                    case 'f':
+            let extra_left = extra;
+            while (extra_left) {
+                const match = extra_left.match(/^(\*(?<tag>[^*]+)\*)\s*/i)
+                    ?? extra_left.match(/^\[(?<tag>[^\]]+)]\s*/i)
+                    ?? extra_left.match(/^(\^(?<tag>[^^]+)\^)\s*/i)
+                    ?? extra_left.match(/^#(?<tag>[^#]+)\s*/i);
+
+                if (match) {
+                    extra_left = extra_left.slice(match[0].length);
+                    const {tag} = match.groups;
+
+                    const lang = match_language(tag);
+                    if (lang) {
+                        card.language = lang.code;
+                        continue;
+                    }
+
+                    const board = match_board(tag);
+                    if (board) {
+                        card.board = board.code;
+                        continue;
+                    }
+
+                    const condition = match_condition(tag);
+                    if (condition) {
+                        card.condition = condition.code;
+                        continue;
+                    }
+
+                    if (/^(foil|f)$/i.test(tag)) {
                         card.is_foil = true;
-                        break;
-                    case 'cmdr':
-                        card.is_commander = true;
-                        break;
-                    case 'cmpn':
-                        card.is_companion = true;
-                        break;
-                    default:
-                        const lang = get_language(tag);
-                        if (lang) {
-                            card.language = lang.codes[0];
-                        } else {
-                            card.tags.push(tag);
-                        }
+                        continue;
+                    }
+
+                    const hex_match = tag.match(/^(?<tag>.+),(?<hex>#[0-9a-f]{6})$/i);
+                    if (hex_match) {
+                        card.tags.push(hex_match.groups.tag);
+                        continue;
+                    }
+
+                    card.tags.push(tag);
+                    continue;
                 }
-            }
 
-            for (const match of extra.matchAll(/\[(?<tag>[A-Z ]+)]/gi)) {
-                const {tag} = match.groups;
-                card.tags.push(tag);
-            }
-
-            for (const match of extra.matchAll(/\^(?<tag>[A-Z ]+)(,#[0-9A-F]{6})?\^/gi)) {
-                const {tag} = match.groups;
-                card.tags.push(tag);
-            }
-
-            for (const match of extra.matchAll(/#(?<tag>[A-Z_ ]*[A-Z])/gi)) {
-                const {tag} = match.groups;
-                card.tags.push(tag);
+                break;
             }
         }
 
         return card;
+    }
+
+    is_valid(): boolean {
+        return Boolean(this.name || (this.set && this.collector_number));
     }
 
     identifier(): Identifier {
@@ -110,24 +133,47 @@ export class DeckCard {
         return null;
     }
 
-    async load(force: boolean = false): Promise<this> {
+    async load(): Promise<this> {
         const {name, set, collector_number, language} = this;
 
-        if (force) this.card = null;
-
         if (set && collector_number) {
-            if (language) this.card ??= await API.card(set, collector_number, language);
             this.card ??= await API.card(set, collector_number);
+
+            if (this.language !== ENGLISH) {
+                this.card ??= this.card_lang ??= await API.card(set, collector_number, language);
+            }
         }
 
         if (name) {
+            if (!/[A-Z]/i.test(name)) {
+                let query = `include:extras name:'${name}'`;
+                if (set) query += ` set:${set}`;
+                this.card ??= await API.find_card(query);
+            }
+
             if (set) this.card ??= await API.card_named(name, set);
             this.card ??= await API.card_named(name);
         }
 
-        if (!this.card) this.not_found = true;
+        if (this.card) {
+            if (this.language === ENGLISH) {
+                this.card_lang = this.card;
+            } else {
+                let query = `oracle_id:${this.card.oracle_id} lang:${language}`;
+                if (set) query += ` set:${set}`;
+                this.card_lang ??= await API.find_card(query);
+            }
+        } else {
+            this.not_found = true;
+        }
 
         return this.hydrate();
+    }
+
+    async reload(): Promise<this> {
+        this.card = null;
+        this.card_lang = null;
+        return this.load();
     }
 
     hydrate(card = this.card) {
@@ -136,8 +182,61 @@ export class DeckCard {
             this.name = card.layout === 'split'
                 ? card.name
                 : card.name.split(/\s*\/\//)[0];
+            if (this.set) this.set = card.set.toUpperCase();
+            if (this.collector_number) this.collector_number = card.collector_number;
         }
 
         return this;
+    }
+
+    matches(card: DeckCard) {
+        for (const field of [
+            ...this.collector_number ? [] : ['name'],
+            'set',
+            'collector_number',
+            'language',
+            'board',
+            'condition',
+            'is_foil',
+        ] as (keyof DeckCard)[]) {
+            if (this[field] !== card[field]) {
+                return false;
+            }
+        }
+
+        return this.tags.length === card.tags.length
+            && this.tags.every((tag) => card.tags.includes(tag));
+    }
+
+    to_string() {
+        let string = `${this.quantity} ${this.name}`;
+
+        if (this.set) {
+            string += this.collector_number
+                ? ` (${this.set}:${this.collector_number})`
+                : ` (${this.set})`;
+        }
+
+        if (this.language !== ENGLISH) {
+            string += ` *${this.language.toUpperCase()}*`;
+        }
+
+        if (this.is_foil) {
+            string += ` *F*`;
+        }
+
+        if (this.condition) {
+            string += ` *${this.condition.toUpperCase()}*`;
+        }
+
+        this.tags.forEach(tag => {
+            string += ` [${tag}]`;
+        });
+
+        return string;
+    }
+
+    toString() {
+        return this.to_string();
     }
 }

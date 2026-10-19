@@ -1,20 +1,10 @@
-import {DeckCard} from "./deck-card";
-import {test_card_parsing} from "./test/card-test";
-import {test_results} from "./test/assert";
-import {Deck} from "./deck";
+import {Test} from "./test/test";
+import {CardParseTest} from "./test/card-parse-test";
+import {CardLoadTest} from "./test/card-load-test";
+import {DeckParseTest} from "./test/deck-parse-test";
 
-test_card_parsing();
-
-test_results();
-
-// Deck.parse(`
-// hazmat suit
-// hazmat suit (used)
-// hazmat suit (ust)
-// hazmat suit (used) (ust)
-// hazmat suit (ust:57)
-// hazmat suit (used) (ust:57)
-// swamp (ust:57)
-// `)
-//     .load()
-//     .then(console.log);
+Promise.all([
+    CardParseTest.test(),
+    // CardLoadTest.test(),
+    DeckParseTest.test(),
+]).then(() => Test.log());

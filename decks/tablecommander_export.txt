@@ -1,0 +1,15 @@
+// Deck
+
+Commander
+4 Jace, Multiverse Architect
+1 Lightning Bolt
+
+Deck
+1 About Face
+1 Command Tower
+1 Arcane Signet
+1 Swiftfoot Boots
+1 Swords to Plowshares
+
+Sideboard
+1 Lightning Bolt

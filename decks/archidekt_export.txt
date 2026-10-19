@@ -1,0 +1,9 @@
+10x Black Lotus (2ed) 233 [Artifact]
+1x Esika, God of the Tree // The Prismatic Bridge (khm) 168 [Creature]
+1x Forest (plst) AKH-268 [Land]
+2x Island (plst) AKH-258 [Land]
+1x Lightning Bolt (a25) 141 [Instant]
+1x Nezumi Graverobber // Nighteyes the Desecrator (plst) CHK-129 [Creature]
+2x Sensei's Divining Top (ema) 232 *F* [Good Stuff] ^Don't Have,#f47373^
+2x Swamp (gk1) 25 [Land]
+1x Tovolar, Dire Overlord // Tovolar, the Midnight Scourge (mid) 311 [Commander{top}]

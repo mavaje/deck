@@ -29,25 +29,26 @@ export class API {
 
             API.LAST_REQUEST = now + timeout;
 
-            setTimeout(async () => {
-                const request = new XMLHttpRequest();
-                request.open(method, url);
-                request.setRequestHeader('Accept', 'application/json');
-                request.addEventListener('load', () => {
-                    const response: T | Error = JSON.parse(request.responseText);
-                    if (response.object !== 'error') {
-                        done(response as T);
-                    } else {
-                        console.error(response);
-                        done(null);
-                    }
-                });
-                if (body) {
-                    request.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
-                    request.send(JSON.stringify(body));
+            const request = new XMLHttpRequest();
+            request.open(method, url);
+            request.setRequestHeader('Accept', 'application/json');
+            request.addEventListener('load', () => {
+                const response: T | Error = JSON.parse(request.responseText);
+                if (response.object !== 'error') {
+                    done(response as T);
                 } else {
-                    request.send();
+                    console.error(response);
+                    done(null);
                 }
+            });
+
+            if (body) {
+                request.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
+            }
+
+            setTimeout(() => {
+                console.log(`${method} ${url}`);
+                request.send(body ? JSON.stringify(body) : undefined)
             }, timeout);
         });
     }
@@ -93,6 +94,7 @@ export class API {
         return this.get<Catalog>(this.url(`cards/autocomplete`, {q: name}));
     }
 
+    public static CARDS_MAX = 75;
     public static cards(
         identifiers: Identifier[],
     ): Promise<List<Card>> {
@@ -116,6 +118,12 @@ export class API {
         });
 
         return this.post<List<Card>>(this.url(`cards/collection`), {identifiers});
+    }
+
+    public static find_card(
+        query: string,
+    ): Promise<Card> {
+        return this.search_cards(query).then(list => list?.data[0]);
     }
 
     public static search_cards(

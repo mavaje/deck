@@ -1,0 +1,100 @@
+1 Jace, Multiverse Architect (FRC) 1
+1 Absolute Virtue (FIN) 212
+1 An Offer You Can't Refuse (FDN) 160
+1 Arcane Signet (MSC) 194
+1 Archfiend of Despair (FRC) 46
+1 Astral Dragon (CLB) 664
+1 Avacyn, Angel of Hope (INR) 477
+1 Avacyn, Angel of Horror (FRC) 7
+1 Azorius Signet (FRC) 53
+1 Battlefield Forge (FRC) 65
+1 Brainstorm (FRC) 39
+1 Brainsurge (FRC) 40
+1 Caves of Koilos (FRC) 66
+1 Chaos Warp (EOC) 49
+1 Chromatic Lantern (FRC) 54
+1 Clifftop Retreat (FRC) 67
+1 Command Tower (DRC) 60
+1 Contaminated Landscape (FRC) 68
+1 Cursed Mirror (FRC) 49
+1 Darksteel Angel (FRC) 13
+1 Despark (FRC) 50
+1 Dimir Signet (FRC) 56
+1 Displacer Kitten (PCLB) 63p
+1 Divergent Transformations (CMM) 216
+1 Dreadhorde Invasion (FRC) 48
+1 Drowned Catacomb (FRC) 69
+1 Elspeth, Sun's Champion (FRC) 24
+1 Exotic Orchard (FRC) 70
+1 Fabled Passage (FRC) 71
+1 Fellwar Stone (FRC) 57
+1 Fetid Heath (FRC) 72
+1 Flawless Maneuver (FRC) 25
+1 Galactus, Devourer of Worlds (MSC) 8
+1 Gisela, Blade of Goldnight (C15) 219
+1 Glacial Fortress (FRC) 73
+1 Grand Crescendo (FRC) 26
+1 Identity Echo (FRA) 87
+3 Island (THB) 251
+1 Isolated Chapel (FRC) 74
+1 Izzet Signet (FRC) 58
+1 Jin-Gitaxias, Progress Tyrant (NEO) 307
+1 Kefka, Dancing Mad (FIC) 84
+1 Kher Keep (FRC) 75
+1 Kozilek, Butcher of Truth (MM2) 5
+1 Lingering Souls (FRC) 27
+1 Martial Coup (MSC) 138
+1 Mass Polymorph (FRC) 42
+1 Megatron / Megatron (SLD) 1079 *F*
+1 Monica, the Marvel (MAR) 86
+2 Mountain (THB) 253
+1 Mystic Gate (FRC) 76
+1 Nezahal, Primal Tide (CMR) 401
+1 Nicol Bolas, Dragon-God (PWAR) 207p
+1 Nissa, Leyline Tamer (FRC) 2
+1 Oath of Teferi (DOM) 200
+1 Occult Epiphany (FRC) 43
+1 Optimus Prime / Optimus Prime (SLD) 1081 *F*
+1 Path of Ancestry (FRC) 77
+1 Path to Exile (FRC) 30
+1 Perilous Landscape (FRC) 78
+4 Plains (THB) 250
+1 Polymorph (9ED) 90
+1 Prairie Stream (FRC) 79
+1 Proteus Staff (FRC) 59
+1 Radiant Summit (FRC) 80
+1 Rakdos Signet (FRC) 60
+1 Reflecting Pool (FRC) 23
+1 Restless Anchorage (FRC) 81
+1 Restless Spire (FRC) 82
+1 Rune-Scarred Demon (IMA) 106
+1 Secure the Wastes (FRC) 31
+1 Shark Typhoon (FRC) 44
+1 Sheoldred, Whispering One (PNPH) 73★ *F*
+1 Shivan Reef (FRC) 83
+1 Skrelv's Hive (FRC) 33
+1 Sol Ring (MSC) 212
+1 Spark Double (RVR) 62
+1 Staff of the Storyteller (FRC) 34
+1 Sulfur Falls (FRC) 84
+1 Sulfurous Springs (FRC) 85
+1 Summon: Bahamut (FIN) 1
+1 Sunfall (FRC) 36
+1 Sunken Ruins (FRC) 86
+2 Swamp (THB) 252
+1 Swords to Plowshares (FRC) 37
+1 Synthetic Destiny (FRC) 45
+1 Talisman of Creativity (FRC) 61
+1 Talisman of Dominance (FRC) 62
+1 Talisman of Indulgence (FRC) 63
+1 Talisman of Progress (FRC) 64
+1 The Theorist, Jace Beleren (FRA) 43
+1 Toxrill, the Corrosive (VOW) 321
+1 Turbulent Crater (FRC) 16
+1 Turbulent Shore (FRC) 17
+1 Turbulent Wetlands (FRC) 18
+1 Ulamog, the Infinite Gyre (UMA) 7
+1 Underground River (FRC) 87
+1 Valgavoth, Terror Eater (PDSK) 120p
+1 White Sun's Twilight (FRC) 38
+1 Windcrag Siege (FRC) 52
