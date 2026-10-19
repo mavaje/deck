@@ -1,20 +1,21 @@
-export type BoardCode =
-    'commander' |
-    'companion' |
-    'main' |
-    'side' |
-    'maybe';
+export type BoardName =
+    'Commander' |
+    'Companion' |
+    'Deck' |
+    'Sideboard' |
+    'Maybeboard';
+
+export const DEFAULT_BOARD: BoardName = 'Deck';
 
 export class Board {
-    public codes: string[];
     private matcher: RegExp;
 
     constructor(
-        public code: BoardCode,
-        public name: string,
-        public alt_codes: string[],
+        public name: BoardName,
+        public codes: string[],
+        public count: boolean,
+        public max: number = null,
     ) {
-        this.codes = [code, ...alt_codes];
         const inner_re = this.codes
             .join('|')
             .replaceAll(' ', '.?');
@@ -27,16 +28,16 @@ export class Board {
 }
 
 export const BOARDS = [
-    new Board('commander', 'Commander', ['cmdr']),
-    new Board('companion', 'Companion', ['cmpn']),
-    new Board('main', 'Deck', ['main board', 'deck']),
-    new Board('side', 'Sideboard', ['side board', 'sb']),
-    new Board('maybe', 'Maybeboard', ['maybe board', 'mb']),
+    new Board('Commander', ['commander', 'cmdr'], true, 1),
+    new Board('Companion', ['companion', 'cmpn'], false, 1),
+    new Board('Deck', ['main board', 'main', 'deck'], true),
+    new Board('Sideboard', ['side board', 'side', 'sb'], false, 15),
+    new Board('Maybeboard', ['maybe board', 'maybe', 'mb'], false),
 ];
 
-export function match_board(code: string): Board {
+export function match_board(input: string): Board {
     for (const board of BOARDS) {
-        if (board.matches(code)) {
+        if (board.matches(input)) {
             return board;
         }
     }

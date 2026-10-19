@@ -35,7 +35,7 @@ lightning bolt
         this.assert_match(
             {
                 cards: [
-                    new DeckCard({quantity: 1, name: 'Jace, Multiverse Architect', board: 'commander'}),
+                    new DeckCard({quantity: 1, name: 'Jace, Multiverse Architect', board: 'Commander'}),
                     new DeckCard({quantity: 10, name: 'Black Lotus', set: '2ED', collector_number: '233', tags: ['Artifact']}),
                     new DeckCard({quantity: 1, name: 'Esika, God of the Tree // The Prismatic Bridge', set: 'KHM', collector_number: '168', tags: ['Creature']}),
                     new DeckCard({quantity: 1, name: 'Forest', set: 'PLST', collector_number: 'AKH-268', tags: ['Land']}),
@@ -44,8 +44,8 @@ lightning bolt
                     new DeckCard({quantity: 1, name: 'Nezumi Graverobber // Nighteyes the Desecrator', set: 'PLST', collector_number: 'CHK-129', tags: ['Creature']}),
                     new DeckCard({quantity: 2, name: 'Sensei\'s Divining Top', set: 'EMA', collector_number: '232', is_foil: true, tags: ['Good Stuff', 'Don\'t Have']}),
                     new DeckCard({quantity: 2, name: 'Swamp', set: 'GK1', collector_number: '25', tags: ['Land']}),
-                    new DeckCard({quantity: 1, name: 'Tovolar, Dire Overlord // Tovolar, the Midnight Scourge', set: 'MID', collector_number: '311', board: 'commander'}),
-                    new DeckCard({quantity: 2, name: 'lightning bolt', board: 'side'}),
+                    new DeckCard({quantity: 1, name: 'Tovolar, Dire Overlord // Tovolar, the Midnight Scourge', set: 'MID', collector_number: '311', board: 'Commander'}),
+                    new DeckCard({quantity: 2, name: 'lightning bolt', board: 'Sideboard'}),
                 ],
             },
             deck

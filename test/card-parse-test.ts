@@ -29,8 +29,8 @@ export class CardParseTest extends Test {
 
             // TappedOut
             '1x Llanowar Elves (M10)': new DeckCard({quantity: 1, name: 'Llanowar Elves', set: 'M10'}),
-            '1x Greven Il Vec *CMDR*': new DeckCard({quantity: 1, name: 'Greven Il Vec', board: 'commander'}),
-            '1x Gyruda, Doom of Depths *CMPN*': new DeckCard({quantity: 1, name: 'Gyruda, Doom of Depths', board: 'companion'}),
+            '1x Greven Il Vec *CMDR*': new DeckCard({quantity: 1, name: 'Greven Il Vec', board: 'Commander'}),
+            '1x Gyruda, Doom of Depths *CMPN*': new DeckCard({quantity: 1, name: 'Gyruda, Doom of Depths', board: 'Companion'}),
             '1x Mishra\'s Factory (ATQ:1074)': new DeckCard({quantity: 1, name: 'Mishra\'s Factory', set: 'ATQ', collector_number: '1074'}),
             '1x Llanowar Elves *GE*': new DeckCard({quantity: 1, name: 'Llanowar Elves', language: 'de'}),
             '1x Llanowar Elves *SL*': new DeckCard({quantity: 1, name: 'Llanowar Elves', condition: 'sl'}),
@@ -82,7 +82,14 @@ export class CardParseTest extends Test {
                 `Input "${input}" did not match expected fields`,
             );
 
-            console.log(card.to_string());
+            const card2 = DeckCard.parse(card.to_string({board: true}));
+
+            this.assert_match(
+                expected,
+                card2,
+                `Reparsing card did not change it`,
+                `Reparsing card changed it`,
+            );
         });
     }
 }

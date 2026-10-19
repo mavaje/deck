@@ -100,8 +100,8 @@ export class Test {
             test.assert_match(
                 expected.length,
                 (actual as any[])?.length,
-                `{actual} matches expected length`,
-                `{actual} does not match expected length of {expected}`,
+                `length {actual} matches expected`,
+                `length {actual} does not match expected length {expected}`,
             );
             expected.forEach((value, i) => {
                 test.assert_match(

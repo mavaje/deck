@@ -1,9 +1,10 @@
 import {Card, Catalog, Error, Identifier, List, SFObject} from "./types";
+import {DEFAULT_LANGUAGE, LanguageCode} from "../language";
 
 export class API {
     private static BASE_URL = 'https://api.scryfall.com';
-
     private static LAST_REQUEST = null;
+    private static TOO_MANY_REQUESTS: boolean = false;
 
     private static url(path: string, parameters: object = {}): string {
         let url = `${this.BASE_URL}/${path}`;
@@ -22,13 +23,9 @@ export class API {
         url: string,
         body?: any,
     ): Promise<T> {
+        if (this.TOO_MANY_REQUESTS) return null;
+
         return new Promise(done => {
-            const throttle = /\/cards\/(search|named|random|collection)/.test(url) ? 500 : 100;
-            const now = Date.now();
-            const timeout = Math.max(0, API.LAST_REQUEST - now + throttle);
-
-            API.LAST_REQUEST = now + timeout;
-
             const request = new XMLHttpRequest();
             request.open(method, url);
             request.setRequestHeader('Accept', 'application/json');
@@ -41,10 +38,20 @@ export class API {
                     done(null);
                 }
             });
+            request.addEventListener('error', () => {
+                this.TOO_MANY_REQUESTS = true;
+                done(null);
+            });
 
             if (body) {
                 request.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
             }
+
+            const throttle = /\/cards\/(search|named|random|collection)/.test(url) ? 500 : 100;
+            const now = Date.now();
+            const timeout = Math.max(0, API.LAST_REQUEST - now + throttle);
+
+            API.LAST_REQUEST = now + timeout;
 
             setTimeout(() => {
                 console.log(`${method} ${url}`);
@@ -61,14 +68,48 @@ export class API {
         return this.request('POST', url, payload);
     }
 
+    public static card_url(
+        set: string,
+        collector_number: string,
+        language?: LanguageCode,
+        parameters: object = {},
+    ): string {
+        return this.url(language !== DEFAULT_LANGUAGE
+            ? `cards/${set}/${collector_number}/${language}`
+            : `cards/${set}/${collector_number}`, parameters);
+    }
+
+    public static card_search_url(query: string, parameters: object = {}): string {
+        return this.url(`cards/search`, {q: query, ...parameters});
+    }
+
+    public static card_named_url(
+        name: string,
+        set?: string,
+        exact: boolean = false,
+        parameters: object = {},
+    ): string {
+        return this.url(`cards/named`, {
+            [exact ? 'exact' : 'fuzzy']: name,
+            set,
+            ...parameters,
+        });
+    }
+
+    public static card_random_url(parameters: object = {}): string {
+        return this.url(`cards/random`, parameters);
+    }
+
+    public static card_autocomplete_url(name: string, parameters: object = {}): string {
+        return this.url(`cards/autocomplete`, {q: name, ...parameters});
+    }
+
     public static card(
         set: string,
-        collector_number: number | string,
-        language?: string,
+        collector_number: string,
+        language?: LanguageCode,
     ): Promise<Card> {
-        return this.get<Card>(this.url(language
-            ? `cards/${set}/${collector_number}/${language}`
-            : `cards/${set}/${collector_number}`));
+        return this.get<Card>(this.card_url(set, collector_number, language));
     }
 
     public static card_named(
@@ -76,22 +117,19 @@ export class API {
         set?: string,
         exact: boolean = false,
     ): Promise<Card> {
-        return this.get<Card>(this.url(`cards/named`, {
-            [exact ? 'exact' : 'fuzzy']: name,
-            set,
-        }));
+        return this.get<Card>(this.card_named_url(name, set, exact));
     }
 
     public static random_card(
         query?: string,
-    ): Promise<List<Card>> {
-        return this.get<List<Card>>(this.url(`cards/random`, {q: query}));
+    ): Promise<Card> {
+        return this.get<Card>(this.card_random_url({q: query}));
     }
 
     public static card_autocomplete(
         name: string,
     ): Promise<Catalog> {
-        return this.get<Catalog>(this.url(`cards/autocomplete`, {q: name}));
+        return this.get<Catalog>(this.card_autocomplete_url(name));
     }
 
     public static CARDS_MAX = 75;
@@ -120,16 +158,16 @@ export class API {
         return this.post<List<Card>>(this.url(`cards/collection`), {identifiers});
     }
 
-    public static find_card(
-        query: string,
-    ): Promise<Card> {
-        return this.search_cards(query).then(list => list?.data[0]);
-    }
-
-    public static search_cards(
+    public static card_search(
         query: string,
     ): Promise<List<Card>> {
-        return this.get<List<Card>>(this.url(`cards/search`, {q: query}));
+        return this.get<List<Card>>(this.card_search_url(query));
+    }
+
+    public static card_search_first(
+        query: string,
+    ): Promise<Card> {
+        return this.card_search(query).then(list => list?.data[0]);
     }
 
     public static next_page<T extends List>(page: T): Promise<T> {

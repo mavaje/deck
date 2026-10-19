@@ -1,7 +1,7 @@
 import {DeckCard} from "./deck-card";
 import {Format} from "./format";
 import {API} from "./scryfall/api";
-import {Board, match_board} from "./board";
+import {BoardName, DEFAULT_BOARD, match_board} from "./board";
 
 export class Deck {
 
@@ -12,12 +12,12 @@ export class Deck {
         const deck = new Deck();
 
         let about_section: boolean = false;
-        let group_board: Board = null;
+        let group_board: BoardName = DEFAULT_BOARD;
 
         input.split('\n').forEach(line => {
             if (/^\s*$/.test(line)) {
                 about_section = false;
-                group_board = null;
+                group_board = DEFAULT_BOARD;
                 return;
             }
 
@@ -34,12 +34,12 @@ export class Deck {
 
                 const board = match_board(header);
                 if (board) {
-                    group_board = board;
+                    group_board = board.name;
                     return;
                 }
             }
 
-            const card = DeckCard.parse(line, group_board?.code);
+            const card = DeckCard.parse(line, group_board);
             if (card) {
                 deck.add(card);
             } else {

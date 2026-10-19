@@ -20,7 +20,7 @@ export type LanguageCode =
     'dw' |
     'tlh';
 
-export const ENGLISH: LanguageCode = 'en';
+export const DEFAULT_LANGUAGE: LanguageCode = 'en';
 
 export class Language {
     private matcher: RegExp;
@@ -36,8 +36,8 @@ export class Language {
         this.matcher = new RegExp(`^(${inner_re})$`, 'i');
     }
 
-    matches(code: string): boolean {
-        return this.matcher.test(code);
+    matches(input: string): boolean {
+        return this.matcher.test(input);
     }
 }
 
@@ -64,9 +64,9 @@ export const LANGUAGES = [
     new Language('tlh', 'Klingon', ['kl']),
 ];
 
-export function match_language(code: string): Language {
+export function match_language(input: string): Language {
     for (const lang of LANGUAGES) {
-        if (lang.matches(code)) {
+        if (lang.matches(input)) {
             return lang;
         }
     }
