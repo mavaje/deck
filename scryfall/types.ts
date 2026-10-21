@@ -1,5 +1,8 @@
 
 export type Color = 'W' | 'U' | 'B' | 'R' | 'G';
+export type ProducedColor = 'C' | Color;
+
+export const COLORS: Color[] = ['W', 'U', 'B', 'R', 'G'];
 
 export type Rarity = 'common' | 'uncommon' | 'rare' | 'mythic' | 'special' | 'bonus';
 
@@ -62,17 +65,18 @@ export interface Set extends SFObject<'set'> {
 }
 
 export interface CardImagery {
-    png?: string;
     small?: string;
     normal?: string;
     large?: string;
-    border_crop?: string;
+    png?: string;
     art_crop?: string;
+    border_crop?: string;
     thumb?: string;
     grid?: string;
     display?: string;
-    crop?: string;
     art?: string;
+    crop?: string;
+    jpeg?: string;
 }
 
 export interface Prices {
@@ -118,9 +122,15 @@ export interface RelatedCard extends SFObject<'related_card'> {
     uri: string;
 }
 
+export interface Preview {
+    previewed_at: string;
+    source_uri: string;
+    source: string;
+}
+
 export interface Card extends SFObject<'card'> {
     // core card fields
-    arena_id?: string;
+    arena_id?: number;
     id: string;
     lang: string;
     mtgo_id?: number;
@@ -129,7 +139,7 @@ export interface Card extends SFObject<'card'> {
     resource_id?: string;
     tcgplayer_id?: number;
     tcgplayer_etched_id?: number;
-    cardmarket_id?: string;
+    cardmarket_id?: number;
     layout: string;
     oracle_id?: string;
     prints_search_uri: string;
@@ -157,7 +167,7 @@ export interface Card extends SFObject<'card'> {
     oracle_text?: string;
     penny_rank?: number;
     power?: string;
-    produced_mana?: Color[];
+    produced_mana?: ProducedColor[];
     reserved: boolean;
     toughness?: string;
     type_line: string;
@@ -172,6 +182,8 @@ export interface Card extends SFObject<'card'> {
     collector_number: string;
     content_warning?: boolean;
     digital: boolean;
+    foil?: boolean;
+    nonfoil?: boolean;
     finishes: Finish[];
     flavor_name?: string;
     flavor_text?: string;
@@ -182,6 +194,7 @@ export interface Card extends SFObject<'card'> {
     highres_image: boolean;
     illustration_id?: string;
     image_status: string;
+    image_updated_at: string;
     image_uris?: CardImagery;
     oversized: boolean;
     prices: Prices;
@@ -189,7 +202,7 @@ export interface Card extends SFObject<'card'> {
     printed_text?: string;
     printed_type_line?: string;
     promo: boolean;
-    promo_types: string[];
+    promo_types?: string[];
     purchase_uris: Record<string, string>;
     rarity: Rarity;
     related_uris: Record<string, string>;
@@ -208,9 +221,7 @@ export interface Card extends SFObject<'card'> {
     variation_of?: string;
     security_stamp?: SecurityStamp;
     watermark?: string;
-    'preview.previewed_at'?: string;
-    'preview.source_uri'?: string;
-    'preview.source'?: string;
+    preview?: Preview;
 }
 
 export type Identifier = {

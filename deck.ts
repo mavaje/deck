@@ -2,45 +2,54 @@ import {DeckCard} from "./deck-card";
 import {Format} from "./format";
 import {API} from "./scryfall/api";
 import {BoardName, DEFAULT_BOARD, match_board} from "./board";
+import {validate} from "./deck-error";
+import {ColorIdentity} from "./color-identity";
 
 export class Deck {
 
     cards: DeckCard[] = [];
     format: Format;
 
+    static card_count(cards: DeckCard[]): number {
+        return cards.reduce((count, card) => count + card.quantity, 0);
+    }
+
     static parse(input: string) {
         const deck = new Deck();
 
-        let about_section: boolean = false;
         let group_board: BoardName = DEFAULT_BOARD;
+        let group_tag: string = null;
 
         input.split('\n').forEach(line => {
             if (/^\s*$/.test(line)) {
-                about_section = false;
                 group_board = DEFAULT_BOARD;
+                group_tag = null;
                 return;
             }
 
-            if (about_section) return;
+            if (/^about$/i.test(group_tag)) return;
 
-            const header_match = line.match(/^\s*(\/\/|#)?\s*(?<header>\w.*?):?(\s*\(\d+\):?)?\s*$/i);
+            const header_match = line.match(/^\s*(?<tag>\/\/|#)?\s*(?<header>\w.*?):?(\s*\(\d+\):?)?\s*$/i);
             if (header_match) {
-                const {header} = header_match.groups;
-
-                if (/^about$/i.test(header)) {
-                    about_section = true;
-                    return;
-                }
+                const {tag, header} = header_match.groups;
 
                 const board = match_board(header);
                 if (board) {
                     group_board = board.name;
                     return;
                 }
+
+                if (tag) {
+                    group_tag = header;
+                    return;
+                }
             }
 
             const card = DeckCard.parse(line, group_board);
             if (card) {
+                if (group_tag) {
+                    card.tags.push(group_tag);
+                }
                 deck.add(card);
             } else {
                 console.error(`Failed to parse line "${line}"`);
@@ -51,8 +60,15 @@ export class Deck {
     }
 
     async load(): Promise<this> {
-        for (let i = 0; i < this.cards.length; i += API.CARDS_MAX) {
-            const chunk = this.cards.slice(i, i + API.CARDS_MAX);
+        this.cards.forEach(card => card.load_from_cache());
+
+        const deck_cards = this.cards
+            .filter(card => !card.card && !card.not_found);
+
+        for (let i = 0; i < deck_cards.length; i += API.CARDS_MAX) {
+            const chunk = deck_cards.slice(i, i + API.CARDS_MAX);
+
+            if (chunk.length < 2) break;
 
             const cards = await API.cards(chunk.map(c => c.identifier()));
 
@@ -68,7 +84,7 @@ export class Deck {
             }
         }
 
-        await Promise.all(this.cards.map(card => card.load()));
+        await Promise.all(deck_cards.map(card => card.load()));
 
         return this;
     }
@@ -82,5 +98,34 @@ export class Deck {
         }
 
         this.cards.push(card);
+    }
+
+    count(board: BoardName): number;
+    count(...boards: BoardName[]): number;
+    count(...boards: BoardName[]): number {
+        return this.cards_on_board(...boards)
+            .reduce((count, card) => count + card.quantity, 0);
+    }
+
+    cards_on_board(board: BoardName): DeckCard[];
+    cards_on_board(...boards: BoardName[]): DeckCard[];
+    cards_on_board(...boards: BoardName[]): DeckCard[] {
+        return this.cards
+            .filter(card => card.quantity > 0 && card.on_board(...boards));
+    }
+
+    is_valid(): boolean {
+        return validate(this).length === 0;
+    }
+
+    color_identity(): ColorIdentity {
+        const commanders = this.cards_on_board('Commander');
+
+        if (commanders.length === 0) return null;
+
+        const color_identity = new ColorIdentity();
+        commanders.forEach(card => color_identity.add(card.color_identity()));
+
+        return color_identity;
     }
 }

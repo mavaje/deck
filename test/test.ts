@@ -5,7 +5,7 @@ export type DeepPartial<T> = {
     [K in keyof T]?: DeepPartial<T[K]>;
 };
 
-export type TestValue<T> = DeepPartial<{
+export type TestMatcher<T> = DeepPartial<{
     [K in keyof T]: T[K] extends string ? string | RegExp : T[K];
 }>;
 
@@ -131,7 +131,7 @@ export class Test {
     private counter(): TestCounter {
         const counter = new TestCounter();
         if (this.has_children()) {
-            return counter.accumulate(...this.children.map(test => test.counter()));
+            return counter.accumulate(this.children.map(test => test.counter()));
         } else {
             return counter.add(this.passes());
         }

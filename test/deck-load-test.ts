@@ -1,4 +1,4 @@
-import {Test, TestValue} from "./test";
+import {Test, TestMatcher} from "./test";
 import {Deck} from "../deck";
 
 export class DeckLoadTest extends Test {
@@ -9,6 +9,8 @@ export class DeckLoadTest extends Test {
     async test(): Promise<void> {
         const input = `
 forest
+forest (ktk)
+forest (ktk:267)
 forest *FR*
 _____
 ______
@@ -19,12 +21,14 @@ ______
         this.assert_match(
             {
                 cards: [
-                    {card: {oracle_id: 'b34bb2dc-c1af-4d77-b0b3-a0fb342a5fc6'}},
-                    {card: {oracle_id: 'b34bb2dc-c1af-4d77-b0b3-a0fb342a5fc6', lang: 'fr'}},
-                    {card: {oracle_id: '4e536142-4ebe-4062-887b-5dd123c41d39'}},
-                    {card: {oracle_id: '571ccaf0-d2a0-46d3-af4b-14245a9a79ff'}},
+                    {card: {name: 'Forest'}},
+                    {card: {name: 'Forest', set: 'ktk'}},
+                    {card: {name: 'Forest', set: 'ktk', collector_number: '267'}},
+                    {card: {name: 'Forest', lang: 'fr'}},
+                    {card: {name: '_____'}},
+                    {card: {name: '______'}},
                 ],
-            } as TestValue<Deck>,
+            } as TestMatcher<Deck>,
             deck
         );
     }

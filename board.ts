@@ -3,7 +3,12 @@ export type BoardName =
     'Companion' |
     'Deck' |
     'Sideboard' |
-    'Maybeboard';
+    'Maybeboard' |
+    'Acquireboard' |
+    'Planar Deck' |
+    'Contraption Deck' |
+    'Attraction Deck' |
+    'Stickers';
 
 export const DEFAULT_BOARD: BoardName = 'Deck';
 
@@ -13,12 +18,12 @@ export class Board {
     constructor(
         public name: BoardName,
         public codes: string[],
-        public count: boolean,
-        public max: number = null,
+        public min_count?: number,
     ) {
         const inner_re = this.codes
             .join('|')
-            .replaceAll(' ', '.?');
+            .replaceAll(' ', '.?')
+            .replaceAll(/s$/g, 's?');
         this.matcher = new RegExp(`^(${inner_re})({top})?$`, 'i');
     }
 
@@ -28,11 +33,16 @@ export class Board {
 }
 
 export const BOARDS = [
-    new Board('Commander', ['commander', 'cmdr'], true, 1),
-    new Board('Companion', ['companion', 'cmpn'], false, 1),
-    new Board('Deck', ['main board', 'main', 'deck'], true),
-    new Board('Sideboard', ['side board', 'side', 'sb'], false, 15),
-    new Board('Maybeboard', ['maybe board', 'maybe', 'mb'], false),
+    new Board('Commander', ['commander', 'cmdr']),
+    new Board('Companion', ['companion', 'cmpn']),
+    new Board('Deck', ['main board', 'main', 'main deck', 'deck']),
+    new Board('Sideboard', ['side board', 'side', 'sb']),
+    new Board('Maybeboard', ['maybe board', 'maybe', 'mb']),
+    new Board('Acquireboard', ['acquire board']),
+    new Board('Planar Deck', ['planar deck', 'planar', 'planes'], 10),
+    new Board('Contraption Deck', ['contraption deck', 'contraptions'], 15),
+    new Board('Attraction Deck', ['attraction deck', 'attractions'], 10),
+    new Board('Stickers', ['sticker deck', 'stickers'], 10),
 ];
 
 export function match_board(input: string): Board {

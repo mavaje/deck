@@ -14,7 +14,7 @@ export class TestCounter {
         return this;
     }
 
-    accumulate(...counters: TestCounter[]) {
+    accumulate(counters: TestCounter[]) {
         counters.forEach(counter => {
             this.count += counter.count;
             this.passes += counter.passes;

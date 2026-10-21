@@ -1,10 +1,14 @@
 import {Card, Catalog, Error, Identifier, List, SFObject} from "./types";
 import {DEFAULT_LANGUAGE, LanguageCode} from "../language";
+import {Cache} from "./cache";
+import {normalise, normalise_set} from "../text";
 
 export class API {
     private static BASE_URL = 'https://api.scryfall.com';
     private static LAST_REQUEST = null;
     private static TOO_MANY_REQUESTS: boolean = false;
+
+    public static CACHE = new Cache<SFObject>();
 
     private static url(path: string, parameters: object = {}): string {
         let url = `${this.BASE_URL}/${path}`;
@@ -25,6 +29,11 @@ export class API {
     ): Promise<T> {
         if (this.TOO_MANY_REQUESTS) return null;
 
+        const can_cache = method === 'GET' && !body;
+        if (can_cache && this.CACHE.has(url)) {
+            return this.CACHE.get(url) as T;
+        }
+
         return new Promise(done => {
             const request = new XMLHttpRequest();
             request.open(method, url);
@@ -32,6 +41,7 @@ export class API {
             request.addEventListener('load', () => {
                 const response: T | Error = JSON.parse(request.responseText);
                 if (response.object !== 'error') {
+                    if (can_cache) this.CACHE.put(url, response);
                     done(response as T);
                 } else {
                     console.error(response);
@@ -61,11 +71,11 @@ export class API {
     }
 
     private static async get<T extends SFObject>(url: string): Promise<T> {
-        return this.request('GET', url);
+        return this.request<T>('GET', url);
     }
 
     private static async post<T extends SFObject>(url: string, payload: any): Promise<T> {
-        return this.request('POST', url, payload);
+        return this.request<T>('POST', url, payload);
     }
 
     public static card_url(
@@ -74,13 +84,10 @@ export class API {
         language?: LanguageCode,
         parameters: object = {},
     ): string {
+        set = normalise_set(set);
         return this.url(language !== DEFAULT_LANGUAGE
             ? `cards/${set}/${collector_number}/${language}`
             : `cards/${set}/${collector_number}`, parameters);
-    }
-
-    public static card_search_url(query: string, parameters: object = {}): string {
-        return this.url(`cards/search`, {q: query, ...parameters});
     }
 
     public static card_named_url(
@@ -89,6 +96,8 @@ export class API {
         exact: boolean = false,
         parameters: object = {},
     ): string {
+        name = normalise(name);
+        set = normalise_set(set);
         return this.url(`cards/named`, {
             [exact ? 'exact' : 'fuzzy']: name,
             set,
@@ -100,7 +109,12 @@ export class API {
         return this.url(`cards/random`, parameters);
     }
 
+    public static card_search_url(query: string, parameters: object = {}): string {
+        return this.url(`cards/search`, {q: query, ...parameters});
+    }
+
     public static card_autocomplete_url(name: string, parameters: object = {}): string {
+        name = normalise(name);
         return this.url(`cards/autocomplete`, {q: name, ...parameters});
     }
 
