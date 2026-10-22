@@ -4,7 +4,6 @@ import {CardLoadTest} from "./test/card-load-test";
 import {DeckParseTest} from "./test/deck-parse-test";
 import {DeckLoadTest} from "./test/deck-load-test";
 import {DeckValidationTest} from "./test/deck-validation-test";
-import {Cache} from "./scryfall/cache";
 import {load_api_cache} from "./test/fixtures/api-cache-fixture";
 import {API} from "./scryfall/api";
 import {TextNormaliseTest} from "./test/text-normalise-test";
@@ -16,14 +15,14 @@ load_card_cache();
 load_api_cache();
 
 Promise.all([
-    // TextNormaliseTest.test(),
-    // TextWordsToNumberTest.test(),
-    // CardParseTest.test(),
-    // CardLoadTest.test(),
-    // DeckParseTest.test(),
-    // DeckLoadTest.test(),
+    TextNormaliseTest.test(),
+    TextWordsToNumberTest.test(),
+    CardParseTest.test(),
+    CardLoadTest.test(),
+    DeckParseTest.test(),
+    DeckLoadTest.test(),
     DeckValidationTest.test(),
-]).then(() => {
+]).finally(() => {
     Test.log();
     API.CACHE.dump();
     DeckCard.CACHE.dump();

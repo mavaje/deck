@@ -30,15 +30,6 @@ export class Format {
             || this.has_brawler
             || this.has_oathbreaker;
     }
-
-    command_count(): number {
-        return [
-            this.has_commander,
-            this.has_brawler,
-            this.has_oathbreaker,
-            this.has_signature_spell,
-        ].reduce((count, has) => count + (has ? 1 : 0), 0);
-    }
 }
 
 export const FORMATS = [

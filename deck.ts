@@ -2,7 +2,6 @@ import {DeckCard} from "./deck-card";
 import {Format} from "./format";
 import {API} from "./scryfall/api";
 import {BoardName, DEFAULT_BOARD, match_board} from "./board";
-import {validate} from "./deck-error";
 import {ColorIdentity} from "./color-identity";
 
 export class Deck {
@@ -12,6 +11,15 @@ export class Deck {
 
     static card_count(cards: DeckCard[]): number {
         return cards.reduce((count, card) => count + card.quantity, 0);
+    }
+
+    static copy_counts(cards: DeckCard[]): Record<string, number> {
+        const copy_counts: Record<string, number> = {};
+        cards.forEach(card => {
+            copy_counts[card.name] ??= 0;
+            copy_counts[card.name] += card.quantity;
+        });
+        return copy_counts;
     }
 
     static parse(input: string) {
@@ -39,7 +47,7 @@ export class Deck {
                     return;
                 }
 
-                if (tag) {
+                if (tag || /^about$/i.test(header)) {
                     group_tag = header;
                     return;
                 }
@@ -71,6 +79,7 @@ export class Deck {
             if (chunk.length < 2) break;
 
             const cards = await API.cards(chunk.map(c => c.identifier()));
+            if (!cards) break;
 
             let index = 0;
             for (const card of chunk) {
@@ -91,9 +100,14 @@ export class Deck {
 
     add(card: DeckCard) {
         for (const existing_card of this.cards) {
-            if (existing_card.matches(card) && existing_card.quantity + card.quantity < 1000) {
-                existing_card.quantity += card.quantity;
-                return;
+            if (existing_card.matches(card)) {
+                if (existing_card.quantity + card.quantity > 999) {
+                    card.quantity += existing_card.quantity - 999;
+                    existing_card.quantity = 999;
+                } else {
+                    existing_card.quantity += card.quantity;
+                    return;
+                }
             }
         }
 
@@ -103,8 +117,7 @@ export class Deck {
     count(board: BoardName): number;
     count(...boards: BoardName[]): number;
     count(...boards: BoardName[]): number {
-        return this.cards_on_board(...boards)
-            .reduce((count, card) => count + card.quantity, 0);
+        return Deck.card_count(this.cards_on_board(...boards));
     }
 
     cards_on_board(board: BoardName): DeckCard[];
@@ -112,10 +125,6 @@ export class Deck {
     cards_on_board(...boards: BoardName[]): DeckCard[] {
         return this.cards
             .filter(card => card.quantity > 0 && card.on_board(...boards));
-    }
-
-    is_valid(): boolean {
-        return validate(this).length === 0;
     }
 
     color_identity(): ColorIdentity {

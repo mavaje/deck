@@ -35,14 +35,16 @@ export class RuleBreak {
     }
 
     breaks_color_identity(card: DeckCard): boolean {
+        if (card.card.cmc < this.min_mv) return false;
+
+        if (this.types && !card.is_any_type(this.types)) return false;
+
         switch (this.rulebreak) {
             case 'additional-color-id':
-                return !this.used
-                    && (!this.types || this.types.some(type_set => card.is_type(...type_set)));
+                return !this.used;
 
             case 'any-color-id':
-                return this.types.some(type_set => card.is_type(...type_set))
-                    && this.min_mv <= card.card.cmc;
+                return true;
 
             default:
                 return false;

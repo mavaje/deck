@@ -3,8 +3,8 @@ import {words_to_number} from "../text";
 
 export class TextWordsToNumberTest extends Test {
 
-    protected pass_message: string = 'Passed all {count} text tests';
-    protected fail_message: string = 'Passed {passes}/{count} text tests (failed {fails})';
+    protected pass_message: string = 'Passed all {count} word to number tests';
+    protected fail_message: string = 'Passed {passes}/{count} word to number tests (failed {fails})';
 
     async test(): Promise<void> {
         Object.entries({

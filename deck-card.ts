@@ -1,4 +1,4 @@
-import {Card, CardImagery, Identifier, Legality} from "./scryfall/types";
+import {Card, CardFace, CardImagery, Identifier, Legality} from "./scryfall/types";
 import {API} from "./scryfall/api";
 import {LanguageCode, match_language, DEFAULT_LANGUAGE} from "./language";
 import {ConditionCode, match_condition} from "./condition";
@@ -146,7 +146,7 @@ export class DeckCard {
         if (this.set && this.collector_number) {
             keys.push(`(${this.set}:${this.collector_number}:${this.language})`);
         } else if (this.name) {
-            if (this.card) keys.push(`(${this.card.set.toUpperCase()}:${this.card.collector_number}:${this.card.lang})`);
+            // if (this.card) keys.push(`(${this.card.set.toUpperCase()}:${this.card.collector_number}:${this.card.lang})`);
             keys.push(`${normalise(this.name)} (${this.set ?? ''}::${this.language})`);
         }
 
@@ -169,7 +169,7 @@ export class DeckCard {
 
     card_image_url(format: keyof CardImagery = 'grid'): string {
         if (this.card) {
-            return this.card.image_uris[format];
+            return this.card.image_uris?.[format] ?? null;
         } else if (!this.not_found) {
             const {name, set, collector_number, language} = this;
             const parameters = {format: 'image', version: format};
@@ -226,7 +226,7 @@ export class DeckCard {
         return this.load();
     }
 
-    hydrate(card = this.card, cache: boolean = true) {
+    hydrate(card = this.card) {
         if (card) {
             this.card = card;
 
@@ -281,10 +281,31 @@ export class DeckCard {
         return this.card?.layout === layout;
     }
 
+    front_card(): Card | CardFace {
+        return this.card?.card_faces?.[0] ?? this.card ?? null;
+    }
+
     is_type(type: string): boolean;
     is_type(...types: string[]): boolean;
     is_type(...types: string[]): boolean {
-        return this.card && types.every(type => new RegExp(`\\b${type}\\b`, 'i').test(this.card.type_line));
+        if (!this.card) return false;
+        return types.every(type => new RegExp(`\\b${type}\\b`, 'i')
+            .test(this.front_card().type_line));
+    }
+
+    is_any_type(types: (string | string[])[]): boolean {
+        return types.some(type => this.is_type(...Array.isArray(type) ? type : [type]));
+    }
+
+    is_permanent(): boolean {
+        return this.is_any_type([
+            'Artifact',
+            'Battle',
+            'Creature',
+            'Enchantment',
+            'Land',
+            'Planeswalker',
+        ]);
     }
 
     has_keyword(keyword: string): boolean {
@@ -294,7 +315,7 @@ export class DeckCard {
     is_basic_land(): boolean {
         return this.card
             ? this.is_type('Basic', 'Land')
-            : DeckCard.BASIC_LAND_REGEXP.test(this.name);
+            : this.name && DeckCard.BASIC_LAND_REGEXP.test(this.name);
     }
 
     can_command(format: Format): boolean {
@@ -304,7 +325,7 @@ export class DeckCard {
     }
 
     can_be_commander(): boolean {
-        return Boolean(this.is_type('Legendary') && this.card.power && this.card.toughness)
+        return Boolean(this.is_type('Legendary') && this.front_card().power && this.front_card().toughness)
             || /~ can be your commander\./.test(this.plain_oracle());
     }
 
@@ -342,7 +363,7 @@ export class DeckCard {
     }
 
     plain_oracle(): string {
-        return this.card?.oracle_text.replaceAll(this.card.name, '~');
+        return this.front_card()?.oracle_text.replaceAll(this.front_card().name, '~');
     }
 
     copy_limit(format?: Format): number {
@@ -414,7 +435,7 @@ export class DeckCard {
         const breaks: RuleBreak[] = [];
 
         const additional_color_id_match =
-            oracle.match(/If ~ is your commander, choose a color before the game begins. ~ is the chosen color./) ??
+            oracle.match(/If ~ is your commander, choose a color before the game begins. ~ is the chosen color\./) ??
             oracle.match(/If ~ is your commander, the color identity of (?<type_1>[\w\s]+) cards in your deck can include one color of your choice not in your commander's color identity, and your deck can have any (?<type_2>[\w\s]+) cards\./);
         if (additional_color_id_match) {
             const {

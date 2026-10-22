@@ -91,15 +91,15 @@ export interface Prices {
 
 export interface CardFace extends SFObject<'card_face'> {
     artist?: string;
-    artist_ids?: string[];
-    cmc: number;
+    artist_id?: string;
+    cmc?: number;
     color_indicator?: Color[];
     colors?: Color[];
     defense?: string;
     flavor_text?: string;
     illustration_id?: string;
     image_uris?: CardImagery;
-    layout: string;
+    layout?: string;
     loyalty?: string;
     mana_cost: string;
     name: string;
@@ -178,7 +178,7 @@ export interface Card extends SFObject<'card'> {
     attraction_lights?: number[];
     booster: boolean;
     border_color: string;
-    card_back_id: string;
+    card_back_id?: string;
     collector_number: string;
     content_warning?: boolean;
     digital: boolean;

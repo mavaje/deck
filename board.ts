@@ -1,3 +1,5 @@
+import {DeckCard} from "./deck-card";
+
 export type BoardName =
     'Commander' |
     'Companion' |
@@ -5,10 +7,12 @@ export type BoardName =
     'Sideboard' |
     'Maybeboard' |
     'Acquireboard' |
-    'Planar Deck' |
-    'Contraption Deck' |
+    'Sticker Deck' |
     'Attraction Deck' |
-    'Stickers';
+    'Contraption Deck' |
+    'Planar Deck' |
+    'Scheme Deck' |
+    'Vanguard';
 
 export const DEFAULT_BOARD: BoardName = 'Deck';
 
@@ -18,7 +22,10 @@ export class Board {
     constructor(
         public name: BoardName,
         public codes: string[],
-        public min_count?: number,
+        public non_standard: boolean = false,
+        public min_count: number = 0,
+        public copy_limit: number = null,
+        public card_types: string[] = null,
     ) {
         const inner_re = this.codes
             .join('|')
@@ -39,10 +46,12 @@ export const BOARDS = [
     new Board('Sideboard', ['side board', 'side', 'sb']),
     new Board('Maybeboard', ['maybe board', 'maybe', 'mb']),
     new Board('Acquireboard', ['acquire board']),
-    new Board('Planar Deck', ['planar deck', 'planar', 'planes'], 10),
-    new Board('Contraption Deck', ['contraption deck', 'contraptions'], 15),
-    new Board('Attraction Deck', ['attraction deck', 'attractions'], 10),
-    new Board('Stickers', ['sticker deck', 'stickers'], 10),
+    new Board('Sticker Deck', ['sticker deck', 'stickers'], true, 10, 1, ['Stickers']),
+    new Board('Attraction Deck', ['attraction deck', 'attractions'], true, 10, 1, ['Attraction']),
+    new Board('Contraption Deck', ['contraption deck', 'contraptions'], true, 15, 1, ['Contraption']),
+    new Board('Planar Deck', ['planar deck', 'planar', 'planes'], true, 10, 1, ['Plane', 'Phenomenon']),
+    new Board('Scheme Deck', ['scheme deck', 'scheme', 'archenemy'], true, 20, 2, ['Scheme']),
+    new Board('Vanguard', ['vanguard'], true, 1, null, ['Vanguard']),
 ];
 
 export function match_board(input: string): Board {
@@ -53,4 +62,20 @@ export function match_board(input: string): Board {
     }
 
     return null;
+}
+
+export function switch_board(card: DeckCard) {
+    for (const board_name of [
+        'Planar Deck',
+        'Contraption Deck',
+        'Attraction Deck',
+        'Sticker Deck',
+        'Deck',
+    ] as BoardName[]) {
+        const board = match_board(board_name);
+        if (board.card_types.some(type => card.is_type(type))) {
+            card.board = board_name;
+            return;
+        }
+    }
 }

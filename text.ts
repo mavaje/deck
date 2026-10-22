@@ -74,7 +74,8 @@ export function normalise(text: string, uppercase: boolean = false, strip: RegEx
         : text.toLowerCase())
         .normalize('NFKD')
         .replaceAll('æ', 'ae')
-        .replaceAll(strip, '');
+        .replaceAll(strip, '')
+        .replaceAll(/\s+/g, ' ');
 }
 
 export function normalise_set(set: string, uppercase: boolean = false): string {
