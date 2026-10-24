@@ -1,7 +1,9 @@
 import {DeckCard} from "./deck-card";
 import {Deck} from "./deck";
 import {Format} from "./format";
-import {BOARDS, match_board} from "./board";
+import {Catalog} from "./scryfall/catalog";
+import {words_to_number} from "./text";
+import {Board} from "./designation/board";
 
 export type DeckErrorType =
     'too-few-cards' |
@@ -38,12 +40,12 @@ export class DeckValidator {
         const errors: DeckError[] = [];
 
         if (format) {
-            const commanders = this.deck.cards_on_board('Commander');
-            const commander_count = this.deck.count('Commander');
+            const commanders = this.deck.cards_on_board(Board.commander);
+            const commander_count = this.deck.count(Board.commander);
 
             const rulebreaks = commanders.flatMap(commander => commander.rulebreaks());
 
-            const card_count = this.deck.count('Commander', 'Deck');
+            const card_count = this.deck.count(...Board.COMPRISES_DECK);
             if (card_count < format.min_cards()) {
                 errors.push({
                     type: 'too-few-cards',
@@ -56,12 +58,12 @@ export class DeckValidator {
                 });
             }
 
-            const sideboard_count = this.deck.count('Sideboard');
+            const sideboard_count = this.deck.count(Board.sideboard);
             if (sideboard_count > format.sideboard_limit) {
                 errors.push({
                     type: 'too-many-sideboard-cards',
                     message: `You have ${sideboard_count} cards in your sideboard, you can have up to ${format.sideboard_limit}`,
-                    cards: this.deck.cards_on_board('Sideboard'),
+                    cards: this.deck.cards_on_board(Board.sideboard),
                 });
             }
 
@@ -114,7 +116,7 @@ export class DeckValidator {
                 }
             }
 
-            this.deck.cards_on_board('Companion').forEach(card => {
+            this.deck.cards_on_board(Board.companion).forEach(card => {
                 errors.push(...this.companion_errors(card));
             });
 
@@ -122,7 +124,7 @@ export class DeckValidator {
 
             const copy_counts: Record<string, number> = {};
             this.deck.cards.forEach(card => {
-                if (match_board(card.board).non_standard) return;
+                if (card.board.non_standard) return;
 
                 if (!card.is_legal(format)) {
                     errors.push({
@@ -154,12 +156,7 @@ export class DeckValidator {
                     }
                 }
 
-                if (card.on_board(
-                    'Commander',
-                    'Companion',
-                    'Deck',
-                    'Sideboard',
-                )) {
+                if (card.on_board(...Board.LIMITED_COPIES)) {
                     copy_counts[card.name] ??= 0;
                     copy_counts[card.name] += card.quantity;
 
@@ -176,18 +173,18 @@ export class DeckValidator {
                 }
             });
 
-            BOARDS.forEach(board => {
+            Board.all().forEach(board => {
                 if (!board.non_standard) return;
 
-                const board_cards = this.deck.cards_on_board(board.name);
+                const board_cards = this.deck.cards_on_board(board);
                 const board_count = Deck.card_count(board_cards);
 
                 if (board_count === 0) return;
 
-                if (board_count < board.min_count) {
+                if (board_count < board.min_cards) {
                     errors.push({
                         type: 'too-few-cards',
-                        message: `You must have at least ${board.min_count} card in a ${board.name.toLowerCase()}`,
+                        message: `You must have at least ${board.min_cards} card in a ${board.name.toLowerCase()}`,
                         cards: board_cards,
                     });
                 }
@@ -220,7 +217,7 @@ export class DeckValidator {
                 }
             });
 
-            const phenomena = this.deck.cards_on_board('Planar Deck')
+            const phenomena = this.deck.cards_on_board(Board.planar)
                 .filter(card => card.is_type('Phenomenon'));
             if (Deck.card_count(phenomena) > 2) {
                 errors.push({
@@ -242,20 +239,22 @@ export class DeckValidator {
 
         const {ability} = companion_match.groups;
 
-        let cards: DeckCard[] = this.deck.cards_on_board('Commander', 'Deck');
+        let cards: DeckCard[] = this.deck.cards_on_board(...Board.COMPRISES_DECK);
 
-        const mana_value_match = ability.match(/Your starting deck contains only (?<description>cards with ((?<parity>even|odd) )?mana values?( (?<min>\d+) or greater| (?<max>\d+) or less)?(?<lands> and land cards)?)\./);
+        const mana_value_match = ability.match(/Your starting deck contains only (?<description>cards with ((?<parity>even|odd) )?mana values?( (?<mv>\d+) or (?<dir>less|greater))?(?<lands> and land cards)?)\./);
         if (mana_value_match) {
-            const {parity, min, max, lands, description} = mana_value_match.groups;
+            const {parity, mv, dir, lands, description} = mana_value_match.groups;
 
             if (parity) {
                 cards = cards.filter(card => card.front_card()?.cmc % 2 !== (parity === 'even' ? 0 : 1));
             }
 
-            if (min) {
-                cards = cards.filter(card => card.front_card()?.cmc < parseInt(min));
-            } else if (max) {
-                cards = cards.filter(card => card.front_card()?.cmc > parseInt(max));
+            if (mv) {
+                if (dir === 'less') {
+                    cards = cards.filter(card => card.front_card()?.cmc > parseInt(mv));
+                } else {
+                    cards = cards.filter(card => card.front_card()?.cmc < parseInt(mv));
+                }
             }
 
             if (lands) {
@@ -284,9 +283,24 @@ export class DeckValidator {
                 : [];
         }
 
+        const deck_size_match = ability.match(/Your starting deck contains at least (?<count>\w+|\d+) cards? more than the minimum deck size\./);
+        if (deck_size_match) {
+            const {count: count_string} = deck_size_match.groups;
+            const count = words_to_number(count_string) ?? Number.parseInt(count_string);
+
+            return Deck.card_count(cards) < this.format.min_cards() + count
+                ? [{
+                    type: 'companion-restriction-error',
+                    message: `You must have ${count} more cards in a deck with this companion`,
+                }]
+                : [];
+        }
+
         const each_card_match = ability.match(/Each ((?<type>\w+) )?card in your starting deck (?<quality>[^.]+)\./);
         if (each_card_match) {
             const {type, quality} = each_card_match.groups;
+
+            const each_card = `Each ${type ? `${type} ` : ''}card`;
 
             if (type === 'permanent') {
                 cards = cards.filter(card => card.is_permanent());
@@ -308,18 +322,95 @@ export class DeckValidator {
                 return cards.length > 0
                     ? [{
                         type: 'companion-restriction-error',
-                        message: `Each ${type ? `${type} ` : ''}card must be a ${joined_types} card with this companion`,
+                        message: `${each_card} must be a ${joined_types} card with this companion`,
                         cards,
                     }]
                     : [];
             }
 
-            console.log(`"${quality}"`);
+            const mv_match = quality.match(/has mana value (?<mv>\d+) or (?<dir>less|greater)/);
+            if (mv_match) {
+                const {mv, dir} = mv_match.groups;
+
+                if (mv) {
+                    if (dir === 'less') {
+                        cards = cards.filter(card => card.front_card()?.cmc > parseInt(mv));
+                    } else {
+                        cards = cards.filter(card => card.front_card()?.cmc < parseInt(mv));
+                    }
+                }
+
+                return cards.length > 0
+                    ? [{
+                        type: 'companion-restriction-error',
+                        message: `${each_card} must have mana value ${mv} or ${dir}`,
+                        cards,
+                    }]
+                    : [];
+            }
+
+            const unique_match = quality.match(/has a different name/);
+            if (unique_match) {
+                const copy_counts = Deck.copy_counts(cards);
+
+                cards = cards.filter(card => copy_counts[card.name] > 1);
+
+                return cards.length > 0
+                    ? [{
+                        type: 'companion-restriction-error',
+                        message: `${each_card} must have a different name`,
+                        cards,
+                    }]
+                    : [];
+            }
+
+            const shared_type_match = quality.match(/shares a card type/);
+            if (shared_type_match) {
+                let types: string[] = Catalog.card_types.all();
+
+                cards = cards.filter(card => {
+                    if (card.card_types().some(type => types.includes(type))) {
+                        types = types.filter(type => card.card_types().includes(type));
+                        return false;
+                    } else {
+                        return true;
+                    }
+                });
+
+                return cards.length > 0
+                    ? [{
+                        type: 'companion-restriction-error',
+                        message: `${each_card} must share a card type`,
+                        cards,
+                    }]
+                    : [];
+            }
+
+            const activated_ability_match = quality.match(/has an activated ability/);
+            if (activated_ability_match) {
+                cards = cards.filter(card => !card.plain_oracle().match(/(^|\n)[^"]+:/));
+
+                cards = cards.filter(card => !card.is_any_type([
+                    'Plains',
+                    'Island',
+                    'Swamp',
+                    'Mountain',
+                    'Forest',
+                ]));
+
+                cards = cards.filter(card => !card.card?.keywords.some(kw => Catalog.keyword_abilities.lookup(kw) === 'activated'));
+
+                return cards.length > 0
+                    ? [{
+                        type: 'companion-restriction-error',
+                        message: `${each_card} must have an activated ability`,
+                        cards,
+                    }]
+                    : [];
+            }
 
             return [];
         }
-
-        console.log(ability);
 
         return [];
     }

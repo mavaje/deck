@@ -1,7 +1,7 @@
 import {Card, Catalog, Error, Identifier, List, SFObject} from "./types";
-import {DEFAULT_LANGUAGE, LanguageCode} from "../language";
 import {Cache} from "./cache";
 import {normalise, normalise_set} from "../text";
+import {Language} from "../designation/language";
 
 export class API {
     private static BASE_URL = 'https://api.scryfall.com';
@@ -81,11 +81,11 @@ export class API {
     public static card_url(
         set: string,
         collector_number: string,
-        language?: LanguageCode,
+        language?: string,
         parameters: object = {},
     ): string {
         set = normalise_set(set);
-        return this.url(language !== DEFAULT_LANGUAGE
+        return this.url(language !== Language.DEFAULT.code()
             ? `cards/${set}/${collector_number}/${language}`
             : `cards/${set}/${collector_number}`, parameters);
     }
@@ -118,10 +118,14 @@ export class API {
         return this.url(`cards/autocomplete`, {q: name, ...parameters});
     }
 
+    public static catalog_url(type: string, parameters: object = {}): string {
+        return this.url(`catalog/${type}`, parameters);
+    }
+
     public static card(
         set: string,
         collector_number: string,
-        language?: LanguageCode,
+        language?: string,
     ): Promise<Card> {
         return this.get<Card>(this.card_url(set, collector_number, language));
     }
@@ -187,5 +191,9 @@ export class API {
     public static next_page<T extends List>(page: T): Promise<T> {
         console.assert(!!page.next_page);
         return this.get<T>(page.next_page);
+    }
+
+    public static catalog(type: string): Promise<Catalog> {
+        return this.get<Catalog>(this.catalog_url(type));
     }
 }

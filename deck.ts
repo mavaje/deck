@@ -1,8 +1,8 @@
 import {DeckCard} from "./deck-card";
 import {Format} from "./format";
 import {API} from "./scryfall/api";
-import {BoardName, DEFAULT_BOARD, match_board} from "./board";
 import {ColorIdentity} from "./color-identity";
+import {Board} from "./designation/board";
 
 export class Deck {
 
@@ -25,12 +25,12 @@ export class Deck {
     static parse(input: string) {
         const deck = new Deck();
 
-        let group_board: BoardName = DEFAULT_BOARD;
+        let group_board: Board = Board.DEFAULT;
         let group_tag: string = null;
 
         input.split('\n').forEach(line => {
             if (/^\s*$/.test(line)) {
-                group_board = DEFAULT_BOARD;
+                group_board = Board.DEFAULT;
                 group_tag = null;
                 return;
             }
@@ -41,9 +41,9 @@ export class Deck {
             if (header_match) {
                 const {tag, header} = header_match.groups;
 
-                const board = match_board(header);
+                const board = Board.match(header);
                 if (board) {
-                    group_board = board.name;
+                    group_board = board;
                     return;
                 }
 
@@ -114,21 +114,25 @@ export class Deck {
         this.cards.push(card);
     }
 
-    count(board: BoardName): number;
-    count(...boards: BoardName[]): number;
-    count(...boards: BoardName[]): number {
+    count(board: Board): number;
+    count(...boards: Board[]): number;
+    count(...boards: Board[]): number {
         return Deck.card_count(this.cards_on_board(...boards));
     }
 
-    cards_on_board(board: BoardName): DeckCard[];
-    cards_on_board(...boards: BoardName[]): DeckCard[];
-    cards_on_board(...boards: BoardName[]): DeckCard[] {
+    cards_on_board(board: Board): DeckCard[];
+    cards_on_board(...boards: Board[]): DeckCard[];
+    cards_on_board(...boards: Board[]): DeckCard[] {
         return this.cards
             .filter(card => card.quantity > 0 && card.on_board(...boards));
     }
 
+    board(board: Board): DeckCard[] {
+        return this.cards.filter(card => card.on_board(board));
+    }
+
     color_identity(): ColorIdentity {
-        const commanders = this.cards_on_board('Commander');
+        const commanders = this.cards_on_board(Board.commander);
 
         if (commanders.length === 0) return null;
 
@@ -136,5 +140,17 @@ export class Deck {
         commanders.forEach(card => color_identity.add(card.color_identity()));
 
         return color_identity;
+    }
+
+    to_string(card_format?: string): string {
+        return Board.all()
+            .filter(board => this.board(board).length > 0)
+            .map(board => `# ${board.name}\n`
+                + this.board(board).map(card => card.to_string(card_format)).join('\n') + '\n')
+            .join('\n');
+    }
+
+    toString(): string {
+        return this.to_string();
     }
 }

@@ -10,20 +10,27 @@ import {TextNormaliseTest} from "./test/text-normalise-test";
 import {TextWordsToNumberTest} from "./test/text-words-to-number-test";
 import {DeckCard} from "./deck-card";
 import {load_card_cache} from "./test/fixtures/card-cache-fixture";
+import {Catalog} from "./scryfall/catalog";
+import {DesignationTest} from "./test/designation-test";
 
 load_card_cache();
 load_api_cache();
 
-Promise.all([
-    TextNormaliseTest.test(),
-    TextWordsToNumberTest.test(),
-    CardParseTest.test(),
-    CardLoadTest.test(),
-    DeckParseTest.test(),
-    DeckLoadTest.test(),
-    DeckValidationTest.test(),
-]).finally(() => {
-    Test.log();
-    API.CACHE.dump();
-    DeckCard.CACHE.dump();
-});
+Catalog.load()
+    .then(() => {
+        Promise.all([
+            TextNormaliseTest.test(),
+            TextWordsToNumberTest.test(),
+            DesignationTest.test(),
+            CardParseTest.test(),
+            CardLoadTest.test(),
+            DeckParseTest.test(),
+            DeckLoadTest.test(),
+            DeckValidationTest.test(),
+        ]).finally(() => {
+            Test.log();
+            API.CACHE.dump();
+            DeckCard.CACHE.dump();
+        });
+    });
+

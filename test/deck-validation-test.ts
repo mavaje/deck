@@ -389,6 +389,7 @@ export class DeckValidationTest extends Test {
                     Kaheera, the Orphanguard *CMPN*
                     Etali, Primal Conqueror
                     Birds of Paradise
+                    Changeling Outcast
                     30 Forest
                     28 Plains
                 `,
@@ -417,18 +418,19 @@ export class DeckValidationTest extends Test {
                 ],
             },
             {
-                format: 'modern',
+                format: 'vintage',
                 input: `
                     # Lurrus Companion - mvs <= 2
                     Lurrus of the Dream-Den *CMPN*
-                    
+                    Arcane Signet
+                    Rhystic Study
                     30 Plains
                     28 Swamp
                 `,
                 errors: [
                     {
                         type: 'companion-restriction-error',
-                        cards: [{name: ''}],
+                        cards: [{name: 'Rhystic Study'}],
                     },
                 ],
             },
@@ -437,14 +439,15 @@ export class DeckValidationTest extends Test {
                 input: `
                     # Lutri Companion - unique cards
                     Lutri, the Spellchaser *CMPN*
-                    
+                    Arcane Signet
+                    2 Lightning Bolt
                     30 Island
                     28 Mountain
                 `,
                 errors: [
                     {
                         type: 'companion-restriction-error',
-                        cards: [{name: ''}],
+                        cards: [{name: 'Lightning Bolt'}],
                     },
                 ],
             },
@@ -453,8 +456,8 @@ export class DeckValidationTest extends Test {
                 input: `
                     # Obosh Companion - odd mvs
                     Obosh, the Preypiercer *CMPN*
-                    Sol Ring
                     Arcane Signet
+                    Cultivate
                     30 Swamp
                     28 Mountain
                 `,
@@ -470,46 +473,56 @@ export class DeckValidationTest extends Test {
                 input: `
                     # Umori Companion - shared card type
                     Umori, the Collector *CMPN*
-                    
+                    Birds of Paradise
+                    Solemn Simulacrum
+                    Arcane Signet
                     30 Swamp
                     28 Forest
                 `,
                 errors: [
                     {
                         type: 'companion-restriction-error',
-                        cards: [{name: ''}],
+                        cards: [{name: 'Arcane Signet'}],
                     },
                 ],
             },
             {
-                format: 'modern',
+                format: 'legacy',
                 input: `
                     # Yorion Companion - deck size +20
                     Yorion, Sky Nomad *CMPN*
-                    
-                    30 Island
-                    28 Plains
+                    40 Island
+                    39 Plains
                 `,
                 errors: [
-                    {
-                        type: 'companion-restriction-error',
-                        cards: [{name: ''}],
-                    },
+                    {type: 'companion-restriction-error'},
                 ],
+            },
+            {
+                format: 'legacy',
+                input: `
+                    # Yorion Companion - deck size +20
+                    Yorion, Sky Nomad *CMPN*
+                    40 Island
+                    40 Plains
+                `,
+                errors: [],
             },
             {
                 format: 'modern',
                 input: `
                     # Zirda Companion - abilities
                     Zirda, the Dawnwaker *CMPN*
-                    
+                    Arcane Signet
+                    Lightning Bolt
+                    Rhythm of the Wild
                     30 Mountain
-                    28 Plains
+                    27 Plains
                 `,
                 errors: [
                     {
                         type: 'companion-restriction-error',
-                        cards: [{name: ''}],
+                        cards: [{name: 'Rhythm of the Wild'}],
                     },
                 ],
             },
@@ -551,11 +564,12 @@ export class DeckValidationTest extends Test {
                     # Rulebreaker - any angels & any basic lands
                     Seluma, Light of Aysen *CMDR*
                     Angelic Captain
+                    Changeling Outcast
                     20 Plains
                     20 Island
                     20 Swamp
                     20 Mountain
-                    18 Forest
+                    17 Forest
                 `,
                 errors: [
                     {type: 'illegal-card'},
@@ -600,11 +614,12 @@ export class DeckValidationTest extends Test {
                     # Rulebreaker - any phyrexians & any basic lands
                     Valko Indorian *CMDR*
                     Atraxa, Praetors' Voice
+                    Realmwalker
                     20 Plains
                     20 Island
                     20 Swamp
                     20 Mountain
-                    18 Forest
+                    17 Forest
                 `,
                 errors: [
                     {type: 'illegal-card'},

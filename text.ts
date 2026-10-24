@@ -66,7 +66,7 @@ export function words_to_number(word: string): number {
     return null;
 }
 
-export function normalise(text: string, uppercase: boolean = false, strip: RegExp = /[^\w ]/gi): string {
+export function normalise(text: string, uppercase: boolean = false, strip: RegExp = /[^\w ]/gi, separator: string = ' '): string {
     if (!text) return text;
 
     return (uppercase
@@ -75,9 +75,25 @@ export function normalise(text: string, uppercase: boolean = false, strip: RegEx
         .normalize('NFKD')
         .replaceAll('æ', 'ae')
         .replaceAll(strip, '')
-        .replaceAll(/\s+/g, ' ');
+        .replaceAll(/\s+/g, separator);
 }
 
 export function normalise_set(set: string, uppercase: boolean = false): string {
     return normalise(set, uppercase, /[^0-9a-z]/gi)
+}
+
+export function preserve_case(target: string, template: string) {
+    if (!target) return '';
+    if (!template) return target;
+
+    const first = template[0];
+    const last = template.slice(-1);
+
+    if (first === first.toLowerCase()) {
+        return target.toLowerCase();
+    } else if (last === last.toUpperCase()) {
+        return target.toUpperCase();
+    } else {
+        return target;
+    }
 }

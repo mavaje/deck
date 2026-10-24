@@ -18,6 +18,7 @@ export class Test {
 
     protected condition: boolean = true;
     protected children: Test[] = [];
+    protected negated: boolean = false;
 
     constructor(
         protected pass_message: string = null,
@@ -29,9 +30,9 @@ export class Test {
     }
 
     private passes(): boolean {
-        return this.has_children()
+        return !(this.has_children()
             ? this.children.every(test => test.passes())
-            : this.condition;
+            : this.condition) === this.negated;
     }
 
     public mark(passes: boolean): void {
@@ -46,15 +47,52 @@ export class Test {
         this.mark(false);
     }
 
+    public negate(): this {
+        this.negated = true;
+        return this;
+    }
+
+    public sub_test(
+        pass_message: string,
+        fail_message: string,
+    ): Test {
+        const test = new Test();
+        test.pass_message = pass_message;
+        test.fail_message = fail_message;
+        this.children.push(test);
+        return test;
+    }
+
     public assert(
         condition: boolean,
         pass_message: string,
-        fail_message: string
+        fail_message: string,
     ): Test {
         const test = new Test();
         test.pass_message = pass_message;
         test.fail_message = fail_message;
         test.mark(condition);
+        this.children.push(test);
+        return test;
+    }
+
+    public assert_false(
+        condition: boolean,
+        pass_message: string,
+        fail_message: string
+    ) {
+        return this.assert(condition, pass_message, fail_message).negate();
+    }
+
+    public assert_null(
+        object: any,
+        pass_message: string,
+        fail_message: string,
+    ): Test {
+        const test = new Test();
+        test.pass_message = pass_message;
+        test.fail_message = fail_message;
+        test.mark((object ?? null) === null);
         this.children.push(test);
         return test;
     }
@@ -114,18 +152,35 @@ export class Test {
         } else if (expected instanceof RegExp) {
             test.mark(expected.test(String(actual)));
         } else if (expected && typeof expected === 'object') {
-            test.assert_is_object(actual);
-            Object.entries(expected).forEach(([key, value]) => {
-                test.assert_match(
-                    value,
-                    actual?.[key],
-                    `${key}: {actual} matches expected`,
-                    `${key}: {actual} does not match {expected}`,
+            if (actual === expected) {
+                test.assert(
+                    true,
+                    format('{actual} is the same object as {expected}', {expected, actual}),
+                    '',
                 );
-            });
+            } else {
+                test.assert_is_object(actual);
+                Object.entries(expected).forEach(([key, value]) => {
+                    test.assert_match(
+                        value,
+                        actual?.[key],
+                        `${key}: {actual} matches expected`,
+                        `${key}: {actual} does not match {expected}`,
+                    );
+                });
+            }
         }
 
         return test;
+    }
+
+    public assert_not_match(
+        expected: any,
+        actual: any,
+        pass_message: string = `{actual} does not match {expected}`,
+        fail_message: string = `{actual} matches {expected}`,
+    ): Test {
+        return this.assert_match(expected, actual, pass_message, fail_message).negate();
     }
 
     private counter(): TestCounter {

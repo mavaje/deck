@@ -16,7 +16,8 @@ _____
 ______
 `.trim();
 
-        const deck = await Deck.parse(input).load();
+        const deck = Deck.parse(input);
+        await deck.load();
 
         this.assert_match(
             {

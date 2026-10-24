@@ -1,13 +1,15 @@
 import {Card, CardFace, CardImagery, Identifier, Legality} from "./scryfall/types";
 import {API} from "./scryfall/api";
-import {LanguageCode, match_language, DEFAULT_LANGUAGE} from "./language";
-import {ConditionCode, match_condition} from "./condition";
-import {BoardName, DEFAULT_BOARD, match_board} from "./board";
-import {normalise, normalise_set, words_to_number} from "./text";
+import {normalise, normalise_set, preserve_case, words_to_number} from "./text";
 import {Format} from "./format";
 import {Cache} from "./scryfall/cache";
 import {ColorIdentity} from "./color-identity";
 import {RuleBreak} from "./rule-break";
+import {Catalog} from "./scryfall/catalog";
+import {Language} from "./designation/language";
+import {Board} from "./designation/board";
+import {Condition} from "./designation/condition";
+import {Finish} from "./designation/finish";
 
 export type CardFormatOptions = {
     board?: boolean;
@@ -18,7 +20,7 @@ export class DeckCard {
     static LINE_REGEXP = new RegExp([
         '^',
         '((?<quantity>\\d{1,3})[x*×]?\\s)?',
-        '(?<name>[^([^#*]+?(\\s*\\(Used\\))?)?',
+        '(?<name>[^([^#*]+?(\\s*\\((Used|Plane|Theme)\\))?)?',
         '(\\((?<set>[0-9A-Z]{3,5})((:|\\)\\s*)(?<collector_number>[^)[(#*:\\s]+))?\\)?)?',
         '(?<extra>([#*^[]).*)?',
         '$'
@@ -33,12 +35,12 @@ export class DeckCard {
     name?: string = null;
     set?: string = null;
     collector_number?: string = null;
-    language?: LanguageCode = DEFAULT_LANGUAGE;
+    language?: Language = Language.DEFAULT;
 
     quantity: number = 1;
-    board: BoardName = DEFAULT_BOARD;
-    is_foil: boolean = false;
-    condition?: ConditionCode = null;
+    finish: Finish = Finish.DEFAULT;
+    condition?: Condition = null;
+    board: Board = Board.DEFAULT;
 
     tags: string[] = [];
 
@@ -51,7 +53,7 @@ export class DeckCard {
 
     static parse(
         input: string,
-        default_board: BoardName = DEFAULT_BOARD,
+        default_board: Board = Board.DEFAULT,
     ): DeckCard {
         const match = this.LINE_REGEXP.exec(input);
         if (!match) return null;
@@ -81,32 +83,33 @@ export class DeckCard {
                 const match = extra_left.match(/^(\*(?<tag>[^*]+)\*)\s*/i)
                     ?? extra_left.match(/^\[(?<tag>[^\]]+)]\s*/i)
                     ?? extra_left.match(/^(\^(?<tag>[^^]+)\^)\s*/i)
-                    ?? extra_left.match(/^#(?<tag>[^#]+)\s*/i);
+                    ?? extra_left.match(/^#(?<tag>[^#]+)#?\s*/i);
 
                 if (match) {
                     extra_left = extra_left.slice(match[0].length);
                     const {tag} = match.groups;
 
-                    const lang = match_language(tag);
-                    if (lang) {
-                        card.language = lang.code;
+                    const language = Language.match(tag);
+                    if (language) {
+                        card.language = language;
                         continue;
                     }
 
-                    const board = match_board(tag);
-                    if (board) {
-                        card.board = board.name;
-                        continue;
-                    }
-
-                    const condition = match_condition(tag);
+                    const condition = Condition.match(tag);
                     if (condition) {
-                        card.condition = condition.code;
+                        card.condition = condition;
                         continue;
                     }
 
-                    if (/^(foil|f)$/i.test(tag)) {
-                        card.is_foil = true;
+                    const finish = Finish.match(tag);
+                    if (finish) {
+                        card.finish = finish;
+                        continue;
+                    }
+
+                    const board = Board.match(tag);
+                    if (board) {
+                        card.board = board;
                         continue;
                     }
 
@@ -175,7 +178,7 @@ export class DeckCard {
             const parameters = {format: 'image', version: format};
 
             if (set && collector_number) {
-                return API.card_url(set, collector_number, language, parameters);
+                return API.card_url(set, collector_number, language.code(), parameters);
             }
 
             if (name) {
@@ -198,7 +201,7 @@ export class DeckCard {
         this.load_from_cache();
 
         if (set && collector_number) {
-            this.card ??= await API.card(set, collector_number, language);
+            this.card ??= await API.card(set, collector_number, language.code());
         }
 
         if (name) {
@@ -208,7 +211,7 @@ export class DeckCard {
 
             this.card ??= await API.card_named(name, set);
 
-            if (this.card && this.card.lang !== language) {
+            if (this.card && this.card.lang !== language.code()) {
                 let query = `oracle_id:${this.card.oracle_id} lang:${language}`;
                 if (set) query += ` set:${normalise_set(set)}`
                 this.card = await API.random_card(query) ?? this.card;
@@ -240,9 +243,7 @@ export class DeckCard {
 
             DeckCard.CACHE.put_each(this.cache_keys(), card);
 
-            this.name = this.is_layout('split')
-                ? card.name
-                : this.all_names()[0];
+            this.name = card.name;
         }
 
         return this;
@@ -267,14 +268,14 @@ export class DeckCard {
             && this.tags.every((tag) => card.tags.includes(tag));
     }
 
-    on_board(board: BoardName): boolean;
-    on_board(...boards: BoardName[]): boolean;
-    on_board(...boards: BoardName[]): boolean {
+    on_board(board: Board): boolean;
+    on_board(...boards: Board[]): boolean;
+    on_board(...boards: Board[]): boolean {
         return boards.length === 0 || boards.includes(this.board);
     }
 
     all_names(): string[] {
-        return (this.card?.name ?? this.name).split(' // ');
+        return (this.card?.name ?? this.name).split(/\s*\/+\s*/g);
     }
 
     is_layout(layout: string): boolean {
@@ -285,12 +286,23 @@ export class DeckCard {
         return this.card?.card_faces?.[0] ?? this.card ?? null;
     }
 
+    card_types(): string[] {
+        return Catalog.card_types.filter(type => this.is_type(type));
+    }
+
     is_type(type: string): boolean;
     is_type(...types: string[]): boolean;
     is_type(...types: string[]): boolean {
         if (!this.card) return false;
-        return types.every(type => new RegExp(`\\b${type}\\b`, 'i')
-            .test(this.front_card().type_line));
+        return types.every(type =>
+            new RegExp(`\\b${type}\\b`, 'i').test(this.front_card().type_line)
+            || (this.has_keyword('Changeling') && Catalog.creature_types.has(type))
+            || (this.plain_oracle().match(/(^|\n)Rangeling\b/i) && Catalog.land_types.has(type))
+            || {
+                Creature: /Eaturecray/i,
+                Pig: /Igpay/i,
+            }[type]?.test(this.front_card().type_line)
+        );
     }
 
     is_any_type(types: (string | string[])[]): boolean {
@@ -478,36 +490,48 @@ export class DeckCard {
         return breaks;
     }
 
-    to_string(options: CardFormatOptions = {}) {
-        let string = `${this.quantity} ${this.name}`;
-
-        if (this.set) {
-            string += this.collector_number
-                ? ` (${this.set}:${this.collector_number})`
-                : ` (${this.set})`;
-        }
-
-        if (this.language !== DEFAULT_LANGUAGE) {
-            string += ` *${this.language.toUpperCase()}*`;
-        }
-
-        if (this.is_foil) {
-            string += ` *F*`;
-        }
-
-        if (this.condition) {
-            string += ` *${this.condition.toUpperCase()}*`;
-        }
-
-        this.tags.forEach(tag => {
-            string += ` [${tag}]`;
-        });
-
-        if (options.board) {
-            string += ` #${this.board}`;
-        }
-
-        return string;
+    to_string(format: string = '1 Name (SET:000?)? *EN*? *F*? *NM*? [Tag]') {
+        return format
+            .replaceAll(/1[x*×]?\??|\(SET(:000+\??)?\)\??|\*[\w\s]+\*\??|\[[\w\s]+]\??|#[\w\s]+#?\??|\/+\s*back|(name|set|000)\??/gi, block => block
+                .replace(/^1([x*×]?)(\?)?$/i, (_, x, opt) =>
+                    opt && this.quantity === 1 ? ''
+                        : `${this.quantity}${x}`)
+                .replace(/^\((SET)(:000(\?)?)?\)(\?)?$/i, (_, set, __, opt_cn, opt) =>
+                    opt && !this.set ? ''
+                        : `(${preserve_case(this.card?.set ?? this.set, set)}${
+                            opt_cn && !this.collector_number ? ''
+                                : `:${this.card?.collector_number ?? this.collector_number}`
+                        })`)
+                .replace(/^([*[#^]([\w\s]+)[*\]#^]?)(\?)?$/i, (full, string: string, input: string, opt: string) => {
+                    if (Language.match(input)) {
+                        return opt && this.language.is_default() ? ''
+                            : string.replace(/[\w\s]+/, preserve_case(string.length > 3 ? this.language.name : this.language.code(), string));
+                    } else if (Finish.match(input)) {
+                        return opt && this.finish.is_default() ? ''
+                            : string.replace(/[\w\s]+/, preserve_case(string.length > 2 ? this.finish.name : this.finish.code(), string));
+                    } else if (Condition.match(input)) {
+                        return !this.condition ? ''
+                            : string.replace(/[\w\s]+/, preserve_case(string.length > 2 ? this.condition.name : this.condition.code(), string));
+                    } else if (input.match(/^(board|brd)$/i)) {
+                        return string.replace(/[\w\s]+/, preserve_case(string.length > 3 ? this.board.name : this.board.code(), string));
+                    } else if (input.match(/tag/i)) {
+                        return this.tags
+                            .map(tag => string.replace(/[\w\s]+/, preserve_case(tag, input)))
+                            .join(' ');
+                    } else {
+                        return full;
+                    }
+                })
+                .replace(/^(name)\??$/i, (_, name) =>
+                    preserve_case(this.is_layout('split') ? this.name : this.all_names()[0], name))
+                .replace(/^(\/+\s*)(back)$/i, (_, slash, back) =>
+                    this.all_names().slice(1).map(face => slash + preserve_case(face, back)).join('')
+                    )
+                .replace(/^(set)(\?)?$/i, (_, set, opt) =>
+                    opt && !(this.card?.set ?? this.set) ? '' : preserve_case(this.card?.set ?? this.set, set))
+            )
+            .replaceAll(/\s+/g, ' ')
+            .replaceAll(/^\s|\s$/g, '');
     }
 
     toString() {

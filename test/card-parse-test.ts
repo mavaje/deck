@@ -1,5 +1,9 @@
 import {DeckCard} from "../deck-card";
 import {Test} from "./test";
+import {Language} from "../designation/language";
+import {Board} from "../designation/board";
+import {Condition} from "../designation/condition";
+import {Finish} from "../designation/finish";
 
 export class CardParseTest extends Test {
 
@@ -21,22 +25,22 @@ export class CardParseTest extends Test {
             '3forest': new DeckCard({name: '3forest'}),
 
             // language tests
-            'forest *en*': new DeckCard({name: 'forest', language: 'en'}),
-            'forest *EN*': new DeckCard({name: 'forest', language: 'en'}),
-            'forest *English*': new DeckCard({name: 'forest', language: 'en'}),
-            'forest *sp*': new DeckCard({name: 'forest', language: 'es'}),
-            'forest *spanish*': new DeckCard({name: 'forest', language: 'es'}),
+            'forest *en*': new DeckCard({name: 'forest', language: Language.english}),
+            'forest *EN*': new DeckCard({name: 'forest', language: Language.english}),
+            'forest *English*': new DeckCard({name: 'forest', language: Language.english}),
+            'forest *sp*': new DeckCard({name: 'forest', language: Language.spanish}),
+            'forest *spanish*': new DeckCard({name: 'forest', language: Language.spanish}),
 
             // TappedOut
             '1x Llanowar Elves (M10)': new DeckCard({quantity: 1, name: 'Llanowar Elves', set: 'M10'}),
-            '1x Greven Il Vec *CMDR*': new DeckCard({quantity: 1, name: 'Greven Il Vec', board: 'Commander'}),
-            '1x Gyruda, Doom of Depths *CMPN*': new DeckCard({quantity: 1, name: 'Gyruda, Doom of Depths', board: 'Companion'}),
+            '1x Greven Il Vec *CMDR*': new DeckCard({quantity: 1, name: 'Greven Il Vec', board: Board.commander}),
+            '1x Gyruda, Doom of Depths *CMPN*': new DeckCard({quantity: 1, name: 'Gyruda, Doom of Depths', board: Board.companion}),
             '1x Mishra\'s Factory (ATQ:1074)': new DeckCard({quantity: 1, name: 'Mishra\'s Factory', set: 'ATQ', collector_number: '1074'}),
-            '1x Llanowar Elves *GE*': new DeckCard({quantity: 1, name: 'Llanowar Elves', language: 'de'}),
-            '1x Llanowar Elves *SL*': new DeckCard({quantity: 1, name: 'Llanowar Elves', condition: 'sl'}),
+            '1x Llanowar Elves *GE*': new DeckCard({quantity: 1, name: 'Llanowar Elves', language: Language.german}),
+            '1x Llanowar Elves *SL*': new DeckCard({quantity: 1, name: 'Llanowar Elves', condition: Condition.slightly_played}),
             '1x Llanowar Elves *mythic*': new DeckCard({quantity: 1, name: 'Llanowar Elves', tags: ['mythic']}),
             '1x Llanowar Elves *CMC:20*': new DeckCard({quantity: 1, name: 'Llanowar Elves', tags: ['CMC:20']}),
-            '1x Llanowar Elves (M10) *F* *IT* *SL*': new DeckCard({quantity: 1, name: 'Llanowar Elves', set: 'M10', is_foil: true, language: 'it', condition: 'sl'}),
+            '1x Llanowar Elves (M10) *F* *IT* *SL*': new DeckCard({quantity: 1, name: 'Llanowar Elves', set: 'M10', finish: Finish.foil, language: Language.italian, condition: Condition.slightly_played}),
             '1x Island #Land': new DeckCard({quantity: 1, name: 'Island', tags: ['Land']}),
             '1x Storm Crow #Wincon': new DeckCard({quantity: 1, name: 'Storm Crow', tags: ['Wincon']}),
             '1x Llanowar Elves #Category_With_Spaces': new DeckCard({quantity: 1, name: 'Llanowar Elves', tags: ['Category_With_Spaces']}),
@@ -71,7 +75,7 @@ export class CardParseTest extends Test {
             '_____ Goblin': new DeckCard({name: '_____ Goblin'}),
             '"Ach! Hans, Run!"': new DeckCard({name: '"Ach! Hans, Run!"'}),
             'Éomer, King of Rohan': new DeckCard({name: 'Éomer, King of Rohan'}),
-            '1 Sheoldred, Whispering One (PNPH) 73★ *F*': new DeckCard({quantity: 1, name: 'Sheoldred, Whispering One', set: 'PNPH', collector_number: '73★', is_foil: true}),
+            '1 Sheoldred, Whispering One (PNPH) 73★ *F*': new DeckCard({quantity: 1, name: 'Sheoldred, Whispering One', set: 'PNPH', collector_number: '73★', finish: Finish.foil}),
         }).forEach(([input, expected]) => {
             const card = DeckCard.parse(input);
 
@@ -82,14 +86,16 @@ export class CardParseTest extends Test {
                 `Input "${input}" did not match expected fields`,
             );
 
-            const card2 = DeckCard.parse(card.to_string({board: true}));
+            if (card) {
+                const card2 = DeckCard.parse(card.to_string('1 Name (SET:000?)? *EN*? *F*? *NM*? [Tag] #Board'));
 
-            this.assert_match(
-                expected,
-                card2,
-                `Reparsing card did not change it`,
-                `Reparsing card changed it`,
-            );
+                this.assert_match(
+                    expected,
+                    card2,
+                    `Reparsing card did not change it`,
+                    `Reparsing card changed it`,
+                );
+            }
         });
     }
 }
