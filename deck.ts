@@ -3,24 +3,11 @@ import {Format} from "./format";
 import {API} from "./scryfall/api";
 import {ColorIdentity} from "./color-identity";
 import {Board} from "./designation/board";
+import {CardList} from "./card-list";
 
-export class Deck {
+export class Deck extends CardList {
 
-    cards: DeckCard[] = [];
     format: Format;
-
-    static card_count(cards: DeckCard[]): number {
-        return cards.reduce((count, card) => count + card.quantity, 0);
-    }
-
-    static copy_counts(cards: DeckCard[]): Record<string, number> {
-        const copy_counts: Record<string, number> = {};
-        cards.forEach(card => {
-            copy_counts[card.name] ??= 0;
-            copy_counts[card.name] += card.quantity;
-        });
-        return copy_counts;
-    }
 
     static parse(input: string) {
         const deck = new Deck();
@@ -98,55 +85,28 @@ export class Deck {
         return this;
     }
 
-    add(card: DeckCard) {
-        for (const existing_card of this.cards) {
-            if (existing_card.matches(card)) {
-                if (existing_card.quantity + card.quantity > 999) {
-                    card.quantity += existing_card.quantity - 999;
-                    existing_card.quantity = 999;
-                } else {
-                    existing_card.quantity += card.quantity;
-                    return;
-                }
-            }
-        }
-
-        this.cards.push(card);
-    }
-
-    count(board: Board): number;
-    count(...boards: Board[]): number;
-    count(...boards: Board[]): number {
-        return Deck.card_count(this.cards_on_board(...boards));
-    }
-
-    cards_on_board(board: Board): DeckCard[];
-    cards_on_board(...boards: Board[]): DeckCard[];
-    cards_on_board(...boards: Board[]): DeckCard[] {
-        return this.cards
-            .filter(card => card.quantity > 0 && card.on_board(...boards));
-    }
-
-    board(board: Board): DeckCard[] {
-        return this.cards.filter(card => card.on_board(board));
+    board(board: Board): CardList;
+    board(...boards: Board[]): CardList;
+    board(...boards: Board[]): CardList {
+        return this.filter(card => card.on_board(...boards));
     }
 
     color_identity(): ColorIdentity {
-        const commanders = this.cards_on_board(Board.commander);
+        const commanders = this.board(Board.commander).skip_empty();
 
-        if (commanders.length === 0) return null;
+        if (commanders.count() === 0) return null;
 
         const color_identity = new ColorIdentity();
-        commanders.forEach(card => color_identity.add(card.color_identity()));
+        commanders.cards.forEach(card => color_identity.add(card.color_identity()));
 
         return color_identity;
     }
 
     to_string(card_format?: string): string {
         return Board.all()
-            .filter(board => this.board(board).length > 0)
+            .filter(board => this.board(board).cards.length > 0)
             .map(board => `# ${board.name}\n`
-                + this.board(board).map(card => card.to_string(card_format)).join('\n') + '\n')
+                + this.board(board).cards.map(card => card.to_string(card_format)).join('\n') + '\n')
             .join('\n');
     }
 

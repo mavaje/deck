@@ -297,7 +297,7 @@ export class DeckCard {
         return types.every(type =>
             new RegExp(`\\b${type}\\b`, 'i').test(this.front_card().type_line)
             || (this.has_keyword('Changeling') && Catalog.creature_types.has(type))
-            || (this.plain_oracle().match(/(^|\n)Rangeling\b/i) && Catalog.land_types.has(type))
+            || (this.front_oracle().match(/(^|\n)Rangeling\b/i) && Catalog.land_types.has(type))
             || {
                 Creature: /Eaturecray/i,
                 Pig: /Igpay/i,
@@ -338,7 +338,7 @@ export class DeckCard {
 
     can_be_commander(): boolean {
         return Boolean(this.is_type('Legendary') && this.front_card().power && this.front_card().toughness)
-            || /~ can be your commander\./.test(this.plain_oracle());
+            || /~ can be your commander\./.test(this.front_oracle());
     }
 
     can_be_brawler(): boolean {
@@ -360,7 +360,7 @@ export class DeckCard {
     }
 
     is_legal(format: Format): boolean {
-        if (this.card) {
+        if (format && this.card) {
             const legality = this.legality(format);
             return !['not_legal', 'banned'].includes(legality);
         }
@@ -374,15 +374,79 @@ export class DeckCard {
             : null;
     }
 
-    plain_oracle(): string {
-        return this.front_card()?.oracle_text.replaceAll(this.front_card().name, '~');
+    front_oracle(): string {
+        const cards = this.is_layout('split')
+            ? this.card.card_faces
+            : [this.front_card()];
+        return cards
+            .map(card => card?.oracle_text.replaceAll(card.name, '~'))
+            .join('\n');
+    }
+
+    has_ability(ability: string | RegExp): boolean {
+        if (!(ability instanceof RegExp)) ability = new RegExp(`(^|\\n)${ability}\\s[^a-z]`, 'i');
+        return ability.test(this.front_oracle());
+    }
+    
+    has_activate_ability(): boolean {
+        if (!this.card) return false;
+
+        if (this.front_oracle().match(/(^|\n)[^"]+(("[^"]+){2})*:/)) {
+            return true;   
+        }
+        
+        if (this.is_any_type([
+            'Plains',
+            'Island',
+            'Swamp',
+            'Mountain',
+            'Forest',
+        ])) {
+            return true;
+        }
+        
+        const activated_ability_words = {
+            'Augment': true,
+            'Aura Swap': true,
+            'Commander ninjutsu': true,
+            'Craft': true,
+            'Crew': true,
+            'Cycling': true,
+            'Embalm': true,
+            'Encore': true,
+            'Equip': true,
+            'Equipment Swap': true,
+            'Eternalize': true,
+            'Fortify': true,
+            'Host': true,
+            'Level Up': true,
+            'Ninjutsu': true,
+            'Outlast': true,
+            'Reconfigure': true,
+            'Reinforce': true,
+            'Saddle': true,
+            'Scavenge': true,
+            'Shackle': true,
+            'Specialize': true,
+            'Station': true,
+            'Transfigure': true,
+            'Transmute': true,
+            'Unearth': true,
+        };
+
+        if (this.card.keywords.some(kw => activated_ability_words[kw])) {
+            return true;
+        }
+
+        return Object.keys(activated_ability_words)
+            .some(kw => this.has_ability(kw));
     }
 
     copy_limit(format?: Format): number {
         if (this.card) {
             if (this.is_basic_land()) return Infinity
 
-            const oracle = this.plain_oracle();
+            const oracle = this.front_oracle();
 
             const no_limit_match = oracle.match(/A deck can have any number of cards named ~\./);
             if (no_limit_match) return Infinity;
@@ -398,7 +462,7 @@ export class DeckCard {
             }
         }
 
-        return format.copy_limit;
+        return format?.copy_limit ?? Infinity;
     }
 
     allows_second_commander(second: DeckCard, format: Format): boolean {
@@ -411,7 +475,7 @@ export class DeckCard {
                 && second.has_keyword('Partner')
             ) {
                 const [ability_1, ability_2] = [this, second]
-                    .map(card => card.plain_oracle().match(/Partner(—([^(]+))?(?= \(|$)/));
+                    .map(card => card.front_oracle().match(/Partner(—([^(]+))?(?= \(|$)/));
 
                 if (ability_1 && ability_2 && ability_1[0] === ability_2[0]) {
                     return true;
@@ -419,7 +483,7 @@ export class DeckCard {
             }
 
             if (this.has_keyword('Partner with')) {
-                const name_match = this.plain_oracle()
+                const name_match = this.front_oracle()
                     .match(/Partner with (?<name>[^(]+) (\(|$)/);
                 const {name} = name_match.groups;
 
@@ -443,7 +507,7 @@ export class DeckCard {
     }
 
     rulebreaks(): RuleBreak[] {
-        const oracle = this.plain_oracle();
+        const oracle = this.front_oracle();
         const breaks: RuleBreak[] = [];
 
         const additional_color_id_match =

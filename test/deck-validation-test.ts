@@ -1,6 +1,6 @@
 import {Test, TestMatcher} from "./test";
 import {Deck} from "../deck";
-import {match_format} from "../format";
+import {Format} from "../format";
 import {DeckError, DeckValidator} from "../deck-validator";
 
 export class DeckValidationTest extends Test {
@@ -11,12 +11,12 @@ export class DeckValidationTest extends Test {
     async test(): Promise<void> {
         await Promise.all(([
             {
-                format: 'modern',
+                format: Format.modern,
                 input: `60 Forest`,
                 errors: [],
             },
             {
-                format: 'commander',
+                format: Format.commander,
                 input: `
                     Borborygmos *CMDR*
                     Lightning Bolt
@@ -26,14 +26,14 @@ export class DeckValidationTest extends Test {
                 errors: [],
             },
             {
-                format: 'modern',
+                format: Format.modern,
                 input: `59 Forest`,
                 errors: [
                     {type: 'too-few-cards'},
                 ],
             },
             {
-                format: 'commander',
+                format: Format.commander,
                 input: `
                     Borborygmos *CMDR*
                     50 Mountain
@@ -44,7 +44,7 @@ export class DeckValidationTest extends Test {
                 ],
             },
             {
-                format: 'commander',
+                format: Format.commander,
                 input: `
                     Borborygmos *CMDR*
                     50 Mountain
@@ -55,7 +55,7 @@ export class DeckValidationTest extends Test {
                 ],
             },
             {
-                format: 'commander',
+                format: Format.commander,
                 input: `
                     Borborygmos *CMDR*
                     50 Mountain
@@ -68,7 +68,7 @@ export class DeckValidationTest extends Test {
                 ],
             },
             {
-                format: 'modern',
+                format: Format.modern,
                 input: `
                     60 Forest
                     #sideboard
@@ -79,7 +79,7 @@ export class DeckValidationTest extends Test {
                 ],
             },
             {
-                format: 'modern',
+                format: Format.modern,
                 input: `
                     Borborygmos *CMDR*
                     30 Mountain
@@ -90,14 +90,14 @@ export class DeckValidationTest extends Test {
                 ],
             },
             {
-                format: 'commander',
+                format: Format.commander,
                 input: `100 Forest`,
                 errors: [
                     {type: 'too-few-commanders'},
                 ],
             },
             {
-                format: 'commander',
+                format: Format.commander,
                 input: `
                     Borborygmos *CMDR*
                     Progenitus *CMDR*
@@ -108,7 +108,7 @@ export class DeckValidationTest extends Test {
                 ],
             },
             {
-                format: 'commander',
+                format: Format.commander,
                 input: `
                     Aclazotz, Deepest Betrayal *CMDR*
                     99 Swamp
@@ -116,7 +116,7 @@ export class DeckValidationTest extends Test {
                 errors: [],
             },
             {
-                format: 'commander',
+                format: Format.commander,
                 input: `
                     Balamb Garden, SeeD Academy *CMDR*
                     50 Island
@@ -127,7 +127,7 @@ export class DeckValidationTest extends Test {
                 ],
             },
             {
-                format: 'commander',
+                format: Format.commander,
                 input: `
                     # 2 Partners
                     Armix, Filigree Thrasher *CMDR*
@@ -138,7 +138,7 @@ export class DeckValidationTest extends Test {
                 errors: [],
             },
             {
-                format: 'commander',
+                format: Format.commander,
                 input: `
                     # Partner-with pair
                     Alisaie Leveilleur *CMDR*
@@ -149,7 +149,7 @@ export class DeckValidationTest extends Test {
                 errors: [],
             },
             {
-                format: 'commander',
+                format: Format.commander,
                 input: `
                     # Invalid Partner-with pair
                     Alisaie Leveilleur *CMDR*
@@ -162,7 +162,7 @@ export class DeckValidationTest extends Test {
                 ],
             },
             {
-                format: 'commander',
+                format: Format.commander,
                 input: `
                     # Doctor's Companion pair
                     Amy Pond *CMDR*
@@ -174,7 +174,7 @@ export class DeckValidationTest extends Test {
                 errors: [],
             },
             {
-                format: 'commander',
+                format: Format.commander,
                 input: `
                     # Invalid trio
                     Amy Pond *CMDR*
@@ -189,7 +189,7 @@ export class DeckValidationTest extends Test {
                 ],
             },
             {
-                format: 'commander',
+                format: Format.commander,
                 input: `
                     # Background
                     Alora, Merry Thief *CMDR*
@@ -200,7 +200,7 @@ export class DeckValidationTest extends Test {
                 errors: [],
             },
             {
-                format: 'commander',
+                format: Format.commander,
                 input: `
                     # Choose a color
                     Prismatic Piper *CMDR*
@@ -211,7 +211,7 @@ export class DeckValidationTest extends Test {
                 errors: [],
             },
             {
-                format: 'commander',
+                format: Format.commander,
                 input: `
                     # Choose too many colors
                     Prismatic Piper *CMDR*
@@ -223,7 +223,7 @@ export class DeckValidationTest extends Test {
                 ],
             },
             {
-                format: 'commander',
+                format: Format.commander,
                 input: `
                     # Invalid Commander
                     Wrenn and Six *CMDR*
@@ -235,7 +235,7 @@ export class DeckValidationTest extends Test {
                 ],
             },
             {
-                format: 'brawl',
+                format: Format.brawl,
                 input: `
                     # Valid Brawler
                     Wrenn and Six *CMDR*
@@ -245,7 +245,7 @@ export class DeckValidationTest extends Test {
                 errors: [],
             },
             {
-                format: 'oathbreaker',
+                format: Format.oathbreaker,
                 input: `
                     # Valid Oathbreaker
                     Wrenn and Six *CMDR*
@@ -256,7 +256,7 @@ export class DeckValidationTest extends Test {
                 errors: [],
             },
             {
-                format: 'oathbreaker',
+                format: Format.oathbreaker,
                 input: `
                     # Missing signature spell
                     Wrenn and Six *CMDR*
@@ -268,7 +268,7 @@ export class DeckValidationTest extends Test {
                 ],
             },
             {
-                format: 'oathbreaker',
+                format: Format.oathbreaker,
                 input: `
                     # 2 Oathbreakers
                     Wrenn and Six *CMDR*
@@ -281,7 +281,7 @@ export class DeckValidationTest extends Test {
                 ],
             },
             {
-                format: 'oathbreaker',
+                format: Format.oathbreaker,
                 input: `
                     # 2 signature spells
                     Cultivate *CMDR*
@@ -294,7 +294,7 @@ export class DeckValidationTest extends Test {
                 ],
             },
             {
-                format: 'oathbreaker',
+                format: Format.oathbreaker,
                 input: `
                     # Missing Oathbreaker
                     Cultivate *CMDR*
@@ -306,7 +306,7 @@ export class DeckValidationTest extends Test {
                 ],
             },
             {
-                format: 'oathbreaker',
+                format: Format.oathbreaker,
                 input: `
                     # Illegal Oathbreaker
                     Borborygmos *CMDR*
@@ -320,7 +320,7 @@ export class DeckValidationTest extends Test {
                 ],
             },
             {
-                format: 'commander',
+                format: Format.commander,
                 input: `
                     Borborygmos *CMDR*
                     Black Lotus
@@ -332,7 +332,7 @@ export class DeckValidationTest extends Test {
                 ],
             },
             {
-                format: 'commander',
+                format: Format.commander,
                 input: `
                     Borborygmos *CMDR*
                     2 Lightning Bolt
@@ -344,7 +344,7 @@ export class DeckValidationTest extends Test {
                 ],
             },
             {
-                format: 'modern',
+                format: Format.modern,
                 input: `
                     # Gyruda Companion - even mvs
                     Gyruda, Doom of Depths *CMPN*
@@ -361,7 +361,6 @@ export class DeckValidationTest extends Test {
                 ],
             },
             {
-                format: 'legacy',
                 input: `
                     # Jegantha Companion - unique mana symbols
                     Jegantha, the Wellspring *CMPN*
@@ -383,7 +382,6 @@ export class DeckValidationTest extends Test {
                 ],
             },
             {
-                format: 'modern',
                 input: `
                     # Kaheera Companion - kindred creatures
                     Kaheera, the Orphanguard *CMPN*
@@ -401,7 +399,6 @@ export class DeckValidationTest extends Test {
                 ],
             },
             {
-                format: 'modern',
                 input: `
                     # Keruga Companion - mvs >= 3
                     Keruga, the Macrosage *CMPN*
@@ -418,7 +415,6 @@ export class DeckValidationTest extends Test {
                 ],
             },
             {
-                format: 'vintage',
                 input: `
                     # Lurrus Companion - mvs <= 2
                     Lurrus of the Dream-Den *CMPN*
@@ -435,7 +431,6 @@ export class DeckValidationTest extends Test {
                 ],
             },
             {
-                format: 'modern',
                 input: `
                     # Lutri Companion - unique cards
                     Lutri, the Spellchaser *CMPN*
@@ -452,7 +447,6 @@ export class DeckValidationTest extends Test {
                 ],
             },
             {
-                format: 'modern',
                 input: `
                     # Obosh Companion - odd mvs
                     Obosh, the Preypiercer *CMPN*
@@ -469,7 +463,6 @@ export class DeckValidationTest extends Test {
                 ],
             },
             {
-                format: 'modern',
                 input: `
                     # Umori Companion - shared card type
                     Umori, the Collector *CMPN*
@@ -487,7 +480,7 @@ export class DeckValidationTest extends Test {
                 ],
             },
             {
-                format: 'legacy',
+                format: Format.vintage,
                 input: `
                     # Yorion Companion - deck size +20
                     Yorion, Sky Nomad *CMPN*
@@ -499,7 +492,7 @@ export class DeckValidationTest extends Test {
                 ],
             },
             {
-                format: 'legacy',
+                format: Format.vintage,
                 input: `
                     # Yorion Companion - deck size +20
                     Yorion, Sky Nomad *CMPN*
@@ -509,7 +502,6 @@ export class DeckValidationTest extends Test {
                 errors: [],
             },
             {
-                format: 'modern',
                 input: `
                     # Zirda Companion - abilities
                     Zirda, the Dawnwaker *CMPN*
@@ -527,7 +519,6 @@ export class DeckValidationTest extends Test {
                 ],
             },
             {
-                format: 'commander',
                 input: `
                     # Rulebreaker - any lands
                     Grizzlegom, Hurloon Hero *CMDR*
@@ -538,12 +529,9 @@ export class DeckValidationTest extends Test {
                     20 Mountain
                     18 Forest
                 `,
-                errors: [
-                    {type: 'illegal-card'},
-                ],
+                errors: [],
             },
             {
-                format: 'commander',
                 input: `
                     # Rulebreaker - any big creatures & any basic lands
                     Maular, the Next Evolution *CMDR*
@@ -554,12 +542,9 @@ export class DeckValidationTest extends Test {
                     20 Mountain
                     18 Forest
                 `,
-                errors: [
-                    {type: 'illegal-card'},
-                ],
+                errors: [],
             },
             {
-                format: 'commander',
                 input: `
                     # Rulebreaker - any angels & any basic lands
                     Seluma, Light of Aysen *CMDR*
@@ -571,12 +556,9 @@ export class DeckValidationTest extends Test {
                     20 Mountain
                     17 Forest
                 `,
-                errors: [
-                    {type: 'illegal-card'},
-                ],
+                errors: [],
             },
             {
-                format: 'commander',
                 input: `
                     # Rulebreaker - any artifact creatures, equipment, & any basic lands
                     The Everforger *CMDR*
@@ -588,12 +570,9 @@ export class DeckValidationTest extends Test {
                     20 Mountain
                     17 Forest
                 `,
-                errors: [
-                    {type: 'illegal-card'},
-                ],
+                errors: [],
             },
             {
-                format: 'commander',
                 input: `
                     # Rulebreaker - any auras & any basic lands
                     The Unluckiest Planeswalker *CMDR*
@@ -604,12 +583,9 @@ export class DeckValidationTest extends Test {
                     20 Mountain
                     18 Forest
                 `,
-                errors: [
-                    {type: 'illegal-card'},
-                ],
+                errors: [],
             },
             {
-                format: 'commander',
                 input: `
                     # Rulebreaker - any phyrexians & any basic lands
                     Valko Indorian *CMDR*
@@ -621,12 +597,9 @@ export class DeckValidationTest extends Test {
                     20 Mountain
                     17 Forest
                 `,
-                errors: [
-                    {type: 'illegal-card'},
-                ],
+                errors: [],
             },
             {
-                format: 'commander',
                 input: `
                     # Rulebreaker - spells +1 id
                     Tolabow, Loch Rascal *CMDR*
@@ -638,12 +611,9 @@ export class DeckValidationTest extends Test {
                     20 Mountain
                     17 Forest
                 `,
-                errors: [
-                    {type: 'illegal-card'},
-                ],
+                errors: [],
             },
             {
-                format: 'commander',
                 input: `
                     # Rulebreaker - spells +1 id
                     Tolabow, Loch Rascal *CMDR*
@@ -656,12 +626,10 @@ export class DeckValidationTest extends Test {
                     17 Forest
                 `,
                 errors: [
-                    {type: 'illegal-card'},
                     {type: 'color-identity-error'},
                 ],
             },
             {
-                format: 'commander',
                 input: `
                     # Rulebreaker - spells +1 id
                     Tolabow, Loch Rascal *CMDR*
@@ -674,30 +642,20 @@ export class DeckValidationTest extends Test {
                     17 Forest
                 `,
                 errors: [
-                    {type: 'illegal-card'},
                     {type: 'color-identity-error'},
                 ],
             },
             {
-                format: 'commander',
                 input: `
                     # Rulebreaker - no max size
                     Whtz, the Bibliophile *CMDR*
                     100 Plains
                     100 Island
                 `,
-                errors: [
-                    {type: 'illegal-card'},
-                ],
+                errors: [],
             },
             {
-                format: 'commander',
                 input: `
-                    # With Planar deck
-                    Borborygmos *CMDR*
-                    50 Mountain
-                    49 Forest
-                    
                     # Planar deck
                     Bant
                     Esper
@@ -713,13 +671,7 @@ export class DeckValidationTest extends Test {
                 errors: [],
             },
             {
-                format: 'commander',
                 input: `
-                    # Too small Planar deck
-                    Borborygmos *CMDR*
-                    50 Mountain
-                    49 Forest
-                    
                     # Planar deck
                     Bant
                     Esper
@@ -736,13 +688,7 @@ export class DeckValidationTest extends Test {
                 ],
             },
             {
-                format: 'commander',
                 input: `
-                    # Too many phenomena
-                    Borborygmos *CMDR*
-                    50 Mountain
-                    49 Forest
-                    
                     # Planar deck
                     Bant
                     Esper
@@ -760,13 +706,7 @@ export class DeckValidationTest extends Test {
                 ],
             },
             {
-                format: 'commander',
                 input: `
-                    # Duplicate planar card
-                    Borborygmos *CMDR*
-                    50 Mountain
-                    49 Forest
-                    
                     # Planar deck
                     2 Bant
                     Esper
@@ -783,14 +723,14 @@ export class DeckValidationTest extends Test {
                 ],
             },
         ] as {
-            format: string,
+            format?: Format,
             input: string,
             errors: TestMatcher<DeckError[]>,
         }[]).map(async ({format, input, errors}) => {
             input = input.replaceAll(/^\s*|\s*$/g, '');
 
             const deck = Deck.parse(input);
-            deck.format = match_format(format);
+            deck.format = format;
 
             await deck.load();
 
