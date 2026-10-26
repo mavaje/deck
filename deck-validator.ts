@@ -22,6 +22,7 @@ export type DeckErrorType =
 export type DeckError = {
     type: DeckErrorType;
     message: string;
+    board?: Board;
     cards?: DeckCard[];
 };
 
@@ -45,16 +46,40 @@ export class DeckValidator {
         const rulebreaks = commanders.cards.flatMap(commander => commander.rulebreaks());
 
         if (format) {
-            const card_count = this.deck.board(...Board.COMPRISES_DECK).count();
+            const banned_cards = this.deck
+                .board(...Board.STANDARD)
+                .filter(card => card.legality(format) === 'banned');
+            if (banned_cards.count() > 0) {
+                errors.push({
+                    type: 'illegal-card',
+                    message: `These cards are banned in this format`,
+                    cards: banned_cards.cards,
+                });
+            }
+
+            const illegal_cards = this.deck
+                .board(...Board.STANDARD)
+                .filter(card => card.legality(format) === 'not_legal');
+            if (illegal_cards.count() > 0) {
+                errors.push({
+                    type: 'illegal-card',
+                    message: `These cards are not legal in this format`,
+                    cards: illegal_cards.cards,
+                });
+            }
+
+            const card_count = this.deck.board(...Board.STARTING_DECK).count();
             if (card_count < format.min_cards()) {
                 errors.push({
                     type: 'too-few-cards',
                     message: `You have ${card_count} cards, you need at least ${format.min_cards()}`,
+                    board: Board.deck,
                 });
             } else if (card_count > format.max_cards() && !rulebreaks.some(rulebreak => rulebreak.breaks_deck_limit())) {
                 errors.push({
                     type: 'too-many-cards',
                     message: `You have ${card_count} cards, you can have up to ${format.max_cards()}`,
+                    board: Board.deck,
                 });
             }
 
@@ -63,7 +88,7 @@ export class DeckValidator {
                 errors.push({
                     type: 'too-many-sideboard-cards',
                     message: `You have ${sideboard.count()} cards in your sideboard, you can have up to ${format.sideboard_limit}`,
-                    cards: sideboard.cards,
+                    board: Board.sideboard,
                 });
             }
 
@@ -82,19 +107,19 @@ export class DeckValidator {
                         errors.push({
                             type: 'too-few-commanders',
                             message: `You must have a commander in this format`,
-                            cards: commanders.cards,
+                            board: Board.commander,
                         });
                     } else if (commander_count > 1) {
                         errors.push({
                             type: 'too-many-commanders',
                             message: `You cannot have more than one commander`,
-                            cards: commanders.cards,
+                            board: Board.commander,
                         });
                     } else if (format.has_signature_spell) {
                         errors.push({
                             type: 'too-few-commanders',
-                            message: `You must have a signature spell`,
-                            cards: commanders.cards,
+                            message: `You must have an oathbreaker and a signature spell`,
+                            board: Board.commander,
                         });
                     }
 
@@ -113,7 +138,7 @@ export class DeckValidator {
                     errors.push({
                         type: 'too-many-commanders',
                         message: `You cannot have commanders in this format`,
-                        cards: commanders.cards,
+                        board: Board.commander,
                     });
                 }
             }
@@ -125,18 +150,9 @@ export class DeckValidator {
 
         const color_identity = this.deck.color_identity();
 
-        this.deck.each(card => {
-            if (card.board.non_standard) return;
-
-            if (!card.is_legal(format)) {
-                errors.push({
-                    type: 'illegal-card',
-                    message: `This card is ${card.legality(format).replace('_', ' ')} in this format`,
-                    cards: [card],
-                });
-                return;
-            }
-
+        this.deck
+            .board(...Board.STANDARD)
+            .each(card => {
             if (color_identity) {
                 const additional_break = rulebreaks.find(rulebreak => rulebreak.breaks_color_identity(card));
                 if (additional_break) {
@@ -160,7 +176,7 @@ export class DeckValidator {
         });
 
         this.deck
-            .board(...Board.LIMITED_COPIES)
+            .board(...Board.STANDARD)
             .by_count((count, card) => {
                 const max = card.copy_limit(format);
                 if (count > max) {
@@ -172,18 +188,24 @@ export class DeckValidator {
                 }
             });
 
-        Board.all().forEach(board => {
-            if (!board.non_standard) return;
-
+        Board.all()
+            .filter(board => !Board.STANDARD.includes(board))
+            .forEach(board => {
             const board_cards = this.deck.board(board);
 
             if (board_cards.count() === 0) return;
 
-            if (board_cards.count() < board.min_cards) {
+            if (board_cards.count() < board.min_cards()) {
                 errors.push({
                     type: 'too-few-cards',
-                    message: `You must have at least ${board.min_cards} card in a ${board.name.toLowerCase()}`,
-                    cards: board_cards.cards,
+                    message: `You must have at least ${board.min_cards()} cards in a ${board.name.toLowerCase()}`,
+                    board,
+                });
+            } else if (board_cards.count() > board.max_cards()) {
+                errors.push({
+                    type: 'too-many-cards',
+                    message: `You can only have ${board.max_cards()} cards in a ${board.name.toLowerCase()}`,
+                    board,
                 });
             }
 
@@ -235,7 +257,7 @@ export class DeckValidator {
 
         const {ability} = companion_match.groups;
 
-        let deck = this.deck.board(...Board.COMPRISES_DECK);
+        let deck = this.deck.board(...Board.STARTING_DECK);
 
         const mana_value_match = ability.match(/Your starting deck contains only (?<description>cards with ((?<parity>even|odd) )?mana values?( (?<mv>\d+) or (?<dir>less|greater))?(?<lands> and land cards)?)\./);
         if (mana_value_match) {

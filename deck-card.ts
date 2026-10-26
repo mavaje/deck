@@ -391,7 +391,7 @@ export class DeckCard {
     has_activate_ability(): boolean {
         if (!this.card) return false;
 
-        if (this.front_oracle().match(/(^|\n)[^"]+(("[^"]+){2})*:/)) {
+        if (this.front_oracle().match(/(^|\n)[^"]+("[^"]+"[^"]*)*:/)) {
             return true;   
         }
         

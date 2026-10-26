@@ -19,7 +19,7 @@ export abstract class Designation {
             : this.codes[0] ?? this.name;
     }
 
-    matches(input: string): boolean {
+    matches(input: string, exclude_card_names: boolean = false): boolean {
         return [this.name, ...this.codes]
             .map(code => code.replaceAll(' ', '.?'))
             .some(code => new RegExp(`^(${code})$`, 'i').test(input));
@@ -29,13 +29,13 @@ export abstract class Designation {
         return this.code();
     }
 
-    public static match<T extends typeof Designation>(this: T, input: string): InstanceType<T> {
+    public static match<T extends typeof Designation>(this: T, input: string, exclude_card_names: boolean = false): InstanceType<T> {
         const instances = this.all();
 
         if (instances[input]) return instances[input];
 
         for (const instance of instances) {
-            if (instance.matches(input)) {
+            if (instance.matches(input, exclude_card_names)) {
                 return instance;
             }
         }

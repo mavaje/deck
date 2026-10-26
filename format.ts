@@ -38,15 +38,15 @@ export class Format {
     }
 
     min_cards(): number {
-        return Array.isArray(this.cards)
+        return (Array.isArray(this.cards)
             ? this.cards[0]
-            : this.cards;
+            : this.cards) ?? 0;
     }
 
     max_cards(): number {
-        return Array.isArray(this.cards)
+        return (Array.isArray(this.cards)
             ? this.cards[1]
-            : this.cards;
+            : this.cards) ?? Infinity;
     }
 
     has_command_zone(): boolean {
