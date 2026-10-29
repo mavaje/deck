@@ -10,25 +10,24 @@ import {Language} from "./designation/language";
 import {Board} from "./designation/board";
 import {Condition} from "./designation/condition";
 import {Finish} from "./designation/finish";
-
-export type CardFormatOptions = {
-    board?: boolean;
-}
+import {HTML} from "./html";
+import {Deck} from "./deck";
 
 export class DeckCard {
 
-    static LINE_REGEXP = new RegExp([
-        '^',
-        '((?<quantity>\\d{1,3})[x*×]?\\s)?',
-        '(?<name>[^([^#*]+?(\\s*\\((Used|Plane|Theme)\\))?)?',
-        '(\\((?<set>[0-9A-Z]{3,5})((:|\\)\\s*)(?<collector_number>[^)[(#*:\\s]+))?\\)?)?',
-        '(?<extra>([#*^[]).*)?',
-        '$'
-    ].join('\\s*'), 'i');
-
-    static BASIC_LAND_REGEXP = /^(snow(.?cover(ed)?)\s)?(plains?|island|swamp|mountain|forest|wastes?)$/i;
-
     static CACHE = new Cache<Card>();
+
+    static BASIC_LAND_REGEXP = /^(snow(.?cover(ed)?).?)?(plains?|island|swamp|mountain|forest|wastes?)$/i;
+
+    static LINE_REGEXP: RegExp = null;
+
+    static bracket_words = new Set([
+        'Used',
+        'Plane',
+        'Theme',
+    ]);
+
+    static DEFAULT_CARD_BACK_ID = '0aeebaf5-8c7d-4636-9e82-8c27447861f7';
 
     raw?: string;
 
@@ -47,12 +46,45 @@ export class DeckCard {
     card: Card;
     not_found: boolean = false;
 
-    constructor(card: Partial<DeckCard> = {}) {
+    element?: HTMLElement = null;
+
+    constructor(card: Partial<DeckCard> = {}, private deck?: Deck) {
         Object.assign(this, card);
+    }
+
+    static regenerate_line_regexp(): void {
+        this.LINE_REGEXP = new RegExp([
+            '^',
+            '((?<quantity>\\d{1,3})[x*×]?\\s)?',
+            `(?<name>[^([^#*]+?(\\s*\\((\d{4}|${[...this.bracket_words].join('|')}|[^)]*[^0-9A-Z][^)]*)\\))?)?`,
+            '(\\((?<set>[0-9A-Z]{3,5})((:|\\)\\s*)(?<collector_number>[^)[(#*:\\s]+))?\\)?)?',
+            '(?<extra>([#*^[]).*)?',
+            '$'
+        ].join('\\s*'), 'i');
+    }
+
+    static async patch(): Promise<void> {
+        const bracket_cards = (await API.card_search('name:/\\([0-9A-Z]{3,5}(:.+)?\\)$/'))?.data;
+        bracket_cards.forEach(card => {
+            const matches = card.name.matchAll(/\((?<word>[0-9A-Z]{3,5}(:.+)?)\)/gi);
+            for (const match of matches) {
+                const word = match.groups.word;
+                if (word.match(/[A-Z]/i)) {
+                    this.bracket_words.add(word);
+                }
+            }
+        });
+        this.regenerate_line_regexp();
+
+        const number_cards = (await API.card_search('name:/^\\d{1,3}\\s/'))?.data;
+        if (number_cards?.length > 0) {
+            console.error(`cards starting with numbers < 1000: `, number_cards.map(card => card.name));
+        }
     }
 
     static parse(
         input: string,
+        deck?: Deck,
         default_board: Board = Board.DEFAULT,
     ): DeckCard {
         const match = this.LINE_REGEXP.exec(input);
@@ -73,7 +105,7 @@ export class DeckCard {
             set: normalise_set(set, true),
             collector_number,
             board: default_board,
-        });
+        }, deck);
 
         if (!card.name && !(card.set && card.collector_number)) return null;
 
@@ -127,11 +159,13 @@ export class DeckCard {
             }
         }
 
+        deck?.add(card);
+
         return card;
     }
 
-    static from_card(card: Card, exact: boolean = false): DeckCard {
-        const deck_card = new DeckCard({card});
+    static from_card(card: Card, deck: Deck, exact: boolean = false): DeckCard {
+        const deck_card = new DeckCard({card}, deck);
 
         deck_card.hydrate(card);
 
@@ -149,7 +183,7 @@ export class DeckCard {
         if (this.set && this.collector_number) {
             keys.push(`(${this.set}:${this.collector_number}:${this.language})`);
         } else if (this.name) {
-            // if (this.card) keys.push(`(${this.card.set.toUpperCase()}:${this.card.collector_number}:${this.card.lang})`);
+            if (this.card) keys.push(`(${this.card.set.toUpperCase()}:${this.card.collector_number}:${this.card.lang})`);
             keys.push(`${normalise(this.name)} (${this.set ?? ''}::${this.language})`);
         }
 
@@ -157,40 +191,59 @@ export class DeckCard {
     }
 
     identifier(): Identifier {
-        const {name, set, collector_number} = this;
-
+        const {set, collector_number} = this;
         if (set && collector_number) {
             return {set, collector_number};
         }
 
-        if (name) {
-            return {name, set};
+        if (this.name) {
+            const name = this.name.split(/\s*\/\/\s*/g)[0];
+            return set
+                ? {name, set}
+                : {name};
         }
 
         return null;
     }
 
-    card_image_url(format: keyof CardImagery = 'grid'): string {
+    face<T = Card | CardFace>(face: number = 0, callback: (card: Card | CardFace) => T = card => card as T): T {
+        let result: T = null;
+
+        if (this.card.card_faces?.[face]) {
+            result ??= callback(this.card.card_faces[face]);
+        }
+
+        if (face === 0) {
+            result ??= callback(this.card);
+        }
+
+        return result;
+    }
+
+    card_image_urls(face: number = 0, format: keyof CardImagery = 'grid'): string[] {
+        const urls: string[] = [];
+
         if (this.card) {
-            return this.card.image_uris?.[format] ?? null;
-        } else if (!this.not_found) {
-            const {name, set, collector_number, language} = this;
+            urls.push(this.face(face, card => card?.image_uris?.[format]));
+        }
+
+        if (face === 0) {
+            const {set, collector_number, language} = this;
             const parameters = {format: 'image', version: format};
 
             if (set && collector_number) {
-                return API.card_url(set, collector_number, language.code(), parameters);
-            }
-
-            if (name) {
-                return API.card_named_url(name, set, false, parameters);
+                urls.push(API.card_url(set, collector_number, language.code(), parameters));
             }
         }
 
-        return null;
+        return urls;
     }
 
     load_from_cache(): void {
-        this.card ??= DeckCard.CACHE.get_any(this.cache_keys());
+        if (!this.card) {
+            this.card = DeckCard.CACHE.get_any(this.cache_keys());
+            this.hydrate();
+        }
     }
 
     async load(): Promise<this> {
@@ -220,7 +273,9 @@ export class DeckCard {
 
         this.not_found = !this.card;
 
-        return this.hydrate();
+        return this
+            .hydrate()
+            .cache();
     }
 
     async reload(): Promise<this> {
@@ -229,7 +284,7 @@ export class DeckCard {
         return this.load();
     }
 
-    hydrate(card = this.card) {
+    hydrate(card = this.card): this {
         if (card) {
             this.card = card;
 
@@ -241,9 +296,17 @@ export class DeckCard {
                 this.collector_number = null;
             }
 
-            DeckCard.CACHE.put_each(this.cache_keys(), card);
-
             this.name = card.name;
+
+            this.render();
+        }
+
+        return this;
+    }
+
+    cache(): this {
+        if (this.card) {
+            DeckCard.CACHE.put_each(this.cache_keys(), this.card);
         }
 
         return this;
@@ -274,16 +337,32 @@ export class DeckCard {
         return boards.length === 0 || boards.includes(this.board);
     }
 
-    all_names(): string[] {
-        return (this.card?.name ?? this.name).split(/\s*\/+\s*/g);
+    all_names(printed: boolean = true): string[] {
+        if (this.card?.card_faces) {
+            return this.card?.card_faces?.map(face =>
+                printed && this.card?.lang === 'en'
+                    ? face.printed_name ?? face.name
+                    : face.name
+            );
+        }
+        let name: string;
+        if (printed && this.card?.lang === 'en') name ??= this.card?.printed_name;
+        name ??= this.card?.name;
+        name ??= this.name;
+        return name.split(/\s*\/+\s*/g);
     }
 
-    is_layout(layout: string): boolean {
-        return this.card?.layout === layout;
+    front_name(printed: boolean = true): string {
+        const all_names = this.all_names(printed);
+        return this.is_layout('split')
+            ? all_names.join(' // ')
+            : all_names[0];
     }
 
-    front_card(): Card | CardFace {
-        return this.card?.card_faces?.[0] ?? this.card ?? null;
+    is_layout(layout: string): boolean;
+    is_layout(...layouts: string[]): boolean;
+    is_layout(...layouts: string[]): boolean {
+        return layouts.some(layout => this.card?.layout === layout);
     }
 
     card_types(): string[] {
@@ -295,13 +374,13 @@ export class DeckCard {
     is_type(...types: string[]): boolean {
         if (!this.card) return false;
         return types.every(type =>
-            new RegExp(`\\b${type}\\b`, 'i').test(this.front_card().type_line)
+            new RegExp(`\\b${type}\\b`, 'i').test(this.face().type_line)
             || (this.has_keyword('Changeling') && Catalog.creature_types.has(type))
             || (this.front_oracle().match(/(^|\n)Rangeling\b/i) && Catalog.land_types.has(type))
             || {
                 Creature: /Eaturecray/i,
                 Pig: /Igpay/i,
-            }[type]?.test(this.front_card().type_line)
+            }[type]?.test(this.face().type_line)
         );
     }
 
@@ -330,6 +409,10 @@ export class DeckCard {
             : this.name && DeckCard.BASIC_LAND_REGEXP.test(this.name);
     }
 
+    mana_value(): number {
+        return this.card?.cmc ?? this.card?.card_faces?.[0]?.cmc ?? null;
+    }
+
     can_command(format: Format): boolean {
         return (format.has_commander && this.can_be_commander())
             || (format.has_brawler && this.can_be_brawler())
@@ -337,7 +420,7 @@ export class DeckCard {
     }
 
     can_be_commander(): boolean {
-        return Boolean(this.is_type('Legendary') && this.front_card().power && this.front_card().toughness)
+        return Boolean(this.is_type('Legendary') && this.face().power && this.face().toughness)
             || /~ can be your commander\./.test(this.front_oracle());
     }
 
@@ -377,14 +460,14 @@ export class DeckCard {
     front_oracle(): string {
         const cards = this.is_layout('split')
             ? this.card.card_faces
-            : [this.front_card()];
+            : [this.face()];
         return cards
             .map(card => card?.oracle_text.replaceAll(card.name, '~'))
             .join('\n');
     }
 
     has_ability(ability: string | RegExp): boolean {
-        if (!(ability instanceof RegExp)) ability = new RegExp(`(^|\\n)${ability}\\s[^a-z]`, 'i');
+        if (!(ability instanceof RegExp)) ability = new RegExp(`(^|\\n)${ability}(—| [\d{(]|$)`, 'i');
         return ability.test(this.front_oracle());
     }
     
@@ -438,8 +521,9 @@ export class DeckCard {
             return true;
         }
 
-        return Object.keys(activated_ability_words)
-            .some(kw => this.has_ability(kw));
+        return Object.entries(activated_ability_words)
+            .filter(([_, activated]) => activated)
+            .some(([kw]) => this.has_ability(kw));
     }
 
     copy_limit(format?: Format): number {
@@ -487,7 +571,7 @@ export class DeckCard {
                     .match(/Partner with (?<name>[^(]+) (\(|$)/);
                 const {name} = name_match.groups;
 
-                if (name === second.all_names()[0]) {
+                if (name === second.front_name()) {
                     return true;
                 }
             }
@@ -569,15 +653,16 @@ export class DeckCard {
                 .replace(/^([*[#^]([\w\s]+)[*\]#^]?)(\?)?$/i, (full, string: string, input: string, opt: string) => {
                     if (Language.match(input)) {
                         return opt && this.language.is_default() ? ''
-                            : string.replace(/[\w\s]+/, preserve_case(string.length > 3 ? this.language.name : this.language.code(), string));
+                            : string.replace(/[\w\s]+/, preserve_case(input.length > 3 ? this.language.name : this.language.code(), input));
                     } else if (Finish.match(input)) {
                         return opt && this.finish.is_default() ? ''
-                            : string.replace(/[\w\s]+/, preserve_case(string.length > 2 ? this.finish.name : this.finish.code(), string));
+                            : string.replace(/[\w\s]+/, preserve_case(input.length > 2 ? this.finish.name : this.finish.code(), input));
                     } else if (Condition.match(input)) {
                         return !this.condition ? ''
-                            : string.replace(/[\w\s]+/, preserve_case(string.length > 2 ? this.condition.name : this.condition.code(), string));
+                            : string.replace(/[\w\s]+/, preserve_case(input.length > 2 ? this.condition.name : this.condition.code(), input));
                     } else if (input.match(/^(board|brd)$/i)) {
-                        return string.replace(/[\w\s]+/, preserve_case(string.length > 3 ? this.board.name : this.board.code(), string));
+                        return opt && this.board.is_default() ? ''
+                            : string.replace(/[\w\s]+/, preserve_case(input.length > 3 ? this.board.name : this.board.code(), input));
                     } else if (input.match(/tag/i)) {
                         return this.tags
                             .map(tag => string.replace(/[\w\s]+/, preserve_case(tag, input)))
@@ -587,10 +672,10 @@ export class DeckCard {
                     }
                 })
                 .replace(/^(name)\??$/i, (_, name) =>
-                    preserve_case(this.is_layout('split') ? this.name : this.all_names()[0], name))
+                    preserve_case(this.front_name(true), name))
                 .replace(/^(\/+\s*)(back)$/i, (_, slash, back) =>
-                    this.all_names().slice(1).map(face => slash + preserve_case(face, back)).join('')
-                    )
+                    this.is_type('split') ? ''
+                        : this.all_names().slice(1).map(face => slash + preserve_case(face, back)).join(''))
                 .replace(/^(set)(\?)?$/i, (_, set, opt) =>
                     opt && !(this.card?.set ?? this.set) ? '' : preserve_case(this.card?.set ?? this.set, set))
             )
@@ -601,4 +686,151 @@ export class DeckCard {
     toString() {
         return this.to_string();
     }
+
+    render(id: string = this.element?.id, is_row: boolean = false): HTMLDivElement {
+        let show_back = true;
+        const card_class: string[] = ['card'];
+        const faces: HTMLDivElement[] = [];
+
+        const add_face = (urls: string[], is_back: boolean = false): void => {
+            urls.push('/public/skeleton-card.svg');
+            faces.push(HTML.div({
+                class: is_back ? ['card-face', 'back'] : 'card-face',
+                style: {
+                    background_image: urls
+                        .map(url => `url(${url})`)
+                        .join(', '),
+                },
+            }));
+        };
+
+        add_face(this.card_image_urls());
+
+        switch (this.card?.layout) {
+            case 'transform':
+            case 'modal_dfc':
+            case 'double_faced_token':
+            case 'reversible_card':
+            case 'art_series':
+                show_back = false;
+                card_class.push('transform');
+                add_face(this.card_image_urls(1), true);
+                break;
+
+            case 'split':
+                if (this.has_keyword('Aftermath')) {
+                    show_back = false;
+                    card_class.push('aftermath');
+                } else {
+                    card_class.push('landscape');
+                }
+                break;
+
+            case 'flip':
+                show_back = false;
+                card_class.push('flip');
+                break;
+
+            case 'meld':
+                const parts = this.card.all_parts;
+                const my_part = parts.find(part => part.id === this.card.id);
+                if (my_part?.component === 'meld_result') {
+                    card_class.push('double');
+                }
+                break;
+
+            case 'scheme':
+            case 'vanguard':
+                card_class.push('double');
+                break;
+
+            case 'planar':
+                card_class.push('double', 'landscape');
+                break;
+        }
+
+        if (this.is_type('Battle')) {
+            card_class.push('landscape-front');
+        }
+
+        let faces_style = {};
+
+        switch (this.card?.id) {
+            // Hawkins National Laboratory // The Upside Down
+            case '83a86763-c3fe-4cff-8b65-22cb329d112c':
+                faces_style['--transform-initial'] = 'rotateX(0deg)';
+                faces_style['--transform-final'] = 'rotateX(180deg)';
+        }
+
+        switch (this.card?.oracle_id) {
+            // Topsy Turvy
+            case '4516f30c-fb21-4371-818f-7dd211612a72':
+                show_back = false;
+                card_class.push('flip');
+                break;
+
+            // Burning Cinder Fury of Crimson Chaos Fire
+            case '9716976e-1b52-4351-932e-b99fe206afbd':
+                card_class.push('landscape');
+                break;
+
+            // Who // What // When // Where // Why
+            case 'adfe1b07-dd82-4c39-a7a6-ded0b1c39761':
+                card_class[1] = 'landscape-front';
+                faces_style['transition-duration'] = '0.25s';
+                faces_style['transform-origin'] = 'calc(var(--card-width) / 2) 50%';
+                faces_style['--transform-initial'] = 'rotateZ(90deg)';
+                faces_style['--transform-final'] = 'rotateZ(0deg)';
+                break;
+        }
+
+        if (!this.finish.is_default()) {
+            faces.forEach(face => {
+                face.classList.add('foil');
+            })
+        }
+
+        if (show_back && this.card?.card_back_id && this.card.card_back_id !== DeckCard.DEFAULT_CARD_BACK_ID) {
+            const id = this.card.card_back_id;
+            card_class.push('transform');
+            add_face([`https://backs.scryfall.io/large/${id[0]}/${id[1]}/${id}.jpg`], true);
+        }
+
+        let tilt: HTMLDivElement = null;
+        return this.element = HTML.div(
+            {
+                id,
+                class: card_class,
+                onpointermove: ({x, y}: MouseEvent) => {
+                    const {top, left, width, height} = this.element.getBoundingClientRect();
+                    const effective_height = is_row
+                        ? this.element.children[0].getBoundingClientRect().height
+                        : height;
+                    const dx = x - (left + 24) - width / 2;
+                    const dy = y - top - effective_height / 2;
+                    const angle = Math.atan2(dy, dx);
+                    const azimuth = -10 * Math.min(Math.hypot(dx, dy) / 100, 1);
+                    tilt.style.setProperty('--tilt-angle', `${angle}rad`);
+                    tilt.style.setProperty('--tilt-azimuth', `${azimuth}deg`);
+                },
+                onpointerleave: () => {
+                    tilt.style.setProperty('--tilt-angle', `0`);
+                    tilt.style.setProperty('--tilt-azimuth', `0`);
+                },
+            },
+            HTML.div({class: 'backdrop'}),
+            HTML.div({class: 'trigger'}),
+            HTML.div(
+                {class: 'card-shift'},
+                HTML.div({class: 'count'}, `${this.quantity}×`),
+                tilt = HTML.div(
+                    {class: 'card-tilt'},
+                    HTML.div({class: 'card-faces', style: faces_style}, faces),
+                ),
+            ),
+        );
+    }
 }
+
+DeckCard.regenerate_line_regexp();
+// DeckCard.patch();

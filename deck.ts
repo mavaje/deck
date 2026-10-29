@@ -4,8 +4,18 @@ import {API} from "./scryfall/api";
 import {ColorIdentity} from "./color-identity";
 import {Board} from "./designation/board";
 import {CardList} from "./card-list";
+import { HTML } from "./html";
+import {CARD_TYPES} from "./card-types";
+import {fraction} from "./text";
+
+export type DeckOrdering =
+    'board' |
+    'type' |
+    'mana value';
 
 export class Deck extends CardList {
+
+    static current: Deck = new Deck();
 
     format: Format;
 
@@ -28,7 +38,7 @@ export class Deck extends CardList {
             if (header_match) {
                 const {tag, header} = header_match.groups;
 
-                const board = Board.match(header);
+                const board = Board.match(header, !tag);
                 if (board) {
                     group_board = board;
                     return;
@@ -40,18 +50,31 @@ export class Deck extends CardList {
                 }
             }
 
-            const card = DeckCard.parse(line, group_board);
+            const card = DeckCard.parse(line, deck, group_board);
             if (card) {
                 if (group_tag) {
                     card.tags.push(group_tag);
                 }
-                deck.add(card);
             } else {
                 console.error(`Failed to parse line "${line}"`);
             }
         });
 
         return deck;
+    }
+
+    static async load_current(input: string): Promise<Deck> {
+        Deck.current = Deck.parse(input);
+        Deck.current.render();
+        await Deck.current.load();
+        Deck.current.render();
+        const first = Deck.current.cards[0];
+        if (first?.card) {
+            HTML.div({id: 'card-image', style: {
+                background_image: `url(${first.face(0, f => f?.image_uris?.art)})`,
+            }});
+        }
+        return Deck.current;
     }
 
     async load(): Promise<this> {
@@ -75,7 +98,7 @@ export class Deck extends CardList {
                     Object.keys(i1).length === Object.keys(i2).length &&
                     Object.keys(i1).every(key => i1[key] === i2[key])
                 )) {
-                    card.hydrate(cards.data[index++]);
+                    card.hydrate(cards.data[index++]).cache();
                 }
             }
         }
@@ -112,5 +135,72 @@ export class Deck extends CardList {
 
     toString(): string {
         return this.to_string();
+    }
+
+    render(ordering: DeckOrdering = 'board'): void {
+        let stacks: {
+            name: string;
+            cards: CardList;
+        }[] = [];
+
+        switch (ordering) {
+            case 'board':
+                stacks = Board.all().map(board => ({
+                    name: board.name,
+                    cards: this.board(board),
+                }));
+                break;
+
+            case 'type':
+                stacks = CARD_TYPES.map(type => ({
+                    name: type,
+                    cards: this.filter(card => card.is_type(type)),
+                }));
+                stacks.push({
+                    name: 'Unknown',
+                    cards: this.filter(card => !card.is_any_type(CARD_TYPES)),
+                });
+                break;
+
+            case 'mana value':
+                const mvs: number[] = [];
+                this.cards.forEach(card => {
+                    const mv = card.mana_value();
+                    if (mv !== null && !mvs.includes(mv)) {
+                        mvs.push(mv);
+                    }
+                });
+                stacks.push(
+                    {
+                        name: 'Land',
+                        cards: this.filter(card => card.is_type('Land')),
+                    },
+                    ...mvs
+                        .sort((a, b) => a - b)
+                        .map(mv => ({
+                            name: `${fraction(mv)}-drop`,
+                            cards: this.filter(card => !card.is_type('Land') && card.mana_value() === mv),
+                        })),
+                    {
+                        name: 'Unknown',
+                        cards: this.filter(card => card.mana_value() === null),
+                    },
+                )
+                break;
+        }
+
+        HTML.div(
+            {id: 'deck'},
+            HTML.div(
+                {class: 'stacks'},
+                stacks
+                    .filter(stack => stack.cards.cards.length > 0)
+                    .map((stack, i) => HTML.div(
+                        {id: `stack-${i}`, class: 'stack'},
+                        HTML.div({class: 'header'}, HTML.span({class: 'label'}, HTML.span({style: {font_weight: 'bold'}}, stack.name), ` (${stack.cards.count()})`)),
+                        ...stack.cards.each((card, j) => card.render(`card-${i}-${j}`, j < stack.cards.cards.length - 1)),
+                    )),
+            ),
+        );
     }
 }

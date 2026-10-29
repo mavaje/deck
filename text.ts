@@ -66,7 +66,22 @@ export function words_to_number(word: string): number {
     return null;
 }
 
-export function normalise(text: string, uppercase: boolean = false, strip: RegExp = /[^\w ]/gi, separator: string = ' '): string {
+export function fraction(number: number): string {
+    const fraction = {
+        [0.5]: '½',
+    }[Math.abs(number % 1)];
+
+    if (fraction) {
+        const integer = Math.trunc(number);
+        return integer
+            ? `${integer}${fraction}`
+            : fraction;
+    }
+
+    return `${number}`;
+}
+
+export function normalise(text: string, uppercase: boolean = false, strip: RegExp = /[^\w\s]/gi, separator: string = ' '): string {
     if (!text) return text;
 
     return (uppercase

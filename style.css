@@ -1,0 +1,350 @@
+* {
+    transition-timing-function: ease;
+    transition-property: none;
+    transition-duration: 0.2s;
+}
+
+html {
+    height: 100%;
+}
+
+body {
+    --card-scale: 8px;
+
+    background-color: #2c1010;
+    color: #ffffff;
+    font-family: monospace;
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+#background,
+#background > *,
+#foreground {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+}
+
+#card-image {
+    background-size: cover;
+}
+
+#blur {
+    background-image: radial-gradient(#0000003f, #000000bf);
+    backdrop-filter: blur(8px);
+}
+
+#controls {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: row;
+    justify-content: end;
+    padding: 4px;
+    z-index: 5;
+    background-color: #0000007f;
+    backdrop-filter: blur(4px);
+}
+
+.button {
+    margin: 4px;
+    padding: 4px 8px;
+    background-color: black;
+    color: white;
+    border-radius: 4px;
+    font-weight: bold;
+    border: 2px solid white;
+    outline: none;
+    cursor: pointer;
+    transition-property: background-color;
+}
+
+.button:hover {
+    background-color: #007f5f;
+}
+
+.label {
+    padding: 4px 8px;
+    background-color: black;
+    color: white;
+    border-radius: 4px;
+}
+
+#deck-file-input {
+    display: none;
+}
+
+#deck {
+    position: absolute;
+    width: 100%;
+    height: calc(100% - 48px);
+    overflow: auto;
+    padding-top: 48px;
+}
+
+#deck .stacks {
+    display: flex;
+    flex-direction: row;
+}
+
+#deck .stacks .stack {
+    padding-left: 32px;
+    padding-bottom: 64px;
+}
+
+#deck .stacks .stack .header {
+    position: sticky;
+    top: 0;
+    padding: 16px 0 16px 32px;
+    z-index: 2;
+    pointer-events: none;
+}
+
+#deck .stacks .stack .header .label {
+    box-shadow: 0 0 8px 0 black;
+}
+
+.card {
+    --card-width: calc(25 * var(--card-scale));
+    --card-height: calc(35 * var(--card-scale));
+    --card-title-height: calc(4 * var(--card-scale));
+    --card-radius: calc(1.25 * var(--card-scale));
+
+    position: relative;
+    width: var(--card-width);
+    height: var(--card-height);
+    margin-inline: 16px;
+    margin-bottom: calc(var(--card-title-height) - var(--card-height));
+    transform: perspective(1024px);
+    transform-origin: 50% calc(8 * var(--card-scale));
+    transform-style: preserve-3d;
+    cursor: pointer;
+    transition-property: width;
+}
+
+.card:last-of-type {
+    margin-bottom: 0;
+}
+
+.card.double {
+    --card-width: calc(35 * var(--card-scale));
+    --card-height: calc(49 * var(--card-scale));
+    --card-title-height: calc(6 * var(--card-scale));
+    --card-radius: calc(2 * var(--card-scale));
+}
+
+.card.landscape,
+.card.landscape-front {
+    --card-width: calc(35 * var(--card-scale));
+    --card-height: calc(25 * var(--card-scale));
+}
+
+.card.double.landscape,
+.card.double.landscape-front {
+    --card-width: calc(49 * var(--card-scale));
+    --card-height: calc(35 * var(--card-scale));
+}
+
+.card.aftermath {
+    width: var(--card-height);
+}
+
+.card .backdrop {
+    position: absolute;
+    top: 0;
+    height: var(--card-title-height);
+    left: -56px;
+    right: 0;
+    border-radius: 4px;
+    transition-property: background-color;
+    pointer-events: none;
+}
+
+.card:hover .backdrop {
+    background-color: #ffffff3f;
+}
+
+.card .trigger {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(25 * var(--card-scale) / 2);
+    right: 0;
+}
+
+.card.double .trigger {
+    left: calc(35 * var(--card-scale) / 2);
+}
+
+.card .card-shift {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    transition-property: transform;
+    transform-style: preserve-3d;
+    display: inline-flex;
+    pointer-events: none;
+}
+
+.card:hover .card-shift {
+    transform: translateZ(100px);
+}
+
+.card .count {
+    margin-left: -40px;
+    padding: 12px 12px 0 0;
+    min-width: 32px;
+    text-align: end;
+}
+
+.card.double .count {
+    padding-top: 20px;
+}
+
+.card-tilt {
+    --tilt-angle: 0;
+    --tilt-azimuth: 0;
+
+    width: 100%;
+    transform-style: preserve-3d;
+
+    /*transition-property: transform;*/
+}
+
+.card:hover .card-tilt {
+    transform:
+            rotateZ(var(--tilt-angle))
+            rotateY(var(--tilt-azimuth))
+            rotateZ(calc(-1 * var(--tilt-angle)));
+}
+
+.card-faces {
+    --transform-initial: translateX(0);
+    --transform-final: var(--transform-initial);
+
+    width: var(--card-width);
+    height: var(--card-height);
+    border-radius: var(--card-radius);
+    transform: var(--transform-initial);
+    transform-style: preserve-3d;
+    transition-property: transform, box-shadow;
+    transition-duration: 0.35s;
+    background-color: black;
+    box-shadow: 0 0 4px 0 black;
+}
+
+.card:hover .card-faces {
+    box-shadow: 0 0 8px 2px black;
+}
+
+.card:has(.trigger:hover) .card-faces {
+    transform: var(--transform-final);
+}
+
+.card.landscape .card-faces,
+.card.landscape-front .card-faces {
+    --transform-initial: rotateZ(90deg);
+    transform-origin: calc(var(--card-width) / 2) 50%;
+    width: var(--card-height);
+    height: var(--card-width);
+}
+
+.card.flip .card-faces {
+    --transform-final: rotateZ(-180deg);
+}
+
+.card.aftermath .card-faces {
+    --transform-final: rotateZ(-90deg);
+    transform-origin: 50% calc(var(--card-width) / 2);
+    transition-duration: 0.25s;
+}
+
+.card.transform .card-faces {
+    --transform-initial: rotateY(0deg);
+    --transform-final: rotateY(-180deg);
+}
+
+.card.landscape.transform .card-faces {
+    --transform-initial: translateX(calc(var(--card-width) - var(--card-height))) rotateZ(90deg) rotateY(0);
+    --transform-final: translateX(calc(var(--card-width) - var(--card-height))) rotateZ(90deg) rotateY(-180deg);
+    transform-origin: calc(var(--card-height) / 2) calc(var(--card-height) / 2);
+}
+
+.card.landscape-front .card-faces {
+    --transform-initial: translateX(calc(var(--card-width) - var(--card-height))) rotateZ(90deg);
+    --transform-final: rotateY(-180deg);
+    transform-origin: 50% calc(var(--card-height) / 2);
+}
+
+.card:hover ~ .card .card-shift {
+    --shift: 35;
+    transform: translateY(calc(var(--shift) * var(--card-scale)));
+}
+
+.card.landscape:hover ~ .card .card-shift,
+.card.landscape-front:hover ~ .card .card-shift,
+.card.aftermath:has(.trigger:hover) ~ .card .card-shift {
+    --shift: 25;
+}
+
+.card.double:hover ~ .card .card-shift {
+    --shift: 50;
+}
+
+.card.landscape-front:has(.trigger:hover) ~ .card .card-shift,
+.card.landscape.double:hover ~ .card .card-shift {
+    --shift: 35;
+}
+
+.card-face {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-position: 50% 50%;
+    background-size: cover;
+    border-radius: var(--card-radius);
+    transform: translateZ(1px);
+    transition-property: outline-color;
+    outline: 2px solid transparent;
+}
+
+.card-face.back {
+    transform: translateZ(-1px) rotateY(180deg);
+}
+
+.card.error .card-face {
+    outline-color: #ff3f00;
+}
+
+.card-face.foil:after {
+    --foil-scale: calc(35 * var(--card-scale));
+
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    mix-blend-mode: overlay;
+    background-image: linear-gradient(-45deg in hsl increasing hue, #f00, #0ff, #f00, #0ff, #f00);
+    background-size: var(--foil-scale) var(--foil-scale);
+    border-radius: var(--card-radius);
+    opacity: 25%;
+    animation: foil-animation 4s linear infinite;
+}
+
+.card.landscape .card-face.foil:after,
+.card.landscape-front .card-face.foil:not(.back):after {
+    background-image: linear-gradient(45deg in hsl increasing hue, #f00, #0ff, #f00, #0ff, #f00);
+}
+
+@keyframes foil-animation {
+    100% { background-position: var(--foil-scale) 0 }
+}

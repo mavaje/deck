@@ -103,6 +103,7 @@ export interface CardFace extends SFObject<'card_face'> {
     loyalty?: string;
     mana_cost: string;
     name: string;
+    flavor_name?: string;
     oracle_id?: string;
     oracle_text?: string;
     power?: string;
@@ -150,7 +151,7 @@ export interface Card extends SFObject<'card'> {
     // gameplay fields
     all_parts?: RelatedCard[];
     card_faces?: CardFace[];
-    cmc: number;
+    cmc?: number;
     color_identity: Color[];
     color_indicator?: Color[];
     colors?: Color[];
@@ -170,7 +171,7 @@ export interface Card extends SFObject<'card'> {
     produced_mana?: ProducedColor[];
     reserved: boolean;
     toughness?: string;
-    type_line: string;
+    type_line?: string;
 
     // print fields
     artist?: string;

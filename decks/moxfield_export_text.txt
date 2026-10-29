@@ -44,7 +44,7 @@
 1 Lingering Souls
 1 Martial Coup
 1 Mass Polymorph
-1 Megatron
+1 Megatron (SLD)
 1 Monica, the Marvel
 2 Mountain
 1 Mystic Gate
@@ -53,7 +53,7 @@
 1 Nissa, Leyline Tamer
 1 Oath of Teferi
 1 Occult Epiphany
-1 Optimus Prime
+1 Optimus Prime (SLD)
 1 Path of Ancestry
 1 Path to Exile
 1 Perilous Landscape

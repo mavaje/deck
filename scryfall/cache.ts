@@ -1,6 +1,6 @@
 export class Cache<T> {
 
-    private data: Record<string, T> = {};
+    constructor(private data: Record<string, T> = {}) {}
 
     public has(key: string): boolean {
         return key in this.data;

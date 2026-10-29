@@ -1,8 +1,13 @@
+import {normalise} from "../text";
 
 export type DesignationMap<T extends Designation = Designation> = T[] & Record<string, T>;
 
 export abstract class Designation {
     protected static INSTANCES: Record<string, DesignationMap> = {};
+
+    private static card_names: string[] = [
+        'conspiracy',
+    ];
 
     constructor(
         public name: string,
@@ -14,22 +19,38 @@ export abstract class Designation {
     }
 
     code(upper: boolean = false): string {
+        const code = this.codes[0] ?? this.name;
         return upper
-            ? this.code().toUpperCase()
-            : this.codes[0] ?? this.name;
+            ? code.toUpperCase()
+            : code;
+    }
+
+    regexp(code: string): RegExp {
+        return new RegExp(`^(${
+            normalise(code)
+                .replaceAll(' ', '.?')
+        })$`, 'i');
+    }
+
+    regexps(): RegExp[] {
+        return [this.name, ...this.codes].map(code => this.regexp(code));
     }
 
     matches(input: string, exclude_card_names: boolean = false): boolean {
-        return [this.name, ...this.codes]
-            .map(code => code.replaceAll(' ', '.?'))
-            .some(code => new RegExp(`^(${code})$`, 'i').test(input));
+        let regexps = this.regexps();
+
+        if (exclude_card_names) {
+            regexps = regexps.filter(re => !Designation.card_names.some(code => re.test(code)));
+        }
+
+        return regexps.some(re => re.test(input));
     }
 
     toString(): string {
         return this.code();
     }
 
-    public static match<T extends typeof Designation>(this: T, input: string, exclude_card_names: boolean = false): InstanceType<T> {
+    static match<T extends typeof Designation>(this: T, input: string, exclude_card_names: boolean = false): InstanceType<T> {
         const instances = this.all();
 
         if (instances[input]) return instances[input];
@@ -43,7 +64,7 @@ export abstract class Designation {
         return null;
     }
 
-    public static all<T extends typeof Designation>(this: T): DesignationMap<InstanceType<T>> {
+    static all<T extends typeof Designation>(this: T): DesignationMap<InstanceType<T>> {
         return this.INSTANCES[this.name] as DesignationMap<InstanceType<T>>;
     }
 }

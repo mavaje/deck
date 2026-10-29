@@ -46,7 +46,7 @@ export class CardList {
             .filter(card => predicate(counts[card.name], card)));
     }
 
-    each<T>(callback: (card: DeckCard) => T): T[] {
+    each<T>(callback: (card: DeckCard, index: number) => T): T[] {
         return this.cards.map(callback);
     }
 

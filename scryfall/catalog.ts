@@ -16,41 +16,13 @@ export class Catalog {
     public static planeswalker_types = new Catalog('planeswalker-types');
     public static spell_types = new Catalog('spell-types');
 
-    public static keyword_abilities = new Catalog('keyword-abilities', {
-        'Augment': 'activated',
-        'Aura Swap': 'activated',
-        'Commander ninjutsu': 'activated',
-        'Craft': 'activated',
-        'Crew': 'activated',
-        'Cycling': 'activated',
-        'Embalm': 'activated',
-        'Encore': 'activated',
-        'Equip': 'activated',
-        'Equipment Swap': 'activated',
-        'Eternalize': 'activated',
-        'Fortify': 'activated',
-        'Host': 'activated',
-        'Level Up': 'activated',
-        'Ninjutsu': 'activated',
-        'Outlast': 'activated',
-        'Reconfigure': 'activated',
-        'Reinforce': 'activated',
-        'Saddle': 'activated',
-        'Scavenge': 'activated',
-        'Shackle': 'activated',
-        'Specialize': 'activated',
-        'Station': 'activated',
-        'Transfigure': 'activated',
-        'Transmute': 'activated',
-        'Unearth': 'activated',
-    });
+    public static keyword_abilities = new Catalog('keyword-abilities');
 
     private data: string[] = [];
     private map: Record<string, true> = {};
 
     constructor(
         private type: string,
-        private mapping?: Record<string, string>,
     ) {
         Catalog.INSTANCES.push(this);
     }
@@ -76,11 +48,7 @@ export class Catalog {
         return this.data;
     }
 
-    filter(callback: (type: string) => boolean) {
+    filter(callback: (type: string) => any): string[] {
         return this.data.filter(callback);
-    }
-
-    lookup(type: string): string {
-        return this.mapping?.[type] ?? null;
     }
 }

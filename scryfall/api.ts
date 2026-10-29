@@ -27,8 +27,6 @@ export class API {
         url: string,
         body?: any,
     ): Promise<T> {
-        if (this.TOO_MANY_REQUESTS) return null;
-
         const can_cache = method === 'GET' && !body;
         if (can_cache && this.CACHE.has(url)) {
             return this.CACHE.get(url) as T;
@@ -51,21 +49,29 @@ export class API {
             request.addEventListener('error', () => {
                 this.TOO_MANY_REQUESTS = true;
                 done(null);
+                setTimeout(() => this.TOO_MANY_REQUESTS = false, 10000);
             });
 
             if (body) {
                 request.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
             }
 
-            const throttle = /\/cards\/(search|named|random|collection)/.test(url) ? 500 : 100;
+            const throttle = this.TOO_MANY_REQUESTS
+                ? 10000
+                : /\/cards\/(search|named|random|collection)/.test(url)
+                    ? 500
+                    : 100;
             const now = Date.now();
             const timeout = Math.max(0, API.LAST_REQUEST - now + throttle);
 
             API.LAST_REQUEST = now + timeout;
 
             setTimeout(() => {
+                if (this.TOO_MANY_REQUESTS) {
+                    return done(null);
+                }
                 console.log(`${method} ${url}`);
-                request.send(body ? JSON.stringify(body) : undefined)
+                request.send(body ? JSON.stringify(body) : null);
             }, timeout);
         });
     }
