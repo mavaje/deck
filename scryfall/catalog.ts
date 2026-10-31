@@ -19,7 +19,7 @@ export class Catalog {
     public static keyword_abilities = new Catalog('keyword-abilities');
 
     private data: string[] = [];
-    private map: Record<string, true> = {};
+    private map: Set<string> = new Set();
 
     constructor(
         private type: string,
@@ -29,7 +29,7 @@ export class Catalog {
 
     private async load(): Promise<void> {
         this.data = (await API.catalog(this.type)).data;
-        this.data.forEach(type => this.map[type] = true);
+        this.data.forEach(type => this.map.add(type));
     }
 
     static async load(): Promise<void> {
@@ -41,7 +41,7 @@ export class Catalog {
     }
 
     has(type: string): boolean {
-        return this.map[type];
+        return this.map.has(type);
     }
 
     all(): string[] {

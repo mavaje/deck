@@ -1,6 +1,6 @@
 import {run_tests} from "./test/test-runner";
-import {deck_upload_button} from "./ui/deck-upload";
+import {initialise_controls} from "./ui/deck-controls/initialise-controls";
 
-deck_upload_button();
+initialise_controls();
 
 // run_tests();

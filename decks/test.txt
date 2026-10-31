@@ -11,7 +11,7 @@
 2x Sensei's Divining Top (ema) 232 *F* [Good Stuff] ^Don't Have,#f47373^
 2x Swamp (gk1) 25 [Land] *SL*
 2x Invasion of Zendikar [Land]
-2x Dusk // Dawn [Wipe]
+2x Dusk // Dawn [Wipe:#ffffff]
 1x Bruna, the Fading Light
 1x Gisela, the Broken Blade
 1x Brisela, Voice of Nightmares
@@ -26,13 +26,15 @@ Infernal Spawn of Infernal Spawn of Evil
 Magical Hacker
 Who // What // When // Where // Why
 There // Their // They're
-The Upside Down
+Hawkins National Laboratory
 B.F.M. (Big Furry Monster)
 Topsy Turvy
 Plant a Sapling // Fully-Grown Treefolk
 Little Girl
+Armageddon (MP2:31)
 
 # Maybe
 1x Bant
 1x A Display of my dark power
 1x Ashnod
+1x Hydra Head

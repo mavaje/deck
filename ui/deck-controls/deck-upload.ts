@@ -1,8 +1,8 @@
-import {HTML} from "../html";
-import {Deck} from "../deck";
-import {DeckCard} from "../deck-card";
+import {HTML} from "../../html";
+import {Deck} from "../../deck";
+import {DeckCard} from "../../deck-card";
 
-export function deck_upload_button() {
+export function initialise_deck_upload() {
     HTML.button({
         id: 'deck-upload-button',
         onclick: () => file_input.click(),

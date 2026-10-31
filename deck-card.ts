@@ -10,8 +10,8 @@ import {Language} from "./designation/language";
 import {Board} from "./designation/board";
 import {Condition} from "./designation/condition";
 import {Finish} from "./designation/finish";
-import {HTML} from "./html";
 import {Deck} from "./deck";
+import {Tag} from "./designation/tag";
 
 export class DeckCard {
 
@@ -24,6 +24,7 @@ export class DeckCard {
     static bracket_words = new Set([
         'Used',
         'Plane',
+        'Summer',
         'Theme',
     ]);
 
@@ -41,12 +42,10 @@ export class DeckCard {
     condition?: Condition = null;
     board: Board = Board.DEFAULT;
 
-    tags: string[] = [];
+    tags: Set<Tag> = new Set();
 
     card: Card;
     not_found: boolean = false;
-
-    element?: HTMLElement = null;
 
     constructor(card: Partial<DeckCard> = {}, private deck?: Deck) {
         Object.assign(this, card);
@@ -56,7 +55,7 @@ export class DeckCard {
         this.LINE_REGEXP = new RegExp([
             '^',
             '((?<quantity>\\d{1,3})[x*×]?\\s)?',
-            `(?<name>[^([^#*]+?(\\s*\\((\d{4}|${[...this.bracket_words].join('|')}|[^)]*[^0-9A-Z][^)]*)\\))?)?`,
+            `(?<name>[^([^#*]+?(\\s*\\((\d{4}|[^)]*[ '][^)]*|${[...this.bracket_words].join('|')})\\))?)?`,
             '(\\((?<set>[0-9A-Z]{3,5})((:|\\)\\s*)(?<collector_number>[^)[(#*:\\s]+))?\\)?)?',
             '(?<extra>([#*^[]).*)?',
             '$'
@@ -117,45 +116,41 @@ export class DeckCard {
                     ?? extra_left.match(/^(\^(?<tag>[^^]+)\^)\s*/i)
                     ?? extra_left.match(/^#(?<tag>[^#]+)#?\s*/i);
 
-                if (match) {
-                    extra_left = extra_left.slice(match[0].length);
-                    const {tag} = match.groups;
+                if (!match) break;
 
-                    const language = Language.match(tag);
-                    if (language) {
-                        card.language = language;
-                        continue;
-                    }
+                extra_left = extra_left.slice(match[0].length);
+                const {tag} = match.groups;
 
-                    const condition = Condition.match(tag);
-                    if (condition) {
-                        card.condition = condition;
-                        continue;
-                    }
-
-                    const finish = Finish.match(tag);
-                    if (finish) {
-                        card.finish = finish;
-                        continue;
-                    }
-
-                    const board = Board.match(tag);
-                    if (board) {
-                        card.board = board;
-                        continue;
-                    }
-
-                    const hex_match = tag.match(/^(?<tag>.+),(?<hex>#[0-9a-f]{6})$/i);
-                    if (hex_match) {
-                        card.tags.push(hex_match.groups.tag);
-                        continue;
-                    }
-
-                    card.tags.push(tag);
+                const language = Language.match(tag);
+                if (language) {
+                    card.language = language;
                     continue;
                 }
 
-                break;
+                const condition = Condition.match(tag);
+                if (condition) {
+                    card.condition = condition;
+                    continue;
+                }
+
+                const finish = Finish.match(tag);
+                if (finish) {
+                    card.finish = finish;
+                    continue;
+                }
+
+                const board = Board.match(tag);
+                if (board) {
+                    card.board = board;
+                    continue;
+                }
+
+                const hex_match = tag.match(/^(?<tag>.+)[,;:](?<hex>#[0-9a-f]{6})$/i);
+                if (hex_match) {
+                    card.tags.add(Tag.match_or_new(hex_match.groups.tag, hex_match.groups.hex));
+                } else {
+                    card.tags.add(Tag.match_or_new(tag));
+                }
             }
         }
 
@@ -206,25 +201,36 @@ export class DeckCard {
         return null;
     }
 
-    face<T = Card | CardFace>(face: number = 0, callback: (card: Card | CardFace) => T = card => card as T): T {
-        let result: T = null;
+    face(face?: number): Card | CardFace;
+    face<K extends keyof (Card | CardFace)>(face: number, property: K): Card[K] | CardFace[K];
+    face<T = Card | CardFace>(face: number, callback: (card: Card | CardFace) => T): T;
+    face(
+        face: number = 0,
+        callback: ((card: Card | CardFace) => any) | keyof Card | keyof CardFace = card => card,
+    ): any {
+        let result = null;
 
-        if (this.card.card_faces?.[face]) {
+        if (typeof callback !== 'function') {
+            const key = callback;
+            callback = card => card[key];
+        }
+
+        if (this.card?.card_faces?.[face]) {
             result ??= callback(this.card.card_faces[face]);
         }
 
-        if (face === 0) {
+        if (face === 0 && this.card) {
             result ??= callback(this.card);
         }
 
         return result;
     }
 
-    card_image_urls(face: number = 0, format: keyof CardImagery = 'grid'): string[] {
+    image_urls(face: number = 0, format: keyof CardImagery = 'grid'): string[] {
         const urls: string[] = [];
 
         if (this.card) {
-            urls.push(this.face(face, card => card?.image_uris?.[format]));
+            urls.push(this.face(face, card => card.image_uris?.[format]));
         }
 
         if (face === 0) {
@@ -237,6 +243,14 @@ export class DeckCard {
         }
 
         return urls;
+    }
+
+    back_id(): string {
+        return this.card?.card_back_id;
+    }
+
+    has_different_back(): boolean {
+        return this.back_id() && this.back_id() !== DeckCard.DEFAULT_CARD_BACK_ID;
     }
 
     load_from_cache(): void {
@@ -297,8 +311,6 @@ export class DeckCard {
             }
 
             this.name = card.name;
-
-            this.render();
         }
 
         return this;
@@ -327,8 +339,8 @@ export class DeckCard {
             }
         }
 
-        return this.tags.length === card.tags.length
-            && this.tags.every((tag) => card.tags.includes(tag));
+        return this.tags.size === card.tags.size
+            && [...this.tags].every(tag => card.tags.has(tag));
     }
 
     on_board(board: Board): boolean;
@@ -359,6 +371,10 @@ export class DeckCard {
             : all_names[0];
     }
 
+    layout(): string {
+        return this.card?.layout ?? 'normal';
+    }
+
     is_layout(layout: string): boolean;
     is_layout(...layouts: string[]): boolean;
     is_layout(...layouts: string[]): boolean {
@@ -374,13 +390,15 @@ export class DeckCard {
     is_type(...types: string[]): boolean {
         if (!this.card) return false;
         return types.every(type =>
-            new RegExp(`\\b${type}\\b`, 'i').test(this.face().type_line)
+            new RegExp(`\\b${type}\\b`, 'i').test(this.face(0, 'type_line'))
             || (this.has_keyword('Changeling') && Catalog.creature_types.has(type))
             || (this.front_oracle().match(/(^|\n)Rangeling\b/i) && Catalog.land_types.has(type))
             || {
-                Creature: /Eaturecray/i,
-                Pig: /Igpay/i,
-            }[type]?.test(this.face().type_line)
+                Creature: /\b(Summon|Eaturecray)\b/i,
+                Pig: /\bIgpay\b/i,
+                Planeswalker: /\bUniversewalker\b/i,
+                Phenomenon: /\bPhenome-nom\b/i,
+            }[type]?.test(this.face(0, 'type_line'))
         );
     }
 
@@ -410,7 +428,7 @@ export class DeckCard {
     }
 
     mana_value(): number {
-        return this.card?.cmc ?? this.card?.card_faces?.[0]?.cmc ?? null;
+        return this.face(0, 'cmc');
     }
 
     can_command(format: Format): boolean {
@@ -420,7 +438,7 @@ export class DeckCard {
     }
 
     can_be_commander(): boolean {
-        return Boolean(this.is_type('Legendary') && this.face().power && this.face().toughness)
+        return Boolean(this.is_type('Legendary') && this.face(0, 'power') && this.face(0, 'toughness'))
             || /~ can be your commander\./.test(this.front_oracle());
     }
 
@@ -664,8 +682,9 @@ export class DeckCard {
                         return opt && this.board.is_default() ? ''
                             : string.replace(/[\w\s]+/, preserve_case(input.length > 3 ? this.board.name : this.board.code(), input));
                     } else if (input.match(/tag/i)) {
-                        return this.tags
-                            .map(tag => string.replace(/[\w\s]+/, preserve_case(tag, input)))
+                        return [...this.tags]
+                            .sort()
+                            .map(tag => string.replace(/[\w\s]+/, preserve_case(tag.to_string(), input)))
                             .join(' ');
                     } else {
                         return full;
@@ -685,150 +704,6 @@ export class DeckCard {
 
     toString() {
         return this.to_string();
-    }
-
-    render(id: string = this.element?.id, is_row: boolean = false): HTMLDivElement {
-        let show_back = true;
-        const card_class: string[] = ['card'];
-        const faces: HTMLDivElement[] = [];
-
-        const add_face = (urls: string[], is_back: boolean = false): void => {
-            urls.push('/public/skeleton-card.svg');
-            faces.push(HTML.div({
-                class: is_back ? ['card-face', 'back'] : 'card-face',
-                style: {
-                    background_image: urls
-                        .map(url => `url(${url})`)
-                        .join(', '),
-                },
-            }));
-        };
-
-        add_face(this.card_image_urls());
-
-        switch (this.card?.layout) {
-            case 'transform':
-            case 'modal_dfc':
-            case 'double_faced_token':
-            case 'reversible_card':
-            case 'art_series':
-                show_back = false;
-                card_class.push('transform');
-                add_face(this.card_image_urls(1), true);
-                break;
-
-            case 'split':
-                if (this.has_keyword('Aftermath')) {
-                    show_back = false;
-                    card_class.push('aftermath');
-                } else {
-                    card_class.push('landscape');
-                }
-                break;
-
-            case 'flip':
-                show_back = false;
-                card_class.push('flip');
-                break;
-
-            case 'meld':
-                const parts = this.card.all_parts;
-                const my_part = parts.find(part => part.id === this.card.id);
-                if (my_part?.component === 'meld_result') {
-                    card_class.push('double');
-                }
-                break;
-
-            case 'scheme':
-            case 'vanguard':
-                card_class.push('double');
-                break;
-
-            case 'planar':
-                card_class.push('double', 'landscape');
-                break;
-        }
-
-        if (this.is_type('Battle')) {
-            card_class.push('landscape-front');
-        }
-
-        let faces_style = {};
-
-        switch (this.card?.id) {
-            // Hawkins National Laboratory // The Upside Down
-            case '83a86763-c3fe-4cff-8b65-22cb329d112c':
-                faces_style['--transform-initial'] = 'rotateX(0deg)';
-                faces_style['--transform-final'] = 'rotateX(180deg)';
-        }
-
-        switch (this.card?.oracle_id) {
-            // Topsy Turvy
-            case '4516f30c-fb21-4371-818f-7dd211612a72':
-                show_back = false;
-                card_class.push('flip');
-                break;
-
-            // Burning Cinder Fury of Crimson Chaos Fire
-            case '9716976e-1b52-4351-932e-b99fe206afbd':
-                card_class.push('landscape');
-                break;
-
-            // Who // What // When // Where // Why
-            case 'adfe1b07-dd82-4c39-a7a6-ded0b1c39761':
-                card_class[1] = 'landscape-front';
-                faces_style['transition-duration'] = '0.25s';
-                faces_style['transform-origin'] = 'calc(var(--card-width) / 2) 50%';
-                faces_style['--transform-initial'] = 'rotateZ(90deg)';
-                faces_style['--transform-final'] = 'rotateZ(0deg)';
-                break;
-        }
-
-        if (!this.finish.is_default()) {
-            faces.forEach(face => {
-                face.classList.add('foil');
-            })
-        }
-
-        if (show_back && this.card?.card_back_id && this.card.card_back_id !== DeckCard.DEFAULT_CARD_BACK_ID) {
-            const id = this.card.card_back_id;
-            card_class.push('transform');
-            add_face([`https://backs.scryfall.io/large/${id[0]}/${id[1]}/${id}.jpg`], true);
-        }
-
-        let tilt: HTMLDivElement = null;
-        return this.element = HTML.div(
-            {
-                id,
-                class: card_class,
-                onpointermove: ({x, y}: MouseEvent) => {
-                    const {top, left, width, height} = this.element.getBoundingClientRect();
-                    const effective_height = is_row
-                        ? this.element.children[0].getBoundingClientRect().height
-                        : height;
-                    const dx = x - (left + 24) - width / 2;
-                    const dy = y - top - effective_height / 2;
-                    const angle = Math.atan2(dy, dx);
-                    const azimuth = -10 * Math.min(Math.hypot(dx, dy) / 100, 1);
-                    tilt.style.setProperty('--tilt-angle', `${angle}rad`);
-                    tilt.style.setProperty('--tilt-azimuth', `${azimuth}deg`);
-                },
-                onpointerleave: () => {
-                    tilt.style.setProperty('--tilt-angle', `0`);
-                    tilt.style.setProperty('--tilt-azimuth', `0`);
-                },
-            },
-            HTML.div({class: 'backdrop'}),
-            HTML.div({class: 'trigger'}),
-            HTML.div(
-                {class: 'card-shift'},
-                HTML.div({class: 'count'}, `${this.quantity}×`),
-                tilt = HTML.div(
-                    {class: 'card-tilt'},
-                    HTML.div({class: 'card-faces', style: faces_style}, faces),
-                ),
-            ),
-        );
     }
 }
 

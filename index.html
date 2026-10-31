@@ -15,10 +15,22 @@
 </div>
 <div id="foreground">
     <div id="controls">
-        <input id="deck-file-input" type="file">
-        <button id="deck-upload-button" class="button">Import</button>
+        <div>
+            <label for="group-by">Group by</label>
+            <select id="group-by"></select>
 
-        <button id="deck-download-button" class="button">Export</button>
+            <input id="by-board" type="checkbox" checked>
+            <label for="by-board">By Board</label>
+
+            <label for="order-by">Order by</label>
+            <select id="order-by"></select>
+        </div>
+        <div>
+            <input id="deck-file-input" type="file">
+            <button id="deck-upload-button" class="button">Import</button>
+
+            <button id="deck-download-button" class="button">Export</button>
+        </div>
     </div>
     <div id="deck">
 

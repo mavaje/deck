@@ -65,6 +65,10 @@ export abstract class Designation {
     }
 
     static all<T extends typeof Designation>(this: T): DesignationMap<InstanceType<T>> {
-        return this.INSTANCES[this.name] as DesignationMap<InstanceType<T>>;
+        return (this.INSTANCES?.[this.name] ?? []) as DesignationMap<InstanceType<T>>;
+    }
+
+    static clear<T extends typeof Designation>(this: T): void {
+        this.INSTANCES[this.name] = [] as DesignationMap;
     }
 }

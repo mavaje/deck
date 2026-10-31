@@ -5,13 +5,8 @@ import {ColorIdentity} from "./color-identity";
 import {Board} from "./designation/board";
 import {CardList} from "./card-list";
 import { HTML } from "./html";
-import {CARD_TYPES} from "./card-types";
-import {fraction} from "./text";
-
-export type DeckOrdering =
-    'board' |
-    'type' |
-    'mana value';
+import {Tag} from "./designation/tag";
+import {DeckView} from "./ui/deck-view";
 
 export class Deck extends CardList {
 
@@ -23,7 +18,7 @@ export class Deck extends CardList {
         const deck = new Deck();
 
         let group_board: Board = Board.DEFAULT;
-        let group_tag: string = null;
+        let group_tag: Tag = null;
 
         input.split('\n').forEach(line => {
             if (/^\s*$/.test(line)) {
@@ -32,7 +27,7 @@ export class Deck extends CardList {
                 return;
             }
 
-            if (/^about$/i.test(group_tag)) return;
+            // if (/^about$/i.test(group_tag.name)) return;
 
             const header_match = line.match(/^\s*(?<tag>\/\/|#)?\s*(?<header>\w.*?):?(\s*\(\d+\):?)?\s*$/i);
             if (header_match) {
@@ -45,7 +40,7 @@ export class Deck extends CardList {
                 }
 
                 if (tag || /^about$/i.test(header)) {
-                    group_tag = header;
+                    group_tag = Tag.match_or_new(header);
                     return;
                 }
             }
@@ -53,7 +48,7 @@ export class Deck extends CardList {
             const card = DeckCard.parse(line, deck, group_board);
             if (card) {
                 if (group_tag) {
-                    card.tags.push(group_tag);
+                    card.tags.add(group_tag);
                 }
             } else {
                 console.error(`Failed to parse line "${line}"`);
@@ -65,9 +60,9 @@ export class Deck extends CardList {
 
     static async load_current(input: string): Promise<Deck> {
         Deck.current = Deck.parse(input);
-        Deck.current.render();
+        DeckView.render();
         await Deck.current.load();
-        Deck.current.render();
+        DeckView.render();
         const first = Deck.current.cards[0];
         if (first?.card) {
             HTML.div({id: 'card-image', style: {
@@ -135,72 +130,5 @@ export class Deck extends CardList {
 
     toString(): string {
         return this.to_string();
-    }
-
-    render(ordering: DeckOrdering = 'board'): void {
-        let stacks: {
-            name: string;
-            cards: CardList;
-        }[] = [];
-
-        switch (ordering) {
-            case 'board':
-                stacks = Board.all().map(board => ({
-                    name: board.name,
-                    cards: this.board(board),
-                }));
-                break;
-
-            case 'type':
-                stacks = CARD_TYPES.map(type => ({
-                    name: type,
-                    cards: this.filter(card => card.is_type(type)),
-                }));
-                stacks.push({
-                    name: 'Unknown',
-                    cards: this.filter(card => !card.is_any_type(CARD_TYPES)),
-                });
-                break;
-
-            case 'mana value':
-                const mvs: number[] = [];
-                this.cards.forEach(card => {
-                    const mv = card.mana_value();
-                    if (mv !== null && !mvs.includes(mv)) {
-                        mvs.push(mv);
-                    }
-                });
-                stacks.push(
-                    {
-                        name: 'Land',
-                        cards: this.filter(card => card.is_type('Land')),
-                    },
-                    ...mvs
-                        .sort((a, b) => a - b)
-                        .map(mv => ({
-                            name: `${fraction(mv)}-drop`,
-                            cards: this.filter(card => !card.is_type('Land') && card.mana_value() === mv),
-                        })),
-                    {
-                        name: 'Unknown',
-                        cards: this.filter(card => card.mana_value() === null),
-                    },
-                )
-                break;
-        }
-
-        HTML.div(
-            {id: 'deck'},
-            HTML.div(
-                {class: 'stacks'},
-                stacks
-                    .filter(stack => stack.cards.cards.length > 0)
-                    .map((stack, i) => HTML.div(
-                        {id: `stack-${i}`, class: 'stack'},
-                        HTML.div({class: 'header'}, HTML.span({class: 'label'}, HTML.span({style: {font_weight: 'bold'}}, stack.name), ` (${stack.cards.count()})`)),
-                        ...stack.cards.each((card, j) => card.render(`card-${i}-${j}`, j < stack.cards.cards.length - 1)),
-                    )),
-            ),
-        );
     }
 }

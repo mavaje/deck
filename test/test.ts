@@ -1,5 +1,6 @@
-import { format } from "../formatter";
+import { format } from "../text";
 import {TestCounter} from "./test-counter";
+import {Tag} from "../designation/tag";
 
 export type DeepPartial<T> = {
     [K in keyof T]?: DeepPartial<T[K]>;
@@ -97,30 +98,6 @@ export class Test {
         return test;
     }
 
-    public assert_is_array(
-        actual: any,
-        pass_message: string = `{actual} is array`,
-        fail_message: string = `{actual} is not array`,
-    ): Test {
-        return this.assert(
-            Array.isArray(actual),
-            format(pass_message, {actual}),
-            format(fail_message, {actual}),
-        );
-    }
-
-    public assert_is_object(
-        actual: any,
-        pass_message: string = `{actual} is object`,
-        fail_message: string = `{actual} is not object`,
-    ): Test {
-        return this.assert(
-            actual && typeof actual === 'object',
-            format(pass_message, {actual}),
-            format(fail_message, {actual}),
-        );
-    }
-
     public assert_match(
         expected: any,
         actual: any,
@@ -134,7 +111,11 @@ export class Test {
         );
 
         if (Array.isArray(expected)) {
-            test.assert_is_array(actual);
+            test.assert(
+                Array.isArray(actual),
+                format('{actual} is array', {actual}),
+                format('{actual} is not array', {actual}),
+            );
             test.assert_match(
                 expected.length,
                 (actual as any[])?.length,
@@ -149,6 +130,34 @@ export class Test {
                     `{actual} at index ${i} does not match {expected}`,
                 );
             });
+        } else if (expected instanceof Set) {
+            test.assert(
+                actual instanceof Set,
+                format('{actual} is Set', {actual}),
+                format('{actual} is not Set', {actual}),
+            );
+            test.assert_match(
+                expected.size,
+                (actual as Set<any>)?.size,
+                `size {actual} matches expected`,
+                `size {actual} does not match expected size {expected}`,
+            );
+            expected.forEach(value => {
+                test.assert(
+                    (actual as Set<any>)?.has(value),
+                    format(`{actual} has {value}`, {actual, value}),
+                    format(`{actual} does not have {value}`, {actual, value}),
+                );
+            });
+            Object.entries(expected).forEach(([key, value]) => {
+                if (value === undefined) return;
+                test.assert_match(
+                    value,
+                    actual?.[key],
+                    `${key}: {actual} matches expected`,
+                    `${key}: {actual} does not match {expected}`,
+                );
+            });
         } else if (expected instanceof RegExp) {
             test.mark(expected.test(String(actual)));
         } else if (expected && typeof expected === 'object') {
@@ -159,15 +168,20 @@ export class Test {
                     '',
                 );
             } else {
-                test.assert_is_object(actual);
+                test.assert(
+                    actual && typeof actual === 'object',
+                    format('{actual} is object', {actual}),
+                    format('{actual} is not object', {actual}),
+                );
                 Object.entries(expected).forEach(([key, value]) => {
-                    test.assert_match(
-                        value,
-                        actual?.[key],
-                        `${key}: {actual} matches expected`,
-                        `${key}: {actual} does not match {expected}`,
-                    );
-                });
+                        if (value === undefined) return;
+                        test.assert_match(
+                            value,
+                            actual?.[key],
+                            `${key}: {actual} matches expected`,
+                            `${key}: {actual} does not match {expected}`,
+                        );
+                    });
             }
         }
 
@@ -219,6 +233,9 @@ export class Test {
     protected async run(): Promise<void> {
         Test.SUITE.children.push(this);
         return this.test();
+    }
+    protected tag_set(...tags: string[]): Set<Tag> {
+        return new Set(tags.map(tag => Tag.match_or_new(tag)));
     }
 
     public static async test(): Promise<void> {

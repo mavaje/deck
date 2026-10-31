@@ -4,18 +4,19 @@ import {normalise} from "../text";
 
 export class Board extends Designation {
     static vanguard = new Board('Vanguard', ['vanguard'], 1, null, ['Vanguard']);
-    static conspiracies = new Board('Conspiracies', ['conspiracy'], [0], null, ['Conspiracy']);
+    static conspiracies = new Board('Conspiracy', ['conspiracy'], [0], null, ['Conspiracy']);
     static commander = new Board('Commander', ['cmdr', 'commanders']);
     static companion = new Board('Companion', ['cmpn', 'companions']);
     static deck = new Board('Deck', ['main', 'main board', 'main deck']);
     static sideboard = new Board('Sideboard', ['sb', 'side board', 'side']);
-    static maybeboard = new Board('Maybeboard', ['mb', 'maybe board', 'maybe']);
-    static acquireboard = new Board('Acquireboard', ['ab', 'acquire', 'acquire board']);
     static stickers = new Board('Sticker Deck', ['stickers'], [10], 1, ['Stickers']);
     static attractions = new Board('Attraction Deck', ['attraction', 'attractions'], 10, 1, ['Attraction']);
     static contraptions = new Board('Contraption Deck', ['contraption', 'contraptions'], [15], 1, ['Contraption']);
     static planar = new Board('Planar Deck', ['planar', 'planes'], [10], 1, ['Plane', 'Phenomenon']);
     static schemes = new Board('Scheme Deck', ['scheme', 'schemes', 'archenemy'], [20], 2, ['Scheme']);
+    static tokens = new Board('Tokens', ['tokens', 'emblems', 'dungeons'], [20], 2, ['Token', 'Emblem', 'Dungeon']);
+    static maybeboard = new Board('Maybeboard', ['mb', 'maybe board', 'maybe']);
+    static acquireboard = new Board('Acquireboard', ['ab', 'acquire', 'acquire board']);
 
     static DEFAULT = this.deck;
 

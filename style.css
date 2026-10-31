@@ -45,14 +45,31 @@ body {
     right: 0;
     display: flex;
     flex-direction: row;
-    justify-content: end;
+    justify-content: space-between;
+    align-items: stretch;
     padding: 4px;
     z-index: 5;
     background-color: #0000007f;
     backdrop-filter: blur(4px);
 }
 
-.button {
+#controls > div {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+label {
+    margin: 4px;
+}
+
+input[type=file] {
+    display: none;
+}
+
+.button,
+select {
     margin: 4px;
     padding: 4px 8px;
     background-color: black;
@@ -65,8 +82,18 @@ body {
     transition-property: background-color;
 }
 
-.button:hover {
-    background-color: #007f5f;
+.button:hover,
+select:hover {
+    background-color: #5f5f5f;
+}
+
+select {
+    padding: 4px 4px;
+}
+
+input[type=checkbox] {
+    accent-color: #007f5f;
+    margin: 4px;
 }
 
 .label {
@@ -76,38 +103,54 @@ body {
     border-radius: 4px;
 }
 
-#deck-file-input {
-    display: none;
-}
-
 #deck {
     position: absolute;
     width: 100%;
     height: calc(100% - 48px);
     overflow: auto;
-    padding-top: 48px;
+    padding-top: 64px;
 }
 
-#deck .stacks {
+#deck .header {
+    position: sticky;
+    top: 0;
+    padding-left: 32px;
+    margin-bottom: 32px;
+    z-index: 2;
+    pointer-events: none;
+    white-space: nowrap;
+    text-transform: capitalize;
+}
+
+#deck .header .label {
+    position: sticky;
+    left: 16px;
+    right: 16px;
+    margin-left: 24px;
+    margin-right: 16px;
+    box-shadow: 0 0 8px 0 black;
+}
+
+#deck .groups {
     display: flex;
     flex-direction: row;
 }
 
-#deck .stacks .stack {
-    padding-left: 32px;
+#deck .group {
+    display: flex;
+    flex-direction: column;
+}
+
+#deck > .groups > .group {
     padding-bottom: 64px;
 }
 
-#deck .stacks .stack .header {
-    position: sticky;
-    top: 0;
-    padding: 16px 0 16px 32px;
-    z-index: 2;
-    pointer-events: none;
+#deck > .groups > .group:first-child {
+    padding-left: 16px;
 }
 
-#deck .stacks .stack .header .label {
-    box-shadow: 0 0 8px 0 black;
+#deck > .groups > .group:last-child {
+    padding-right: 32px;
 }
 
 .card {
@@ -126,6 +169,10 @@ body {
     transform-style: preserve-3d;
     cursor: pointer;
     transition-property: width;
+}
+
+#deck .group .card {
+    margin-left: 48px;
 }
 
 .card:last-of-type {
@@ -152,7 +199,11 @@ body {
 }
 
 .card.aftermath {
-    width: var(--card-height);
+    transition-property: width, margin-right;
+}
+
+.card.aftermath:has(.trigger:hover) {
+    margin-right: calc(16px + var(--card-height) - var(--card-width));
 }
 
 .card .backdrop {
@@ -272,9 +323,12 @@ body {
 }
 
 .card.landscape.transform .card-faces {
-    --transform-initial: translateX(calc(var(--card-width) - var(--card-height))) rotateZ(90deg) rotateY(0);
-    --transform-final: translateX(calc(var(--card-width) - var(--card-height))) rotateZ(90deg) rotateY(-180deg);
-    transform-origin: calc(var(--card-height) / 2) calc(var(--card-height) / 2);
+    --transform-initial: rotateZ(90deg) rotateY(0);
+    --transform-final: rotateZ(90deg) rotateY(-180deg);
+}
+
+.card.landscape.double.transform .card-faces {
+    --transform-final: rotateZ(90deg) rotateX(-180deg);
 }
 
 .card.landscape-front .card-faces {
@@ -295,7 +349,7 @@ body {
 }
 
 .card.double:hover ~ .card .card-shift {
-    --shift: 50;
+    --shift: 49;
 }
 
 .card.landscape-front:has(.trigger:hover) ~ .card .card-shift,
@@ -319,6 +373,10 @@ body {
 
 .card-face.back {
     transform: translateZ(-1px) rotateY(180deg);
+}
+
+.card.landscape.double .card-face.back {
+    transform: translateZ(-1px) rotateX(180deg);
 }
 
 .card.error .card-face {

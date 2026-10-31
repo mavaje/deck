@@ -42,16 +42,20 @@ export const HTML = new Proxy(
                         case 'class':
                             if (Array.isArray(value)) value = value.join(' ');
                             element.className = '';
-                            element.classList.add(...String(value).split(' '));
+                            element.classList.add(...String(value)
+                                .split(/\s+/g)
+                                .filter(Boolean));
                             return;
 
                         case 'style':
                             element.removeAttribute('style');
                             if (value && typeof value === 'object') {
-                                Object.entries(value).map(([k, v]) => element.style.setProperty(
-                                    k.replaceAll('_', '-'),
-                                    String(v),
-                                ));
+                                Object.entries(value).map(([k, v]) => {
+                                    if (v) element.style.setProperty(
+                                        k.replaceAll('_', '-'),
+                                        String(v),
+                                    );
+                                });
                                 return;
                             }
                             // fallthrough
@@ -67,6 +71,7 @@ export const HTML = new Proxy(
                 if (children) {
                     element.innerText = '';
                     element.append(...children
+                        .filter(child => child !== undefined && child !== null)
                         .map(child => child instanceof Node ? child : String(child)));
                 }
 

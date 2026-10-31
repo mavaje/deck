@@ -112,3 +112,31 @@ export function preserve_case(target: string, template: string) {
         return target;
     }
 }
+
+export function format(message: string, values: object = {}) {
+    message = message
+        .replaceAll(/^\s*|\s*$/g, '')
+        .replaceAll(/\s*\n\s*/g, ' ↵ ');
+
+    Object.entries(values).forEach(([name, value]) => {
+        if (value instanceof RegExp) {
+            value = value.toString();
+        } else if (value instanceof Set) {
+            value = `{${[...value].join(', ')}}`;
+        } else {
+            const visited = new WeakSet();
+            value = JSON.stringify(value, (k, v) => {
+                if (v && typeof v === 'object') {
+                    if (visited.has(v)) return String(v);
+                    visited.add(v);
+                }
+                return v;
+            }) ?? 'undefined';
+        }
+
+        if (value.length > 40) value = value.slice(0, 32) + ' ... ' + value.slice(-8);
+        message = message.replaceAll(`{${name}}`, value);
+    });
+
+    return message;
+}

@@ -1,4 +1,5 @@
 import {DeckCard} from "./deck-card";
+import {CardOrdering} from "./card-sorting/card-ordering";
 
 export class CardList {
 
@@ -48,6 +49,11 @@ export class CardList {
 
     each<T>(callback: (card: DeckCard, index: number) => T): T[] {
         return this.cards.map(callback);
+    }
+
+    sort(ordering: CardOrdering): CardList {
+        this.cards.sort(ordering.compare);
+        return this;
     }
 
     by_count<T>(callback: (count: number, card: DeckCard) => T): T[] {

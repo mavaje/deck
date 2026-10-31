@@ -70,7 +70,7 @@ export class API {
                 if (this.TOO_MANY_REQUESTS) {
                     return done(null);
                 }
-                console.log(`${method} ${url}`);
+                console.log(`${method} ${url}`, body ?? '');
                 request.send(body ? JSON.stringify(body) : null);
             }, timeout);
         });
