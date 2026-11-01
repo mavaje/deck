@@ -66,7 +66,7 @@ export class Deck extends CardList {
         const first = Deck.current.cards[0];
         if (first?.card) {
             HTML.div({id: 'card-image', style: {
-                background_image: `url(${first.face(0, f => f?.image_uris?.art)})`,
+                background_image: `url(${first.face(f => f?.image_uris?.art, 0)})`,
             }});
         }
         return Deck.current;

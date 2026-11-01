@@ -9,7 +9,7 @@ export class CardView {
         is_collapsed: boolean = false,
     ): HTMLDivElement {
         let show_back = true;
-        const card_class: string[] = ['card'];
+        const card_class: Set<string> = new Set(['card']);
         const faces: HTMLDivElement[] = [];
 
         const add_face = (urls: string[], is_back: boolean = false): void => {
@@ -24,7 +24,7 @@ export class CardView {
             }));
         };
 
-        add_face(card.image_urls());
+        add_face(card.image_urls(0));
 
         switch (card.layout()) {
             case 'transform':
@@ -33,44 +33,48 @@ export class CardView {
             case 'reversible_card':
             case 'art_series':
                 show_back = false;
-                card_class.push('transform');
+                card_class.add('transform');
+                if (card.default_face === 1) card_class.add('invert');
                 add_face(card.image_urls(1), true);
                 break;
 
             case 'split':
                 if (card.has_keyword('Aftermath')) {
                     show_back = false;
-                    card_class.push('aftermath');
+                    card_class.add('aftermath');
+                    if (card.default_face === 1) card_class.add('invert');
                 } else {
-                    card_class.push('landscape');
+                    card_class.add('landscape');
                 }
                 break;
 
             case 'flip':
                 show_back = false;
-                card_class.push('flip');
+                card_class.add('flip');
+                if (card.default_face === 1) card_class.add('invert');
                 break;
 
             case 'meld':
                 const parts = card.card.all_parts;
                 const my_part = parts.find(part => part.name === card.card.name);
                 if (my_part?.component === 'meld_result') {
-                    card_class.push('double');
+                    card_class.add('double');
                 }
                 break;
 
             case 'scheme':
             case 'vanguard':
-                card_class.push('double');
+                card_class.add('double');
                 break;
 
             case 'planar':
-                card_class.push('double', 'landscape');
+                card_class.add('double');
+                card_class.add('landscape');
                 break;
         }
 
         if (card.is_type('Battle')) {
-            card_class.push('landscape-front');
+            card_class.add('landscape-front');
         }
 
         let faces_style = {};
@@ -86,22 +90,27 @@ export class CardView {
             // Topsy Turvy
             case '4516f30c-fb21-4371-818f-7dd211612a72':
                 show_back = false;
-                card_class.push('flip');
+                card_class.add('flip');
                 break;
 
             // Burning Cinder Fury of Crimson Chaos Fire
             case '9716976e-1b52-4351-932e-b99fe206afbd':
-                card_class.push('landscape');
+                card_class.add('landscape');
                 break;
 
             // Who // What // When // Where // Why
             case 'adfe1b07-dd82-4c39-a7a6-ded0b1c39761':
-                card_class[1] = 'landscape-front';
+                card_class.delete('landscape');
+                card_class.add('landscape-front');
                 faces_style['transition-duration'] = '0.25s';
                 faces_style['transform-origin'] = 'calc(var(--card-width) / 2) 50%';
                 faces_style['--transform-initial'] = 'rotateZ(90deg)';
                 faces_style['--transform-final'] = 'rotateZ(0deg)';
                 break;
+        }
+
+        if (card.card?.oversized) {
+            card_class.add('double');
         }
 
         if (!card.finish.is_default()) {
@@ -112,7 +121,7 @@ export class CardView {
 
         if (show_back && card.has_different_back()) {
             const id = card.back_id();
-            card_class.push('transform');
+            card_class.add('transform');
             add_face([`https://backs.scryfall.io/large/${id[0]}/${id[1]}/${id}.jpg`], true);
         }
 
@@ -121,7 +130,7 @@ export class CardView {
         return card_view = HTML.div(
             {
                 // id,
-                class: card_class,
+                class: [...card_class],
                 onpointermove: ({x, y}: MouseEvent) => {
                     const {top, left, width, height} = card_view.getBoundingClientRect();
                     const effective_height = is_collapsed

@@ -168,7 +168,7 @@ input[type=checkbox] {
     transform-origin: 50% calc(8 * var(--card-scale));
     transform-style: preserve-3d;
     cursor: pointer;
-    transition-property: width;
+    transition-property: width, height, margin;
 }
 
 #deck .group .card {
@@ -198,12 +198,30 @@ input[type=checkbox] {
     --card-height: calc(35 * var(--card-scale));
 }
 
-.card.aftermath {
-    transition-property: width, margin-right;
+.card.flip.invert {
+    margin-top: calc(1.5 * var(--card-scale));
 }
 
-.card.aftermath:has(.trigger:hover) {
+.card.flip.invert > .card-shift > .card-tilt {
+    margin-top: calc(-1.5 * var(--card-scale));
+}
+
+#deck.compact .card.landscape:not(.double),
+#deck.compact .card.landscape-front:not(.double) {
+    width: var(--card-height);
+    height: var(--card-width);
+    margin-bottom: calc(var(--card-title-height) - var(--card-width));
+}
+
+.card.aftermath:not(.invert):has(.trigger:hover),
+.card.aftermath.invert:not(:has(.trigger:hover)):hover {
     margin-right: calc(16px + var(--card-height) - var(--card-width));
+}
+
+#deck.compact .card.landscape:not(.double):hover,
+#deck.compact .card.landscape-front:not(.double):not(.invert):not(:has(.trigger:hover)):hover,
+#deck.compact .card.landscape-front.invert:not(.double):has(.trigger:hover) {
+    margin-right: calc(16px + var(--card-width) - var(--card-height));
 }
 
 .card .backdrop {
@@ -265,8 +283,6 @@ input[type=checkbox] {
 
     width: 100%;
     transform-style: preserve-3d;
-
-    /*transition-property: transform;*/
 }
 
 .card:hover .card-tilt {
@@ -278,6 +294,7 @@ input[type=checkbox] {
 
 .card-faces {
     --transform-initial: translateX(0);
+    --transform-compact: var(--transform-initial);
     --transform-final: var(--transform-initial);
 
     width: var(--card-width);
@@ -286,17 +303,33 @@ input[type=checkbox] {
     transform: var(--transform-initial);
     transform-style: preserve-3d;
     transition-property: transform, box-shadow;
-    transition-duration: 0.35s;
+    transition-duration: 0.3s;
     background-color: black;
     box-shadow: 0 0 4px 0 black;
+}
+
+.card.invert .card-faces {
+    --transform-compact: var(--transform-final);
 }
 
 .card:hover .card-faces {
     box-shadow: 0 0 8px 2px black;
 }
 
+#deck.compact .card:not(:hover) .card-faces {
+    transform: var(--transform-compact);
+}
+
 .card:has(.trigger:hover) .card-faces {
     transform: var(--transform-final);
+}
+
+.card.invert .card-faces {
+    transform: var(--transform-final);
+}
+
+.card.invert:has(.trigger:hover) .card-faces {
+    transform: var(--transform-initial);
 }
 
 .card.landscape .card-faces,
@@ -307,14 +340,23 @@ input[type=checkbox] {
     height: var(--card-width);
 }
 
+.card.landscape:not(.double) .card-faces,
+.card.landscape-front:not(.double) .card-faces {
+    --transform-compact: rotateZ(0deg);
+}
+
+.card.landscape-front.invert:not(.double) .card-faces {
+    --transform-compact: rotateY(-180deg);
+}
+
 .card.flip .card-faces {
     --transform-final: rotateZ(-180deg);
 }
 
 .card.aftermath .card-faces {
     --transform-final: rotateZ(-90deg);
+    --transform-compact: rotateZ(0deg);
     transform-origin: 50% calc(var(--card-width) / 2);
-    transition-duration: 0.25s;
 }
 
 .card.transform .card-faces {
@@ -344,7 +386,8 @@ input[type=checkbox] {
 
 .card.landscape:hover ~ .card .card-shift,
 .card.landscape-front:hover ~ .card .card-shift,
-.card.aftermath:has(.trigger:hover) ~ .card .card-shift {
+.card.aftermath:not(.invert):has(.trigger:hover) ~ .card .card-shift,
+.card.aftermath.invert:not(:has(.trigger:hover)):hover ~ .card .card-shift {
     --shift: 25;
 }
 
@@ -352,7 +395,8 @@ input[type=checkbox] {
     --shift: 49;
 }
 
-.card.landscape-front:has(.trigger:hover) ~ .card .card-shift,
+.card.landscape-front:not(.invert):has(.trigger:hover) ~ .card .card-shift,
+.card.landscape-front.invert:not(:has(.trigger:hover)):hover ~ .card .card-shift,
 .card.landscape.double:hover ~ .card .card-shift {
     --shift: 35;
 }

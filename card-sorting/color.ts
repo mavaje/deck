@@ -18,15 +18,15 @@ export const COLOR: CardOrdering & CardGrouping<Group & {colors?: ColorIdentity}
 
     test: (card, group) => card.is_type('Land')
         ? group.name === 'Land'
-        : group.colors?.equals(card.face(0, 'colors')),
+        : group.colors?.equals(card.face('colors')),
 
     compare(card_a, card_b) {
         const land_a = card_a.is_type('Land') ? 1 : 0;
         const land_b = card_b.is_type('Land') ? 1 : 0;
         if (land_a || land_b) return land_b - land_a;
 
-        const a = card_a.face(0, 'colors');
-        const b = card_b.face(0, 'colors');
+        const a = card_a.face('colors');
+        const b = card_b.face('colors');
 
         return nulls_last(a, b)
             ?? (a.length - b.length

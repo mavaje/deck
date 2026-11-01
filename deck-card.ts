@@ -45,6 +45,7 @@ export class DeckCard {
     tags: Set<Tag> = new Set();
 
     card: Card;
+    default_face: number = 0;
     not_found: boolean = false;
 
     constructor(card: Partial<DeckCard> = {}, private deck?: Deck) {
@@ -202,15 +203,18 @@ export class DeckCard {
     }
 
     face(face?: number): Card | CardFace;
-    face<K extends keyof (Card | CardFace)>(face: number, property: K): Card[K] | CardFace[K];
-    face<T = Card | CardFace>(face: number, callback: (card: Card | CardFace) => T): T;
+    face<K extends keyof (Card | CardFace)>(property: K, face?: number): Card[K] | CardFace[K];
+    face<T = Card | CardFace>(callback: (card: Card | CardFace) => T, face: number): T;
     face(
-        face: number = 0,
-        callback: ((card: Card | CardFace) => any) | keyof Card | keyof CardFace = card => card,
+        callback: ((card: (Card | CardFace)) => any) | keyof Card | keyof CardFace | number = card => card,
+        face: number = this.default_face,
     ): any {
         let result = null;
 
-        if (typeof callback !== 'function') {
+        if (typeof callback === 'number') {
+            face = callback;
+            callback = card => card;
+        } else if (typeof callback === 'string') {
             const key = callback;
             callback = card => card[key];
         }
@@ -226,16 +230,18 @@ export class DeckCard {
         return result;
     }
 
-    image_urls(face: number = 0, format: keyof CardImagery = 'grid'): string[] {
-        const urls: string[] = [];
+    image_urls(face: number = this.default_face): string[] {
+        let urls: string[] = [];
 
         if (this.card) {
-            urls.push(this.face(face, card => card.image_uris?.[format]));
+            urls.push(this.face(card => card.image_uris?.grid, face));
+            urls.push(this.face(card => card.image_uris?.thumb, face));
+            urls = urls.filter(Boolean);
         }
 
-        if (face === 0) {
+        if (face === 0 && urls.length === 0) {
             const {set, collector_number, language} = this;
-            const parameters = {format: 'image', version: format};
+            const parameters = {format: 'image', version: 'grid'};
 
             if (set && collector_number) {
                 urls.push(API.card_url(set, collector_number, language.code(), parameters));
@@ -310,6 +316,12 @@ export class DeckCard {
                 this.collector_number = null;
             }
 
+            if (card.card_faces?.[1]?.name === this.name
+                || card.card_faces?.[1]?.printed_name === this.name
+            ) {
+                this.default_face = 1;
+            }
+
             this.name = card.name;
         }
 
@@ -326,13 +338,14 @@ export class DeckCard {
 
     matches(card: DeckCard) {
         for (const field of [
-            ...this.collector_number ? [] : ['name'],
+            'name',
             'set',
             'collector_number',
             'language',
             'board',
             'condition',
             'is_foil',
+            'default_face',
         ] as (keyof DeckCard)[]) {
             if (this[field] !== card[field]) {
                 return false;
@@ -390,15 +403,15 @@ export class DeckCard {
     is_type(...types: string[]): boolean {
         if (!this.card) return false;
         return types.every(type =>
-            new RegExp(`\\b${type}\\b`, 'i').test(this.face(0, 'type_line'))
+            new RegExp(`\\b${type}\\b`, 'i').test(this.face('type_line', 0))
             || (this.has_keyword('Changeling') && Catalog.creature_types.has(type))
             || (this.front_oracle().match(/(^|\n)Rangeling\b/i) && Catalog.land_types.has(type))
             || {
                 Creature: /\b(Summon|Eaturecray)\b/i,
-                Pig: /\bIgpay\b/i,
+                Boar: /\bIgpay\b/i,
                 Planeswalker: /\bUniversewalker\b/i,
                 Phenomenon: /\bPhenome-nom\b/i,
-            }[type]?.test(this.face(0, 'type_line'))
+            }[type]?.test(this.face('type_line', 0))
         );
     }
 
@@ -428,7 +441,7 @@ export class DeckCard {
     }
 
     mana_value(): number {
-        return this.face(0, 'cmc');
+        return this.face('cmc', 0);
     }
 
     can_command(format: Format): boolean {
@@ -438,7 +451,7 @@ export class DeckCard {
     }
 
     can_be_commander(): boolean {
-        return Boolean(this.is_type('Legendary') && this.face(0, 'power') && this.face(0, 'toughness'))
+        return Boolean(this.is_type('Legendary') && this.face('power', 0) && this.face('toughness', 0))
             || /~ can be your commander\./.test(this.front_oracle());
     }
 
@@ -478,7 +491,7 @@ export class DeckCard {
     front_oracle(): string {
         const cards = this.is_layout('split')
             ? this.card.card_faces
-            : [this.face()];
+            : [this.face(0)];
         return cards
             .map(card => card?.oracle_text.replaceAll(card.name, '~'))
             .join('\n');
