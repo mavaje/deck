@@ -4,7 +4,6 @@ import {API} from "./scryfall/api";
 import {ColorSet} from "./color-set";
 import {Board} from "./designation/board";
 import {CardList} from "./card-list";
-import { HTML } from "./html";
 import {Tag} from "./designation/tag";
 import {DeckView} from "./ui/deck-view";
 

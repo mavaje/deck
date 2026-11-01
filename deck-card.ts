@@ -1,11 +1,9 @@
-import {Card, CardFace, Identifier, Legality} from "./scryfall/types";
+import {Card, Identifier} from "./scryfall/types";
 import {API} from "./scryfall/api";
 import {normalise, normalise_set, preserve_case, words_to_number} from "./text";
 import {Format} from "./format";
 import {Cache} from "./scryfall/cache";
-import {ColorSet} from "./color-set";
 import {RuleBreak} from "./rule-break";
-import {Catalog} from "./scryfall/catalog";
 import {Language} from "./designation/language";
 import {Board} from "./designation/board";
 import {Condition} from "./designation/condition";
@@ -48,7 +46,7 @@ export class DeckCard extends Face {
     display_face_id: number = 0;
     not_found: boolean = false;
 
-    constructor(card: Partial<DeckCard> = {}, private deck?: Deck) {
+    constructor(card: Partial<DeckCard> = {}) {
         super(card.card);
         Object.assign(this, card);
     }
@@ -106,7 +104,7 @@ export class DeckCard extends Face {
             set: normalise_set(set, true),
             collector_number,
             board: default_board,
-        }, deck);
+        });
 
         if (!card.name && !(card.set && card.collector_number)) return null;
 
@@ -161,8 +159,8 @@ export class DeckCard extends Face {
         return card;
     }
 
-    static from_card(card: Card, deck: Deck, exact: boolean = false): DeckCard {
-        const deck_card = new DeckCard({card}, deck);
+    static from_card(card: Card, exact: boolean = false): DeckCard {
+        const deck_card = new DeckCard({card});
 
         deck_card.hydrate(card);
 
