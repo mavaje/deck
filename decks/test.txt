@@ -15,6 +15,7 @@
 2x Invasion of Zendikar [Land]
 1x Awakened Skyclave [Land]
 2x Dusk // Dawn [Wipe:#ffffff]
+2x Dawn [Wipe:#ffffff]
 1x Bruna, the Fading Light
 1x Gisela, the Broken Blade
 1x Brisela, Voice of Nightmares

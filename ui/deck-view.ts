@@ -7,6 +7,7 @@ import {CardView} from "./card-view";
 import {CardGrouping} from "../card-sorting/card-grouping";
 import {NONE} from "../card-sorting/none";
 import {CardOrdering} from "../card-sorting/card-ordering";
+import {DeckCard} from "../deck-card";
 
 export class DeckView {
 
@@ -15,6 +16,9 @@ export class DeckView {
     static ORDERING: CardOrdering = NONE;
 
     static render(deck: Deck = Deck.current): HTMLDivElement {
+        for (let i = 0; i < deck.cards.length; i++) {
+            if (this.set_background(deck.cards[i])) break;
+        }
         const show_boards = this.BY_BOARD
             && deck.cards.some(card => !card.board.is_default());
         return HTML.div(
@@ -72,5 +76,18 @@ export class DeckView {
                     : null,
             ),
         );
+    }
+
+    static set_background(card: DeckCard): boolean {
+        const url = card.main_face().face?.image_uris.art;
+        if (url) {
+            HTML.div({
+                id: 'card-image', style: {
+                    background_image: `url(${url})`,
+                }
+            });
+            return true;
+        }
+        return false;
     }
 }

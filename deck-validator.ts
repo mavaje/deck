@@ -252,7 +252,7 @@ export class DeckValidator {
     private companion_errors(card: DeckCard, format: Format): DeckError[] {
         if (!card.has_keyword('Companion')) return [];
 
-        const companion_match = card.front_oracle().match(/Companion — (?<ability>[^(]+\.)/);
+        const companion_match = card.oracle().match(/Companion — (?<ability>[^(]+\.)/);
         if (!companion_match) return [];
 
         const {ability} = companion_match.groups;
@@ -264,14 +264,14 @@ export class DeckValidator {
             const {parity, mv, dir, lands, description} = mana_value_match.groups;
 
             if (parity) {
-                deck = deck.filter(card => card.face('cmc', 0) % 2 !== (parity === 'even' ? 0 : 1));
+                deck = deck.filter(card => card.main_face().mana_value() % 2 !== (parity === 'even' ? 0 : 1));
             }
 
             if (mv) {
                 if (dir === 'less') {
-                    deck = deck.filter(card => card.face('cmc', 0) > parseInt(mv));
+                    deck = deck.filter(card => card.main_face().mana_value() > parseInt(mv));
                 } else {
-                    deck = deck.filter(card => card.face('cmc', 0) < parseInt(mv));
+                    deck = deck.filter(card => card.main_face().mana_value() < parseInt(mv));
                 }
             }
 
@@ -354,9 +354,9 @@ export class DeckValidator {
 
                 if (mv) {
                     if (dir === 'less') {
-                        deck = deck.filter(card => card.face('cmc', 0) > parseInt(mv));
+                        deck = deck.filter(card => card.main_face().mana_value() > parseInt(mv));
                     } else {
-                        deck = deck.filter(card => card.face('cmc', 0) < parseInt(mv));
+                        deck = deck.filter(card => card.main_face().mana_value() < parseInt(mv));
                     }
                 }
 

@@ -1,9 +1,9 @@
-import {Card, CardFace, CardImagery, Identifier, Legality} from "./scryfall/types";
+import {Card, CardFace, Identifier, Legality} from "./scryfall/types";
 import {API} from "./scryfall/api";
 import {normalise, normalise_set, preserve_case, words_to_number} from "./text";
 import {Format} from "./format";
 import {Cache} from "./scryfall/cache";
-import {ColorIdentity} from "./color-identity";
+import {ColorSet} from "./color-set";
 import {RuleBreak} from "./rule-break";
 import {Catalog} from "./scryfall/catalog";
 import {Language} from "./designation/language";
@@ -12,8 +12,9 @@ import {Condition} from "./designation/condition";
 import {Finish} from "./designation/finish";
 import {Deck} from "./deck";
 import {Tag} from "./designation/tag";
+import {Face} from "./face";
 
-export class DeckCard {
+export class DeckCard extends Face {
 
     static CACHE = new Cache<Card>();
 
@@ -44,11 +45,11 @@ export class DeckCard {
 
     tags: Set<Tag> = new Set();
 
-    card: Card;
-    default_face: number = 0;
+    display_face_id: number = 0;
     not_found: boolean = false;
 
     constructor(card: Partial<DeckCard> = {}, private deck?: Deck) {
+        super(card.card);
         Object.assign(this, card);
     }
 
@@ -202,63 +203,6 @@ export class DeckCard {
         return null;
     }
 
-    face(face?: number): Card | CardFace;
-    face<K extends keyof (Card | CardFace)>(property: K, face?: number): Card[K] | CardFace[K];
-    face<T = Card | CardFace>(callback: (card: Card | CardFace) => T, face: number): T;
-    face(
-        callback: ((card: (Card | CardFace)) => any) | keyof Card | keyof CardFace | number = card => card,
-        face: number = this.default_face,
-    ): any {
-        let result = null;
-
-        if (typeof callback === 'number') {
-            face = callback;
-            callback = card => card;
-        } else if (typeof callback === 'string') {
-            const key = callback;
-            callback = card => card[key];
-        }
-
-        if (this.card?.card_faces?.[face]) {
-            result ??= callback(this.card.card_faces[face]);
-        }
-
-        if (face === 0 && this.card) {
-            result ??= callback(this.card);
-        }
-
-        return result;
-    }
-
-    image_urls(face: number = this.default_face): string[] {
-        let urls: string[] = [];
-
-        if (this.card) {
-            urls.push(this.face(card => card.image_uris?.grid, face));
-            urls.push(this.face(card => card.image_uris?.thumb, face));
-            urls = urls.filter(Boolean);
-        }
-
-        if (face === 0 && urls.length === 0) {
-            const {set, collector_number, language} = this;
-            const parameters = {format: 'image', version: 'grid'};
-
-            if (set && collector_number) {
-                urls.push(API.card_url(set, collector_number, language.code(), parameters));
-            }
-        }
-
-        return urls;
-    }
-
-    back_id(): string {
-        return this.card?.card_back_id;
-    }
-
-    has_different_back(): boolean {
-        return this.back_id() && this.back_id() !== DeckCard.DEFAULT_CARD_BACK_ID;
-    }
-
     load_from_cache(): void {
         if (!this.card) {
             this.card = DeckCard.CACHE.get_any(this.cache_keys());
@@ -299,15 +243,14 @@ export class DeckCard {
     }
 
     async reload(): Promise<this> {
-        this.card = null;
+        this.flush();
         this.not_found = false;
         return this.load();
     }
 
     hydrate(card = this.card): this {
+        super.hydrate(card);
         if (card) {
-            this.card = card;
-
             if (this.set !== normalise_set(card.set, true)) {
                 this.set = null;
             }
@@ -319,7 +262,7 @@ export class DeckCard {
             if (card.card_faces?.[1]?.name === this.name
                 || card.card_faces?.[1]?.printed_name === this.name
             ) {
-                this.default_face = 1;
+                this.display_face_id = 1;
             }
 
             this.name = card.name;
@@ -336,6 +279,69 @@ export class DeckCard {
         return this;
     }
 
+    // face(face?: number): Card | CardFace;
+    // face<K extends keyof (Card | CardFace)>(property: K, face?: number): Card[K] | CardFace[K];
+    // face<T = Card | CardFace>(callback: (card: Card | CardFace) => T, face: number): T;
+    // face(
+    //     callback: ((card: (Card | CardFace)) => any) | keyof Card | keyof CardFace | number = card => card,
+    //     face: number = 0,
+    // ): any {
+    //     let result = null;
+    //
+    //     if (typeof callback === 'number') {
+    //         face = callback;
+    //         callback = card => card;
+    //     } else if (typeof callback === 'string') {
+    //         const key = callback;
+    //         callback = card => card[key];
+    //     }
+    //
+    //     if (typeof face === 'number' && this.card?.card_faces?.[face]) {
+    //         result ??= callback(this.card.card_faces[face]);
+    //     }
+    //
+    //     if (!face && this.card) {
+    //         result ??= callback(this.card);
+    //     }
+    //
+    //     return result;
+    // }
+
+    main_face(display: boolean = false): Face {
+        return this.is_layout('split')
+            ? this
+            : this.faces()[display ? this.display_face_id : 0];
+    }
+
+    back_face(): Face {
+        return this.faces()[1];
+    }
+
+    image_urls(): string[] {
+        let urls: string[] = super.image_urls();
+
+        if (urls.length === 0) {
+            const {set, collector_number, language} = this;
+            const parameters = {format: 'image', version: 'grid'};
+
+            if (set && collector_number) {
+                urls.push(API.card_url(set, collector_number, language.code(), parameters));
+            }
+        }
+
+        if (urls.length === 0) console.log(this);
+
+        return urls;
+    }
+
+    back_id(): string {
+        return this.card?.card_back_id;
+    }
+
+    has_alternative_back(): boolean {
+        return this.back_id() && this.back_id() !== DeckCard.DEFAULT_CARD_BACK_ID;
+    }
+
     matches(card: DeckCard) {
         for (const field of [
             'name',
@@ -345,7 +351,7 @@ export class DeckCard {
             'board',
             'condition',
             'is_foil',
-            'default_face',
+            'display_face_id',
         ] as (keyof DeckCard)[]) {
             if (this[field] !== card[field]) {
                 return false;
@@ -363,85 +369,19 @@ export class DeckCard {
     }
 
     all_names(printed: boolean = true): string[] {
-        if (this.card?.card_faces) {
-            return this.card?.card_faces?.map(face =>
-                printed && this.card?.lang === 'en'
-                    ? face.printed_name ?? face.name
-                    : face.name
-            );
-        }
-        let name: string;
-        if (printed && this.card?.lang === 'en') name ??= this.card?.printed_name;
-        name ??= this.card?.name;
-        name ??= this.name;
-        return name.split(/\s*\/+\s*/g);
+        return (this.faces()
+            .map(face => face.card_name(printed))
+            .filter(Boolean)
+            .join(' // ') || this.name)
+            .split(/\s*\/+\s*/g);
     }
 
-    front_name(printed: boolean = true): string {
-        const all_names = this.all_names(printed);
-        return this.is_layout('split')
-            ? all_names.join(' // ')
-            : all_names[0];
-    }
-
-    layout(): string {
-        return this.card?.layout ?? 'normal';
-    }
-
-    is_layout(layout: string): boolean;
-    is_layout(...layouts: string[]): boolean;
-    is_layout(...layouts: string[]): boolean {
-        return layouts.some(layout => this.card?.layout === layout);
-    }
-
-    card_types(): string[] {
-        return Catalog.card_types.filter(type => this.is_type(type));
-    }
-
-    is_type(type: string): boolean;
-    is_type(...types: string[]): boolean;
-    is_type(...types: string[]): boolean {
-        if (!this.card) return false;
-        return types.every(type =>
-            new RegExp(`\\b${type}\\b`, 'i').test(this.face('type_line', 0))
-            || (this.has_keyword('Changeling') && Catalog.creature_types.has(type))
-            || (this.front_oracle().match(/(^|\n)Rangeling\b/i) && Catalog.land_types.has(type))
-            || {
-                Creature: /\b(Summon|Eaturecray)\b/i,
-                Boar: /\bIgpay\b/i,
-                Planeswalker: /\bUniversewalker\b/i,
-                Phenomenon: /\bPhenome-nom\b/i,
-            }[type]?.test(this.face('type_line', 0))
-        );
-    }
-
-    is_any_type(types: (string | string[])[]): boolean {
-        return types.some(type => this.is_type(...Array.isArray(type) ? type : [type]));
-    }
-
-    is_permanent(): boolean {
-        return this.is_any_type([
-            'Artifact',
-            'Battle',
-            'Creature',
-            'Enchantment',
-            'Land',
-            'Planeswalker',
-        ]);
-    }
-
-    has_keyword(keyword: string): boolean {
-        return this.card?.keywords.includes(keyword);
+    deck_list_name(): string {
+        return this.main_face(true).card_name(true) || this.name;
     }
 
     is_basic_land(): boolean {
-        return this.card
-            ? this.is_type('Basic', 'Land')
-            : this.name && DeckCard.BASIC_LAND_REGEXP.test(this.name);
-    }
-
-    mana_value(): number {
-        return this.face('cmc', 0);
+        return super.is_basic_land() ?? (this.name && DeckCard.BASIC_LAND_REGEXP.test(this.name));
     }
 
     can_command(format: Format): boolean {
@@ -451,8 +391,9 @@ export class DeckCard {
     }
 
     can_be_commander(): boolean {
-        return Boolean(this.is_type('Legendary') && this.face('power', 0) && this.face('toughness', 0))
-            || /~ can be your commander\./.test(this.front_oracle());
+        const card = this.main_face();
+        return Boolean(card.is_type('Legendary') && card.power() && card.toughness())
+            || /~ can be your commander\./.test(this.oracle());
     }
 
     can_be_brawler(): boolean {
@@ -469,111 +410,22 @@ export class DeckCard {
             && this.color_identity().within(oathbreaker.color_identity());
     }
 
-    legality(format: Format): Legality {
-        return this.card?.legalities[format.code];
-    }
-
-    is_legal(format: Format): boolean {
-        if (format && this.card) {
-            const legality = this.legality(format);
-            return !['not_legal', 'banned'].includes(legality);
-        }
-
-        return true;
-    }
-
-    color_identity(): ColorIdentity {
-        return this.card
-            ? new ColorIdentity(this.card.color_identity)
-            : null;
-    }
-
-    front_oracle(): string {
-        const cards = this.is_layout('split')
-            ? this.card.card_faces
-            : [this.face(0)];
-        return cards
-            .map(card => card?.oracle_text.replaceAll(card.name, '~'))
-            .join('\n');
-    }
-
-    has_ability(ability: string | RegExp): boolean {
-        if (!(ability instanceof RegExp)) ability = new RegExp(`(^|\\n)${ability}(—| [\d{(]|$)`, 'i');
-        return ability.test(this.front_oracle());
-    }
-    
-    has_activate_ability(): boolean {
-        if (!this.card) return false;
-
-        if (this.front_oracle().match(/(^|\n)[^"]+("[^"]+"[^"]*)*:/)) {
-            return true;   
-        }
-        
-        if (this.is_any_type([
-            'Plains',
-            'Island',
-            'Swamp',
-            'Mountain',
-            'Forest',
-        ])) {
-            return true;
-        }
-        
-        const activated_ability_words = {
-            'Augment': true,
-            'Aura Swap': true,
-            'Commander ninjutsu': true,
-            'Craft': true,
-            'Crew': true,
-            'Cycling': true,
-            'Embalm': true,
-            'Encore': true,
-            'Equip': true,
-            'Equipment Swap': true,
-            'Eternalize': true,
-            'Fortify': true,
-            'Host': true,
-            'Level Up': true,
-            'Ninjutsu': true,
-            'Outlast': true,
-            'Reconfigure': true,
-            'Reinforce': true,
-            'Saddle': true,
-            'Scavenge': true,
-            'Shackle': true,
-            'Specialize': true,
-            'Station': true,
-            'Transfigure': true,
-            'Transmute': true,
-            'Unearth': true,
-        };
-
-        if (this.card.keywords.some(kw => activated_ability_words[kw])) {
-            return true;
-        }
-
-        return Object.entries(activated_ability_words)
-            .filter(([_, activated]) => activated)
-            .some(([kw]) => this.has_ability(kw));
-    }
-
     copy_limit(format?: Format): number {
         if (this.card) {
-            if (this.is_basic_land()) return Infinity
-
-            const oracle = this.front_oracle();
-
-            const no_limit_match = oracle.match(/A deck can have any number of cards named ~\./);
-            if (no_limit_match) return Infinity;
-
-            const limit_match = oracle.match(/A deck can have (up to|only) (?<limit>[a-z ]+) cards? named ~\./);
-            if (limit_match) {
-                const {limit} = limit_match.groups;
-                return words_to_number(limit);
+            if (this.legality(format) === 'restricted') {
+                return 1;
             }
 
-            if (format && this.card.legalities[format.code] === 'restricted') {
-                return 1;
+            if (this.is_basic_land()) {
+                return Infinity;
+            }
+
+            const limit_match = this.main_face().oracle().match(/A deck can have (?<any>(any number of)|(up to|only) (?<limit>[0-9a-z ]+)) cards? named ~\./);
+            if (limit_match) {
+                const {any, limit} = limit_match.groups;
+                return any
+                    ? Infinity
+                    : Number.parseInt(limit) || words_to_number(limit);
             }
         }
 
@@ -590,7 +442,7 @@ export class DeckCard {
                 && second.has_keyword('Partner')
             ) {
                 const [ability_1, ability_2] = [this, second]
-                    .map(card => card.front_oracle().match(/Partner(—([^(]+))?(?= \(|$)/));
+                    .map(card => card.oracle().match(/Partner(—([^(]+))?(?= \(|$)/));
 
                 if (ability_1 && ability_2 && ability_1[0] === ability_2[0]) {
                     return true;
@@ -598,11 +450,11 @@ export class DeckCard {
             }
 
             if (this.has_keyword('Partner with')) {
-                const name_match = this.front_oracle()
+                const name_match = this.oracle()
                     .match(/Partner with (?<name>[^(]+) (\(|$)/);
                 const {name} = name_match.groups;
 
-                if (name === second.front_name()) {
+                if (name === second.card_name()) {
                     return true;
                 }
             }
@@ -622,7 +474,7 @@ export class DeckCard {
     }
 
     rulebreaks(): RuleBreak[] {
-        const oracle = this.front_oracle();
+        const oracle = this.main_face().oracle();
         const breaks: RuleBreak[] = [];
 
         const additional_color_id_match =
@@ -704,7 +556,7 @@ export class DeckCard {
                     }
                 })
                 .replace(/^(name)\??$/i, (_, name) =>
-                    preserve_case(this.front_name(true), name))
+                    preserve_case(this.deck_list_name(), name))
                 .replace(/^(\/+\s*)(back)$/i, (_, slash, back) =>
                     this.is_type('split') ? ''
                         : this.all_names().slice(1).map(face => slash + preserve_case(face, back)).join(''))

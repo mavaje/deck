@@ -87,13 +87,14 @@ export class CardParseTest extends Test {
             );
 
             if (card) {
-                const card2 = DeckCard.parse(card.to_string('1 Name (SET:000?)? *EN*? *F*? *NM*? [Tag] #Board'));
+                const card_string = card.to_string('1 Name (SET:000?)? *EN*? *F*? *NM*? [Tag] #Board')
+                const card2 = DeckCard.parse(card_string);
 
                 this.assert_match(
                     expected,
                     card2,
-                    `Reparsing card did not change it`,
-                    `Reparsing card changed it`,
+                    `Reparsing card did not change it: ` + card_string,
+                    `Reparsing card changed it: ` + card_string,
                 );
             }
         });

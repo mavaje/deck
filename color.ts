@@ -1,4 +1,4 @@
-import {ColorIdentity} from "./color-identity";
+import {ColorSet} from "./color-set";
 
 export const MTG_COLORS = {
     black: '#2e272e',
@@ -34,7 +34,7 @@ export function contrast(...hexes: string[]): string {
         : '#ffffff';
 }
 
-export function from_color_identity(identity: ColorIdentity): string[] {
+export function from_color_identity(identity: ColorSet): string[] {
     switch (identity.colors.length) {
         case 0:
             return [MTG_COLORS.silver];

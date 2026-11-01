@@ -1,12 +1,12 @@
 import {CardGrouping, Group} from "./card-grouping";
-import {ColorIdentity} from "../color-identity";
+import {ColorSet} from "../color-set";
 import {from_color_identity} from "../color";
 import {CardOrdering, nulls_last} from "./card-ordering";
 
-export const COLOR_IDENTITY: CardOrdering & CardGrouping<Group & {colors?: ColorIdentity}> = {
+export const COLOR_IDENTITY: CardOrdering & CardGrouping<Group & {colors?: ColorSet}> = {
     name: 'Color Identity',
 
-    groups: () => Object.entries(ColorIdentity.all())
+    groups: () => Object.entries(ColorSet.all())
         .map(([name, colors]) => ({
             name,
             color: from_color_identity(colors),
@@ -21,6 +21,6 @@ export const COLOR_IDENTITY: CardOrdering & CardGrouping<Group & {colors?: Color
 
         return nulls_last(a, b)
             ?? (a.count() - b.count()
-                || ColorIdentity.index(a) - ColorIdentity.index(b));
+                || ColorSet.index(a) - ColorSet.index(b));
     }
 };

@@ -214,7 +214,8 @@ input[type=checkbox] {
 }
 
 .card.aftermath:not(.invert):has(.trigger:hover),
-.card.aftermath.invert:not(:has(.trigger:hover)):hover {
+.card.aftermath.invert:hover,
+#deck:not(.compact) .card.aftermath.invert {
     margin-right: calc(16px + var(--card-height) - var(--card-width));
 }
 
@@ -387,7 +388,7 @@ input[type=checkbox] {
 .card.landscape:hover ~ .card .card-shift,
 .card.landscape-front:hover ~ .card .card-shift,
 .card.aftermath:not(.invert):has(.trigger:hover) ~ .card .card-shift,
-.card.aftermath.invert:not(:has(.trigger:hover)):hover ~ .card .card-shift {
+    .card.aftermath.invert:not(:has(.trigger:hover)):hover ~ .card .card-shift {
     --shift: 25;
 }
 

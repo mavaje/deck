@@ -1,7 +1,7 @@
 import {DeckCard} from "./deck-card";
 import {Format} from "./format";
 import {API} from "./scryfall/api";
-import {ColorIdentity} from "./color-identity";
+import {ColorSet} from "./color-set";
 import {Board} from "./designation/board";
 import {CardList} from "./card-list";
 import { HTML } from "./html";
@@ -63,12 +63,6 @@ export class Deck extends CardList {
         DeckView.render();
         await Deck.current.load();
         DeckView.render();
-        const first = Deck.current.cards[0];
-        if (first?.card) {
-            HTML.div({id: 'card-image', style: {
-                background_image: `url(${first.face(f => f?.image_uris?.art, 0)})`,
-            }});
-        }
         return Deck.current;
     }
 
@@ -109,12 +103,12 @@ export class Deck extends CardList {
         return this.filter(card => card.on_board(...boards));
     }
 
-    color_identity(): ColorIdentity {
+    color_identity(): ColorSet {
         const commanders = this.board(Board.commander).skip_empty();
 
         if (commanders.count() === 0) return null;
 
-        const color_identity = new ColorIdentity();
+        const color_identity = new ColorSet();
         commanders.cards.forEach(card => color_identity.add(card.color_identity()));
 
         return color_identity;

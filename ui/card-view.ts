@@ -24,7 +24,7 @@ export class CardView {
             }));
         };
 
-        add_face(card.image_urls(0));
+        add_face(card.main_face().image_urls());
 
         switch (card.layout()) {
             case 'transform':
@@ -34,15 +34,15 @@ export class CardView {
             case 'art_series':
                 show_back = false;
                 card_class.add('transform');
-                if (card.default_face === 1) card_class.add('invert');
-                add_face(card.image_urls(1), true);
+                if (card.display_face_id === 1) card_class.add('invert');
+                add_face(card.back_face().image_urls(), true);
                 break;
 
             case 'split':
                 if (card.has_keyword('Aftermath')) {
                     show_back = false;
                     card_class.add('aftermath');
-                    if (card.default_face === 1) card_class.add('invert');
+                    if (card.display_face_id === 1) card_class.add('invert');
                 } else {
                     card_class.add('landscape');
                 }
@@ -51,7 +51,7 @@ export class CardView {
             case 'flip':
                 show_back = false;
                 card_class.add('flip');
-                if (card.default_face === 1) card_class.add('invert');
+                if (card.display_face_id === 1) card_class.add('invert');
                 break;
 
             case 'meld':
@@ -119,7 +119,7 @@ export class CardView {
             })
         }
 
-        if (show_back && card.has_different_back()) {
+        if (show_back && card.has_alternative_back()) {
             const id = card.back_id();
             card_class.add('transform');
             add_face([`https://backs.scryfall.io/large/${id[0]}/${id[1]}/${id}.jpg`], true);
