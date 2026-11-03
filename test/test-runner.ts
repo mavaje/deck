@@ -19,7 +19,7 @@ export async function run_tests() {
 
     await Catalog.load();
 
-    Promise.all([
+    await Promise.all([
         TextNormaliseTest.test(),
         TextWordsToNumberTest.test(),
         DesignationTest.test(),

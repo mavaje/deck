@@ -37,4 +37,4 @@ export class Type extends CardClassifier {
     }
 }
 
-Catalog.load();
+setTimeout(() => Catalog.load());

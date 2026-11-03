@@ -20,16 +20,14 @@ ______
         await deck.load();
 
         this.assert_match(
-            {
-                cards: [
-                    {card: {name: 'Forest'}},
-                    {card: {name: 'Forest', set: 'ktk'}},
-                    {card: {name: 'Forest', set: 'ktk', collector_number: '267'}},
-                    {card: {name: 'Forest', lang: 'fr'}},
-                    {card: {name: '_____'}},
-                    {card: {name: '______'}},
-                ],
-            } as TestMatcher<Deck>,
+            [
+                {card: {name: 'Forest'}},
+                {card: {name: 'Forest', set: 'ktk'}},
+                {card: {name: 'Forest', set: 'ktk', collector_number: '267'}},
+                {card: {name: 'Forest', lang: 'fr'}},
+                {card: {name: '_____'}},
+                {card: {name: '______'}},
+            ] as TestMatcher<Deck>,
             deck
         );
     }

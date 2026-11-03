@@ -28,4 +28,4 @@ export class Subtype extends CardClassifier {
     }
 }
 
-Catalog.load();
+setTimeout(() => Catalog.load());
