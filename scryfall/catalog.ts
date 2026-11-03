@@ -41,7 +41,10 @@ export class Catalog {
 
     private async load(): Promise<void> {
         this.data = (await API.catalog(this.type)).data;
-        this.data.forEach(type => this.map.add(type));
+        this.data.forEach(type => {
+            this.map.add(type);
+            this.map.add(type.toLowerCase());
+        });
     }
 
     static async load(): Promise<void> {

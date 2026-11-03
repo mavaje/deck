@@ -178,8 +178,9 @@ export class DeckCard extends Face {
         if (this.set && this.collector_number) {
             keys.push(`(${this.set}:${this.collector_number}:${this.language})`);
         } else if (this.name) {
-            if (this.card) keys.push(`(${this.card.set.toUpperCase()}:${this.card.collector_number}:${this.card.lang})`);
-            keys.push(`${normalise(this.name)} (${this.set ?? ''}::${this.language})`);
+            this.all_names(true).forEach(name => {
+                keys.push(`${normalise(name)} (${this.set ?? ''}::${this.language})`);
+            });
         }
 
         return keys;
@@ -276,34 +277,6 @@ export class DeckCard extends Face {
 
         return this;
     }
-
-    // face(face?: number): Card | CardFace;
-    // face<K extends keyof (Card | CardFace)>(property: K, face?: number): Card[K] | CardFace[K];
-    // face<T = Card | CardFace>(callback: (card: Card | CardFace) => T, face: number): T;
-    // face(
-    //     callback: ((card: (Card | CardFace)) => any) | keyof Card | keyof CardFace | number = card => card,
-    //     face: number = 0,
-    // ): any {
-    //     let result = null;
-    //
-    //     if (typeof callback === 'number') {
-    //         face = callback;
-    //         callback = card => card;
-    //     } else if (typeof callback === 'string') {
-    //         const key = callback;
-    //         callback = card => card[key];
-    //     }
-    //
-    //     if (typeof face === 'number' && this.card?.card_faces?.[face]) {
-    //         result ??= callback(this.card.card_faces[face]);
-    //     }
-    //
-    //     if (!face && this.card) {
-    //         result ??= callback(this.card);
-    //     }
-    //
-    //     return result;
-    // }
 
     main_face(display: boolean = false): Face {
         return this.is_layout('split')

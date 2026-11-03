@@ -37,6 +37,11 @@ export class Face<T extends Card | CardFace = Card | CardFace> {
             || [this];
     }
 
+    off_battlefield_overrides(): Partial<Card> {
+        const match = this.oracle()?.match(/As long as ~ isn't on the battlefield, it's a ((?<power>\d+)\/(?<toughness>\d+) )?(?<type_line>\w+( \w+)*) in addition to its other types./i);
+        return match?.groups ?? {};
+    }
+
     legality(format: Format): Legality {
         return this.card?.legalities[format?.code];
     }
@@ -79,26 +84,31 @@ export class Face<T extends Card | CardFace = Card | CardFace> {
             : null;
     }
 
+    full_type_line() {
+        return (this.off_battlefield_overrides()?.type_line ?? '')
+            + ' ' + this.face?.type_line;
+    }
+
     card_types(): string[] {
         return Catalog.card_types.filter(type => this.is_card_type(type));
     }
 
-    is_card_type(type: string): boolean {
+    is_card_type(card_type: string): boolean {
         if (!this.card) return null;
 
-        return new RegExp(`^[a-z ]*\\b${type}\\b`, 'i').test(this.face.type_line)
+        return new RegExp(`^[a-z ]*\\b${card_type}\\b`, 'i').test(this.full_type_line())
         || {
-            Creature: /\b(Summon|Eaturecray)\b/i,
-            Phenomenon: /\bPhenome-nom\b/i,
-            Planeswalker: /\bUniversewalker\b/i,
-        }[type]?.test(this.face.type_line);
+            creature: /\b(Summon|Eaturecray)\b/i,
+            phenomenon: /\bPhenome-nom\b/i,
+            planeswalker: /\bUniversewalker\b/i,
+        }[card_type.toLowerCase()]?.test(this.full_type_line());
     }
 
     is_all_types(card_type: string): boolean {
         return this.is_card_type(card_type) && ({
-            Creature: /(^|\n)Changeling\b/i,
-            Land: /(^|\n)Rangeling\b/i,
-        }[card_type]?.test(this.oracle()) ?? false);
+            creature: /(^|\n)Changeling\b/i,
+            land: /(^|\n)Rangeling\b/i,
+        }[card_type.toLowerCase()]?.test(this.oracle()) ?? false);
     }
 
     is_type(type: string): boolean;
@@ -107,12 +117,13 @@ export class Face<T extends Card | CardFace = Card | CardFace> {
         if (!this.card) return null;
 
         return types.every(type =>
-            new RegExp(`\\b${type}\\b`, 'i').test(this.face.type_line)
-            || this.is_card_type(type)
-            || Catalog.card_types.any(type => Catalog.subtypes[type]?.has(type) && this.is_card_type(type))
+            this.is_card_type(type)
+            || new RegExp(`\\b${type}\\b`, 'i').test(this.full_type_line())
+            || Catalog.card_types.any(card_type => this.is_all_types(card_type)
+                && Catalog.subtypes[card_type]?.has(type))
             || {
-                Boar: /\bIgpay\b/i,
-            }[type]?.test(this.face.type_line)
+                boar: /\bIgpay\b/i,
+            }[type.toLowerCase()]?.test(this.full_type_line())
         );
     }
 
@@ -143,11 +154,11 @@ export class Face<T extends Card | CardFace = Card | CardFace> {
     }
 
     power(): string {
-        return this.face?.power;
+        return this.face?.power ?? this.off_battlefield_overrides()?.power;
     }
 
     toughness(): string {
-        return this.face?.toughness;
+        return this.face?.toughness ?? this.off_battlefield_overrides()?.toughness;
     }
 
     loyalty(): string {
@@ -161,7 +172,9 @@ export class Face<T extends Card | CardFace = Card | CardFace> {
     oracle(): string {
         return this.is_card() && this.is_layout('split')
             ? this.faces().map(face => face.oracle()).join('\n')
-            : this.face?.oracle_text?.replaceAll(this.card_name(), '~');
+            : this.face?.oracle_text
+                ?.replaceAll(this.card_name(), '~')
+                .replaceAll(this.card_name().split(',')[0], '~');
     }
 
     has_ability(ability: string | RegExp): boolean {

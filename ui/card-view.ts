@@ -84,6 +84,7 @@ export class CardView {
             case '83a86763-c3fe-4cff-8b65-22cb329d112c':
                 faces_style['--transform-initial'] = 'rotateX(0deg)';
                 faces_style['--transform-final'] = 'rotateX(180deg)';
+                break;
         }
 
         switch (card.card?.oracle_id) {
@@ -102,6 +103,7 @@ export class CardView {
             case 'adfe1b07-dd82-4c39-a7a6-ded0b1c39761':
                 card_class.delete('landscape');
                 card_class.add('landscape-front');
+                if ([2, 3, 4].includes(card.display_face_id)) card_class.add('invert');
                 faces_style['transition-duration'] = '0.25s';
                 faces_style['transform-origin'] = 'calc(var(--card-width) / 2) 50%';
                 faces_style['--transform-initial'] = 'rotateZ(90deg)';
