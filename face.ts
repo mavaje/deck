@@ -63,9 +63,8 @@ export class Face<T extends Card | CardFace = Card | CardFace> {
     }
 
     colors(): ColorSet {
-        return this.face
-            ? new ColorSet(this.face.colors)
-            : null;
+        const colors = this.face?.colors ?? this.card?.colors;
+        return colors ? new ColorSet(colors) : null;
     }
 
     color_identity(): ColorSet {
@@ -81,7 +80,25 @@ export class Face<T extends Card | CardFace = Card | CardFace> {
     }
 
     card_types(): string[] {
-        return Catalog.card_types.filter(type => this.is_type(type));
+        return Catalog.card_types.filter(type => this.is_card_type(type));
+    }
+
+    is_card_type(type: string): boolean {
+        if (!this.card) return null;
+
+        return new RegExp(`^[a-z ]*\\b${type}\\b`, 'i').test(this.face.type_line)
+        || {
+            Creature: /\b(Summon|Eaturecray)\b/i,
+            Phenomenon: /\bPhenome-nom\b/i,
+            Planeswalker: /\bUniversewalker\b/i,
+        }[type]?.test(this.face.type_line);
+    }
+
+    is_all_types(card_type: string): boolean {
+        return this.is_card_type(card_type) && ({
+            Creature: /(^|\n)Changeling\b/i,
+            Land: /(^|\n)Rangeling\b/i,
+        }[card_type]?.test(this.oracle()) ?? false);
     }
 
     is_type(type: string): boolean;
@@ -91,8 +108,8 @@ export class Face<T extends Card | CardFace = Card | CardFace> {
 
         return types.every(type =>
             new RegExp(`\\b${type}\\b`, 'i').test(this.face.type_line)
-            || (this.oracle()?.match(/(^|\n)Changeling\b/i) && Catalog.creature_types.has(type))
-            || (this.oracle()?.match(/(^|\n)Rangeling\b/i) && Catalog.land_types.has(type))
+            || (this.is_all_types('Creature') && Catalog.creature_types.has(type))
+            || (this.is_all_types('Land') && Catalog.land_types.has(type))
             || {
                 Boar: /\bIgpay\b/i,
                 Creature: /\b(Summon|Eaturecray)\b/i,

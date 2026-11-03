@@ -8,14 +8,15 @@ export function load_api_cache() {
 const TEST_FIXTURE: Record<string, Card | List<Card> | Catalog> = {
     "https://api.scryfall.com/catalog/artifact-types": {
         "object": "catalog",
-        "uri": "https://api.scryfall.com/catalog/artifact-types",
-        "total_values": 20,
-        "data": [
+            "uri": "https://api.scryfall.com/catalog/artifact-types",
+            "total_values": 21,
+            "data": [
             "Attraction",
             "Blood",
             "Bobblehead",
             "Book",
             "Clue",
+            "Communicator",
             "Contraption",
             "Equipment",
             "Food",
@@ -35,17 +36,17 @@ const TEST_FIXTURE: Record<string, Card | List<Card> | Catalog> = {
     },
     "https://api.scryfall.com/catalog/battle-types": {
         "object": "catalog",
-        "uri": "https://api.scryfall.com/catalog/battle-types",
-        "total_values": 1,
-        "data": [
+            "uri": "https://api.scryfall.com/catalog/battle-types",
+            "total_values": 1,
+            "data": [
             "Siege"
         ]
     },
     "https://api.scryfall.com/catalog/card-types": {
         "object": "catalog",
-        "uri": "https://api.scryfall.com/catalog/card-types",
-        "total_values": 19,
-        "data": [
+            "uri": "https://api.scryfall.com/catalog/card-types",
+            "total_values": 19,
+            "data": [
             "Artifact",
             "Battle",
             "Boss",
@@ -69,9 +70,9 @@ const TEST_FIXTURE: Record<string, Card | List<Card> | Catalog> = {
     },
     "https://api.scryfall.com/catalog/creature-types": {
         "object": "catalog",
-        "uri": "https://api.scryfall.com/catalog/creature-types",
-        "total_values": 365,
-        "data": [
+            "uri": "https://api.scryfall.com/catalog/creature-types",
+            "total_values": 377,
+            "data": [
             "Advisor",
             "Aenar",
             "Aetherborn",
@@ -96,6 +97,7 @@ const TEST_FIXTURE: Record<string, Card | List<Card> | Catalog> = {
             "Avatar",
             "Azra",
             "Badger",
+            "Bajoran",
             "Balloon",
             "Barbarian",
             "Bard",
@@ -107,12 +109,15 @@ const TEST_FIXTURE: Record<string, Card | List<Card> | Catalog> = {
             "Beeble",
             "Beholder",
             "Berserker",
+            "Betazoid",
             "Bird",
             "Bison",
             "Blinkmoth",
             "Boar",
+            "Bolian",
             "Borg",
             "Brainiac",
+            "Brikar",
             "Bringer",
             "Brushwagg",
             "C'tan",
@@ -161,6 +166,7 @@ const TEST_FIXTURE: Record<string, Card | List<Card> | Catalog> = {
             "Dryad",
             "Dwarf",
             "Echidna",
+            "Edosian",
             "Efreet",
             "Egg",
             "El-Aurian",
@@ -231,6 +237,7 @@ const TEST_FIXTURE: Record<string, Card | List<Card> | Catalog> = {
             "Insect",
             "Jackal",
             "Jellyfish",
+            "Jem'Hadar",
             "Juggernaut",
             "Kangaroo",
             "Kavu",
@@ -258,12 +265,13 @@ const TEST_FIXTURE: Record<string, Card | List<Card> | Catalog> = {
             "Manticore",
             "Masticore",
             "Medusan",
+            "Melkotian",
             "Mercenary",
             "Merfolk",
             "Metathran",
+            "Mindless-One",
             "Minion",
             "Minotaur",
-            "Missing",
             "Mite",
             "Mole",
             "Monger",
@@ -289,6 +297,7 @@ const TEST_FIXTURE: Record<string, Card | List<Card> | Catalog> = {
             "Noggle",
             "Nomad",
             "Nymph",
+            "Ocampa",
             "Octopus",
             "Officer",
             "Ogre",
@@ -334,6 +343,7 @@ const TEST_FIXTURE: Record<string, Card | List<Card> | Catalog> = {
             "Rigger",
             "Robot",
             "Rogue",
+            "Romulan",
             "Rukh",
             "Sable",
             "Salamander",
@@ -387,7 +397,9 @@ const TEST_FIXTURE: Record<string, Card | List<Card> | Catalog> = {
             "Survivor",
             "Symbiote",
             "Synth",
+            "Talaxian",
             "Talosian",
+            "Tamarian",
             "Teddy",
             "Tellarite",
             "Tentacle",
@@ -413,6 +425,7 @@ const TEST_FIXTURE: Record<string, Card | List<Card> | Catalog> = {
             "Utrom",
             "Vampire",
             "Varmint",
+            "Vau-N'Akat",
             "Vedalken",
             "Villain",
             "Volver",
@@ -441,9 +454,9 @@ const TEST_FIXTURE: Record<string, Card | List<Card> | Catalog> = {
     },
     "https://api.scryfall.com/catalog/enchantment-types": {
         "object": "catalog",
-        "uri": "https://api.scryfall.com/catalog/enchantment-types",
-        "total_values": 13,
-        "data": [
+            "uri": "https://api.scryfall.com/catalog/enchantment-types",
+            "total_values": 13,
+            "data": [
             "Aura",
             "Background",
             "Cartouche",
@@ -461,9 +474,9 @@ const TEST_FIXTURE: Record<string, Card | List<Card> | Catalog> = {
     },
     "https://api.scryfall.com/catalog/keyword-abilities": {
         "object": "catalog",
-        "uri": "https://api.scryfall.com/catalog/keyword-abilities",
-        "total_values": 223,
-        "data": [
+            "uri": "https://api.scryfall.com/catalog/keyword-abilities",
+            "total_values": 224,
+            "data": [
             "Living weapon",
             "Jump-start",
             "Commander ninjutsu",
@@ -625,7 +638,6 @@ const TEST_FIXTURE: Record<string, Card | List<Card> | Catalog> = {
             "Sunburst",
             "Flashback",
             "Cycling",
-            "Equip",
             "Buyback",
             "Hexproof from",
             "Landcycling",
@@ -684,16 +696,18 @@ const TEST_FIXTURE: Record<string, Card | List<Card> | Catalog> = {
             "Firebending",
             "Power-up",
             "Halflingcycling",
+            "Equip",
             "Affinitycycling",
             "Daybound",
-            "Undying"
+            "Undying",
+            "Follow the 3rd Rule"
         ]
     },
     "https://api.scryfall.com/catalog/land-types": {
         "object": "catalog",
-        "uri": "https://api.scryfall.com/catalog/land-types",
-        "total_values": 18,
-        "data": [
+            "uri": "https://api.scryfall.com/catalog/land-types",
+            "total_values": 18,
+            "data": [
             "Cave",
             "Cloud",
             "Desert",
@@ -716,9 +730,9 @@ const TEST_FIXTURE: Record<string, Card | List<Card> | Catalog> = {
     },
     "https://api.scryfall.com/catalog/planeswalker-types": {
         "object": "catalog",
-        "uri": "https://api.scryfall.com/catalog/planeswalker-types",
-        "total_values": 99,
-        "data": [
+            "uri": "https://api.scryfall.com/catalog/planeswalker-types",
+            "total_values": 99,
+            "data": [
             "Abian",
             "Ajani",
             "Aminatou",
@@ -822,9 +836,9 @@ const TEST_FIXTURE: Record<string, Card | List<Card> | Catalog> = {
     },
     "https://api.scryfall.com/catalog/spell-types": {
         "object": "catalog",
-        "uri": "https://api.scryfall.com/catalog/spell-types",
-        "total_values": 6,
-        "data": [
+            "uri": "https://api.scryfall.com/catalog/spell-types",
+            "total_values": 6,
+            "data": [
             "Adventure",
             "Arcane",
             "Chorus",
@@ -835,9 +849,9 @@ const TEST_FIXTURE: Record<string, Card | List<Card> | Catalog> = {
     },
     "https://api.scryfall.com/catalog/supertypes": {
         "object": "catalog",
-        "uri": "https://api.scryfall.com/catalog/supertypes",
-        "total_values": 7,
-        "data": [
+            "uri": "https://api.scryfall.com/catalog/supertypes",
+            "total_values": 7,
+            "data": [
             "Basic",
             "Elite",
             "Legendary",

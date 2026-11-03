@@ -327,8 +327,6 @@ export class DeckCard extends Face {
             }
         }
 
-        if (urls.length === 0) console.log(this);
-
         return urls;
     }
 
@@ -514,6 +512,14 @@ export class DeckCard extends Face {
             .match(/A deck with this commander has no maximum deck size\./);
         if (no_deck_max_match) {
             breaks.push(RuleBreak.no_deck_max());
+        }
+
+        const reduced_deck_min_match = oracle
+            .match(/Your minimum deck size is reduced by (?<reduction>\w+|\d+)\./);
+        if (reduced_deck_min_match) {
+            const {reduction: reduction_string} = reduced_deck_min_match.groups;
+            const reduction = words_to_number(reduction_string) ?? Number.parseInt(reduction_string);
+            breaks.push(RuleBreak.reduced_deck_min(reduction));
         }
 
         return breaks;

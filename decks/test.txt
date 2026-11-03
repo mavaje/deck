@@ -19,6 +19,7 @@
 1x Bruna, the Fading Light
 1x Gisela, the Broken Blade
 1x Brisela, Voice of Nightmares
+1x Realmwalker
 
 # Side
 Burning Cinder Fury of Crimson Chaos Fire
@@ -30,6 +31,8 @@ Infernal Spawn of Infernal Spawn of Evil
 Magical Hacker
 Who // What // When // Where // Why
 There // Their // They're
+Havengul Laboratory
+Havengul Mystery
 Hawkins National Laboratory
 The Upside Down
 B.F.M. (Big Furry Monster)
@@ -41,6 +44,7 @@ Byode, Inverse Sun
 That's Enough Slices
 Garruk the Slayer
 Ghave, Guru of Spores (OCMD)
+Nearby Planet
 
 # Maybe
 1x Bant

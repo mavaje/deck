@@ -82,7 +82,8 @@ export class ColorSet {
     }
 
     static index(colors: Color[] | ColorSet): number {
-        return Object.values(ColorSet.all())
+        const index = Object.values(ColorSet.all())
             .findIndex(identity => identity.equals(colors));
+        return index === -1 ? null : index;
     }
 }

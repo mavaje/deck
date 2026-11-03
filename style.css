@@ -118,8 +118,8 @@ input[type=checkbox] {
     margin-bottom: 32px;
     z-index: 2;
     pointer-events: none;
-    white-space: nowrap;
     text-transform: capitalize;
+    display: flex;
 }
 
 #deck .header .label {
@@ -129,6 +129,9 @@ input[type=checkbox] {
     margin-left: 24px;
     margin-right: 16px;
     box-shadow: 0 0 8px 0 black;
+    display: flex;
+    justify-content: space-between;
+    gap: 1em;
 }
 
 #deck .groups {

@@ -4,6 +4,7 @@ import {Format} from "./format";
 import {Catalog} from "./scryfall/catalog";
 import {words_to_number} from "./text";
 import {Board} from "./designation/board";
+import {RuleBreak} from "./rule-break";
 
 export type DeckErrorType =
     'too-few-cards' |
@@ -16,7 +17,7 @@ export type DeckErrorType =
     'illegal-commander' |
     'illegal-companion' |
     'color-identity-error' |
-    'companion-restriction-error' |
+    'deck-restriction-error' |
     'planar-deck-error';
 
 export type DeckError = {
@@ -27,6 +28,8 @@ export type DeckError = {
 };
 
 export class DeckValidator {
+
+    private rulebreaks: RuleBreak[] = [];
 
     constructor(
         private deck: Deck,
@@ -43,7 +46,10 @@ export class DeckValidator {
         const commanders = this.deck.board(Board.commander);
         const commander_count = commanders.count();
 
-        const rulebreaks = commanders.cards.flatMap(commander => commander.rulebreaks());
+        const conspiracies = this.deck.board(Board.conspiracies);
+
+        this.rulebreaks.push(...commanders.skip_empty().cards.flatMap(card => card.rulebreaks()));
+        this.rulebreaks.push(...conspiracies.skip_empty().cards.flatMap(card => card.rulebreaks()));
 
         if (format) {
             const banned_cards = this.deck
@@ -70,12 +76,16 @@ export class DeckValidator {
 
             const card_count = this.deck.board(...Board.STARTING_DECK).count();
             if (card_count < format.min_cards()) {
-                errors.push({
-                    type: 'too-few-cards',
-                    message: `You have ${card_count} cards, you need at least ${format.min_cards()}`,
-                    board: Board.deck,
-                });
-            } else if (card_count > format.max_cards() && !rulebreaks.some(rulebreak => rulebreak.breaks_deck_limit())) {
+                let min_cards = format.min_cards();
+                this.rulebreaks.forEach(rulebreak => min_cards -= rulebreak.breaks_deck_min());
+                if (card_count < min_cards) {
+                    errors.push({
+                        type: 'too-few-cards',
+                        message: `You have ${card_count} cards, you need at least ${min_cards}`,
+                        board: Board.deck,
+                    });
+                }
+            } else if (card_count > format.max_cards() && !this.rulebreaks.some(rulebreak => rulebreak.breaks_deck_max())) {
                 errors.push({
                     type: 'too-many-cards',
                     message: `You have ${card_count} cards, you can have up to ${format.max_cards()}`,
@@ -144,9 +154,8 @@ export class DeckValidator {
             }
         }
 
-        this.deck.board(Board.companion).skip_empty().each(card => {
-            errors.push(...this.companion_errors(card, format));
-        });
+        errors.push(...this.deck.board(Board.companion).skip_empty().cards.flatMap(card => this.validate_deck_restrictions(card, format)));
+        errors.push(...conspiracies.skip_empty().cards.flatMap(card => this.validate_deck_restrictions(card, format)));
 
         const color_identity = this.deck.color_identity();
 
@@ -154,7 +163,7 @@ export class DeckValidator {
             .board(...Board.STANDARD)
             .each(card => {
             if (color_identity) {
-                const additional_break = rulebreaks.find(rulebreak => rulebreak.breaks_color_identity(card));
+                const additional_break = this.rulebreaks.find(rulebreak => rulebreak.breaks_color_identity(card));
                 if (additional_break) {
                     const additional_color = card.color_identity().colors.find(color => !color_identity.includes(color));
                     if (additional_color) {
@@ -164,7 +173,7 @@ export class DeckValidator {
                 }
 
                 if (!color_identity.contains(card.color_identity())
-                    && !rulebreaks.some(rulebreak => rulebreak.breaks_color_identity(card))
+                    && !this.rulebreaks.some(rulebreak => rulebreak.breaks_color_identity(card))
                 ) {
                     errors.push({
                         type: 'color-identity-error',
@@ -249,108 +258,22 @@ export class DeckValidator {
         return errors;
     }
 
-    private companion_errors(card: DeckCard, format: Format): DeckError[] {
-        if (!card.has_keyword('Companion')) return [];
-
-        const companion_match = card.oracle().match(/Companion — (?<ability>[^(]+\.)/);
-        if (!companion_match) return [];
-
-        const {ability} = companion_match.groups;
-
+    private validate_deck_restrictions(card: DeckCard, format: Format): DeckError[] {
         let deck = this.deck.board(...Board.STARTING_DECK);
 
-        const mana_value_match = ability.match(/Your starting deck contains only (?<description>cards with ((?<parity>even|odd) )?mana values?( (?<mv>\d+) or (?<dir>less|greater))?(?<lands> and land cards)?)\./);
-        if (mana_value_match) {
-            const {parity, mv, dir, lands, description} = mana_value_match.groups;
+        if (card.has_keyword('Companion')) {
+            const companion_match = card.oracle().match(/Companion — (?<ability>[^(]+\.)/);
+            if (!companion_match) return [];
 
-            if (parity) {
-                deck = deck.filter(card => card.main_face().mana_value() % 2 !== (parity === 'even' ? 0 : 1));
-            }
+            const {ability} = companion_match.groups;
 
-            if (mv) {
-                if (dir === 'less') {
-                    deck = deck.filter(card => card.main_face().mana_value() > parseInt(mv));
-                } else {
-                    deck = deck.filter(card => card.main_face().mana_value() < parseInt(mv));
+            const mana_value_match = ability.match(/Your starting deck contains only (?<description>cards with ((?<parity>even|odd) )?mana values?( (?<mv>\d+) or (?<dir>less|greater))?(?<lands> and land cards)?)\./);
+            if (mana_value_match) {
+                const {parity, mv, dir, lands, description} = mana_value_match.groups;
+
+                if (parity) {
+                    deck = deck.filter(card => card.main_face().mana_value() % 2 !== (parity === 'even' ? 0 : 1));
                 }
-            }
-
-            if (lands) {
-                deck = deck.filter(card => !card.is_type('Land'));
-            }
-
-            return deck.count() > 0
-                ? [{
-                    type: 'companion-restriction-error',
-                    message: `Only ${description} are allowed in a deck with this companion`,
-                    cards: deck.cards,
-                }]
-                : [];
-        }
-
-        const unique_mana_symbol_match = ability.match(/No card in your starting deck has more than one of the same mana symbol in its mana cost\./);
-        if (unique_mana_symbol_match) {
-            deck = deck.filter(card => card.card.mana_cost.match(/(\{[^}]+}).*\1/));
-
-            return deck.count() > 0
-                ? [{
-                    type: 'companion-restriction-error',
-                    message: `Each card must has unique symbols in its mana cost with this companion`,
-                    cards: deck.cards,
-                }]
-                : [];
-        }
-
-        if (format) {
-            const deck_size_match = ability.match(/Your starting deck contains at least (?<count>\w+|\d+) cards? more than the minimum deck size\./);
-            if (deck_size_match) {
-                const {count: count_string} = deck_size_match.groups;
-                const count = words_to_number(count_string) ?? Number.parseInt(count_string);
-
-                return deck.count() < format.min_cards() + count
-                    ? [{
-                        type: 'companion-restriction-error',
-                        message: `You must have ${count} more cards in a deck with this companion`,
-                    }]
-                    : [];
-            }
-        }
-
-        const each_card_match = ability.match(/Each ((?<type>\w+) )?card in your starting deck (?<quality>[^.]+)\./);
-        if (each_card_match) {
-            const {type, quality} = each_card_match.groups;
-
-            const each_card = `Each ${type ? `${type} ` : ''}card`;
-
-            if (type === 'permanent') {
-                deck = deck.filter(card => card.is_permanent());
-            } else {
-                const non_match = type.match(/non(?<type>\w+)/);
-                if (non_match) {
-                    deck = deck.filter(card => !card.is_type(non_match.groups.type));
-                } else {
-                    deck = deck.filter(card => card.is_type(type));
-                }
-            }
-
-            const types_match = quality.match(/is a (?<types>\w+(, (or )?\w+)*) card/);
-            if (types_match) {
-                const joined_types = types_match.groups.types;
-                const types = joined_types.split(/, or |, /g);
-                deck = deck.filter(card => !card.is_any_type(types));
-
-                return deck.count() > 0
-                    ? [{
-                        type: 'companion-restriction-error',
-                        message: `${each_card} must be a ${joined_types} card with this companion`,
-                        cards: deck.cards,
-                    }]
-                    : [];
-            }
-
-            const mv_match = quality.match(/has mana value (?<mv>\d+) or (?<dir>less|greater)/);
-            if (mv_match) {
-                const {mv, dir} = mv_match.groups;
 
                 if (mv) {
                     if (dir === 'less') {
@@ -360,63 +283,165 @@ export class DeckValidator {
                     }
                 }
 
+                if (lands) {
+                    deck = deck.filter(card => !card.is_type('Land'));
+                }
+
                 return deck.count() > 0
                     ? [{
-                        type: 'companion-restriction-error',
-                        message: `${each_card} must have mana value ${mv} or ${dir}`,
+                        type: 'deck-restriction-error',
+                        message: `Only ${description} are allowed in a deck with this companion`,
                         cards: deck.cards,
                     }]
                     : [];
             }
 
-            const unique_match = quality.match(/has a different name/);
-            if (unique_match) {
-                deck = deck.filter_by_count(count => count > 1);
+            const unique_mana_symbol_match = ability.match(/No card in your starting deck has more than one of the same mana symbol in its mana cost\./);
+            if (unique_mana_symbol_match) {
+                deck = deck.filter(card => card.card.mana_cost.match(/(\{[^}]+}).*\1/));
+
                 return deck.count() > 0
                     ? [{
-                        type: 'companion-restriction-error',
-                        message: `${each_card} must have a different name`,
+                        type: 'deck-restriction-error',
+                        message: `Each card must has unique symbols in its mana cost with this companion`,
                         cards: deck.cards,
                     }]
                     : [];
             }
 
-            const shared_type_match = quality.match(/shares a card type/);
-            if (shared_type_match) {
-                let types: string[] = Catalog.card_types.all();
+            if (format) {
+                const deck_size_match = ability.match(/Your starting deck contains at least (?<count>\w+|\d+) cards? more than the minimum deck size\./);
+                if (deck_size_match) {
+                    const {count: count_string} = deck_size_match.groups;
+                    let count = words_to_number(count_string) ?? Number.parseInt(count_string);
 
-                deck = deck.filter(card => {
-                    if (card.card_types().some(type => types.includes(type))) {
-                        types = types.filter(type => card.card_types().includes(type));
-                        return false;
+                    this.rulebreaks.forEach(rulebreak => count -= rulebreak.breaks_deck_min());
+
+                    return deck.count() < format.min_cards() + count
+                        ? [{
+                            type: 'deck-restriction-error',
+                            message: `You must have ${count} more cards in a deck with this companion`,
+                        }]
+                        : [];
+                }
+            }
+
+            const each_card_match = ability.match(/Each ((?<type>\w+) )?card in your starting deck (?<quality>[^.]+)\./);
+            if (each_card_match) {
+                const {type, quality} = each_card_match.groups;
+
+                const each_card = `Each ${type ? `${type} ` : ''}card`;
+
+                if (type === 'permanent') {
+                    deck = deck.filter(card => card.is_permanent());
+                } else {
+                    const non_match = type.match(/non(?<type>\w+)/);
+                    if (non_match) {
+                        deck = deck.filter(card => !card.is_type(non_match.groups.type));
                     } else {
-                        return true;
+                        deck = deck.filter(card => card.is_type(type));
                     }
-                });
+                }
+
+                const types_match = quality.match(/is a (?<types>\w+(, (or )?\w+)*) card/);
+                if (types_match) {
+                    const joined_types = types_match.groups.types;
+                    const types = joined_types.split(/, or |, /g);
+                    deck = deck.filter(card => !card.is_any_type(types));
+
+                    return deck.count() > 0
+                        ? [{
+                            type: 'deck-restriction-error',
+                            message: `${each_card} must be a ${joined_types} card with this companion`,
+                            cards: deck.cards,
+                        }]
+                        : [];
+                }
+
+                const mv_match = quality.match(/has mana value (?<mv>\d+) or (?<dir>less|greater)/);
+                if (mv_match) {
+                    const {mv, dir} = mv_match.groups;
+
+                    if (mv) {
+                        if (dir === 'less') {
+                            deck = deck.filter(card => card.main_face().mana_value() > parseInt(mv));
+                        } else {
+                            deck = deck.filter(card => card.main_face().mana_value() < parseInt(mv));
+                        }
+                    }
+
+                    return deck.count() > 0
+                        ? [{
+                            type: 'deck-restriction-error',
+                            message: `${each_card} must have mana value ${mv} or ${dir}`,
+                            cards: deck.cards,
+                        }]
+                        : [];
+                }
+
+                const unique_match = quality.match(/has a different name/);
+                if (unique_match) {
+                    deck = deck.filter_by_count(count => count > 1);
+                    return deck.count() > 0
+                        ? [{
+                            type: 'deck-restriction-error',
+                            message: `${each_card} must have a different name`,
+                            cards: deck.cards,
+                        }]
+                        : [];
+                }
+
+                const shared_type_match = quality.match(/shares a card type/);
+                if (shared_type_match) {
+                    let types: string[] = Catalog.card_types.all();
+
+                    deck = deck.filter(card => {
+                        if (card.card_types().some(type => types.includes(type))) {
+                            types = types.filter(type => card.card_types().includes(type));
+                            return false;
+                        } else {
+                            return true;
+                        }
+                    });
+
+                    return deck.count() > 0
+                        ? [{
+                            type: 'deck-restriction-error',
+                            message: `${each_card} must share a card type`,
+                            cards: deck.cards,
+                        }]
+                        : [];
+                }
+
+                const activated_ability_match = quality.match(/has an activated ability/);
+                if (activated_ability_match) {
+                    deck = deck.filter(card => !card.has_activate_ability());
+
+                    return deck.count() > 0
+                        ? [{
+                            type: 'deck-restriction-error',
+                            message: `${each_card} must have an activated ability`,
+                            cards: deck.cards,
+                        }]
+                        : [];
+                }
+            }
+        } else if (card.is_type('Conspiracy')) {
+            const types_match = card.oracle().match(/Your starting deck can't have (?<types>\w+( \w+)*) cards(.$| and)/);
+            if (types_match) {
+                const joined_types = types_match.groups.types;
+                const types = joined_types.split(/ /g);
+
+                deck = deck.filter(card => card.is_type(...types));
 
                 return deck.count() > 0
                     ? [{
-                        type: 'companion-restriction-error',
-                        message: `${each_card} must share a card type`,
+                        type: 'deck-restriction-error',
+                        message: `You can't have any ${joined_types} in your deck`,
                         cards: deck.cards,
                     }]
                     : [];
             }
-
-            const activated_ability_match = quality.match(/has an activated ability/);
-            if (activated_ability_match) {
-                deck = deck.filter(card => !card.has_activate_ability());
-
-                return deck.count() > 0
-                    ? [{
-                        type: 'companion-restriction-error',
-                        message: `${each_card} must have an activated ability`,
-                        cards: deck.cards,
-                    }]
-                    : [];
-            }
-
-            return [];
         }
 
         return [];

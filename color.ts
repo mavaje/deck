@@ -34,7 +34,7 @@ export function contrast(...hexes: string[]): string {
         : '#ffffff';
 }
 
-export function from_color_identity(identity: ColorSet): string[] {
+export function gradient(identity: ColorSet): string[] {
     switch (identity.colors.length) {
         case 0:
             return [MTG_COLORS.silver];

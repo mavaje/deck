@@ -11,10 +11,13 @@ export class Deck extends CardList {
 
     static current: Deck = new Deck();
 
+    raw?: string;
+
     format: Format;
 
     static parse(input: string) {
         const deck = new Deck();
+        deck.raw = input;
 
         let group_board: Board = Board.DEFAULT;
         let group_tag: Tag = null;

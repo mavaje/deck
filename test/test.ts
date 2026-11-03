@@ -1,6 +1,7 @@
 import { format } from "../text";
 import {TestCounter} from "./test-counter";
 import {Tag} from "../designation/tag";
+import {is_nullish} from "../value";
 
 export type DeepPartial<T> = {
     [K in keyof T]?: DeepPartial<T[K]>;
@@ -93,7 +94,7 @@ export class Test {
         const test = new Test();
         test.pass_message = pass_message;
         test.fail_message = fail_message;
-        test.mark((object ?? null) === null);
+        test.mark(is_nullish(object));
         this.children.push(test);
         return test;
     }

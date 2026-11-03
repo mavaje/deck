@@ -1,45 +1,45 @@
 import {HTML} from "../../html";
 import {DeckView} from "../deck-view";
-import {CardGrouping} from "../../card-sorting/card-grouping";
-import {CardOrdering} from "../../card-sorting/card-ordering";
-import {NONE} from "../../card-sorting/none";
-import {TYPE} from "../../card-sorting/type";
-import {SUBTYPE} from "../../card-sorting/subtype";
-import {COLOR} from "../../card-sorting/color";
-import {COLOR_IDENTITY} from "../../card-sorting/color-identity";
-import {MANA_VALUE} from "../../card-sorting/mana-value";
-import {SET} from "../../card-sorting/set";
-import {RARITY} from "../../card-sorting/rarity";
-import {TAG} from "../../card-sorting/tag";
-import {NAME} from "../../card-sorting/name";
-import {PRICE_EUR, PRICE_TIX, PRICE_USD} from "../../card-sorting/price";
-import {RANK_EDHREC, RANK_PENNY} from "../../card-sorting/rank";
+import {Type} from "../../card-classifier/type";
+import {Color} from "../../card-classifier/color";
+import {ColorIdentity} from "../../card-classifier/color-identity";
+import {ManaValue} from "../../card-classifier/mana-value";
+import {Set} from "../../card-classifier/set";
+import {Rarity} from "../../card-classifier/rarity";
+import {Tag} from "../../card-classifier/tag";
+import {Name} from "../../card-classifier/name";
+import {PriceEUR, PriceTIX, PriceUSD} from "../../card-classifier/price";
+import {RankEDHREC, RankPenny} from "../../card-classifier/rank";
+import {CardClassifier} from "../../card-classifier/card-classifier";
+import {Subtype} from "../../card-classifier/subtype";
+import {Keyword} from "../../card-classifier/keyword";
 
-const CARD_GROUPINGS: CardGrouping[] = [
-    NONE,
-    TYPE,
-    SUBTYPE,
-    COLOR,
-    COLOR_IDENTITY,
-    MANA_VALUE,
-    SET,
-    RARITY,
-    TAG,
+const CARD_GROUPINGS: (typeof CardClassifier)[] = [
+    CardClassifier,
+    Type,
+    Subtype,
+    Color,
+    ColorIdentity,
+    ManaValue,
+    Set,
+    Rarity,
+    Keyword,
+    Tag,
 ];
 
-const CARD_ORDERINGS: CardOrdering[] = [
-    NONE,
-    NAME,
-    SET,
-    RARITY,
-    COLOR,
-    COLOR_IDENTITY,
-    PRICE_USD,
-    PRICE_EUR,
-    PRICE_TIX,
-    MANA_VALUE,
-    RANK_EDHREC,
-    RANK_PENNY,
+const CARD_ORDERINGS: (typeof CardClassifier)[] = [
+    CardClassifier,
+    Name,
+    Set,
+    Rarity,
+    Color,
+    ColorIdentity,
+    PriceUSD,
+    PriceEUR,
+    PriceTIX,
+    ManaValue,
+    RankEDHREC,
+    RankPenny,
 ];
 
 export function initialise_deck_controls() {

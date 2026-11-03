@@ -2,6 +2,7 @@ import {Test, TestMatcher} from "./test";
 import {Deck} from "../deck";
 import {Format} from "../format";
 import {DeckError, DeckValidator} from "../deck-validator";
+import {Board} from "../designation/board";
 
 export class DeckValidationTest extends Test {
 
@@ -328,7 +329,7 @@ export class DeckValidationTest extends Test {
                     48 Forest
                 `,
                 errors: [
-                    {type: 'illegal-card'},
+                    {type: 'illegal-card', cards: [{name: 'Black Lotus'}]},
                 ],
             },
             {
@@ -354,10 +355,7 @@ export class DeckValidationTest extends Test {
                     28 Swamp
                 `,
                 errors: [
-                    {
-                        type: 'companion-restriction-error',
-                        cards: [{name: 'Reflections of Littjara'}],
-                    },
+                    {type: 'deck-restriction-error', cards: [{name: 'Reflections of Littjara'}]},
                 ],
             },
             {
@@ -373,7 +371,7 @@ export class DeckValidationTest extends Test {
                 `,
                 errors: [
                     {
-                        type: 'companion-restriction-error',
+                        type: 'deck-restriction-error',
                         cards: [
                             {name: 'The Great Henge'},
                             {name: 'Fire // Ice'},
@@ -392,10 +390,7 @@ export class DeckValidationTest extends Test {
                     28 Plains
                 `,
                 errors: [
-                    {
-                        type: 'companion-restriction-error',
-                        cards: [{name: 'Birds of Paradise'}],
-                    },
+                    {type: 'deck-restriction-error', cards: [{name: 'Birds of Paradise'}]},
                 ],
             },
             {
@@ -408,10 +403,7 @@ export class DeckValidationTest extends Test {
                     28 Island
                 `,
                 errors: [
-                    {
-                        type: 'companion-restriction-error',
-                        cards: [{name: 'Rampant Growth'}],
-                    },
+                    {type: 'deck-restriction-error', cards: [{name: 'Rampant Growth'}]},
                 ],
             },
             {
@@ -424,10 +416,7 @@ export class DeckValidationTest extends Test {
                     28 Swamp
                 `,
                 errors: [
-                    {
-                        type: 'companion-restriction-error',
-                        cards: [{name: 'Rhystic Study'}],
-                    },
+                    {type: 'deck-restriction-error', cards: [{name: 'Rhystic Study'}]},
                 ],
             },
             {
@@ -440,10 +429,7 @@ export class DeckValidationTest extends Test {
                     28 Mountain
                 `,
                 errors: [
-                    {
-                        type: 'companion-restriction-error',
-                        cards: [{name: 'Lightning Bolt'}],
-                    },
+                    {type: 'deck-restriction-error', cards: [{name: 'Lightning Bolt'}]},
                 ],
             },
             {
@@ -456,10 +442,7 @@ export class DeckValidationTest extends Test {
                     28 Mountain
                 `,
                 errors: [
-                    {
-                        type: 'companion-restriction-error',
-                        cards: [{name: 'Arcane Signet'}],
-                    },
+                    {type: 'deck-restriction-error', cards: [{name: 'Arcane Signet'}]},
                 ],
             },
             {
@@ -473,10 +456,7 @@ export class DeckValidationTest extends Test {
                     28 Forest
                 `,
                 errors: [
-                    {
-                        type: 'companion-restriction-error',
-                        cards: [{name: 'Arcane Signet'}],
-                    },
+                    {type: 'deck-restriction-error', cards: [{name: 'Arcane Signet'}]},
                 ],
             },
             {
@@ -488,7 +468,7 @@ export class DeckValidationTest extends Test {
                     39 Plains
                 `,
                 errors: [
-                    {type: 'companion-restriction-error'},
+                    {type: 'deck-restriction-error'},
                 ],
             },
             {
@@ -505,17 +485,18 @@ export class DeckValidationTest extends Test {
                 input: `
                     # Zirda Companion - abilities
                     Zirda, the Dawnwaker *CMPN*
-                    Arcane Signet
-                    Lightning Bolt
-                    Rhythm of the Wild
+                    Arcane Signet # Written ability
+                    Lightning Bolt # non permanent
+                    Rhythm of the Wild # error
+                    Swiftfoot Boots # equip kw
+                    Nearby Planet # rangeling
                     30 Mountain
                     27 Plains
                 `,
                 errors: [
-                    {
-                        type: 'companion-restriction-error',
-                        cards: [{name: 'Rhythm of the Wild'}],
-                    },
+                    {type: 'deck-restriction-error', cards: [
+                        {name: 'Rhythm of the Wild'},
+                    ]},
                 ],
             },
             {
@@ -626,23 +607,7 @@ export class DeckValidationTest extends Test {
                     17 Forest
                 `,
                 errors: [
-                    {type: 'color-identity-error'},
-                ],
-            },
-            {
-                input: `
-                    # Rulebreaker - spells +1 id
-                    Tolabow, Loch Rascal *CMDR*
-                    Cultivate
-                    Beacon Bolt
-                    20 Plains
-                    20 Island
-                    20 Swamp
-                    20 Mountain
-                    17 Forest
-                `,
-                errors: [
-                    {type: 'color-identity-error'},
+                    {type: 'color-identity-error', cards: [{name: 'Beacon Bolt'}]},
                 ],
             },
             {
@@ -684,7 +649,7 @@ export class DeckValidationTest extends Test {
                     Morphic Tide
                 `,
                 errors: [
-                    {type: 'too-few-cards'},
+                    {type: 'too-few-cards', board: Board.planar},
                 ],
             },
             {
@@ -719,7 +684,59 @@ export class DeckValidationTest extends Test {
                     Morphic Tide
                 `,
                 errors: [
-                    {type: 'too-many-copies'},
+                    {type: 'too-many-copies', cards: [{name: 'Bant'}]},
+                ],
+            },
+            {
+                format: Format.modern,
+                input: `
+                    # Reduced min deck size
+                    Advantageous proclamation *Conspiracy*
+                    55 Plains
+                `,
+                errors: [],
+            },
+            {
+                format: Format.modern,
+                input: `
+                    # Reduced min deck size error
+                    Advantageous proclamation *Conspiracy*
+                    54 Plains
+                `,
+                errors: [
+                    {type: 'too-few-cards'},
+                ],
+            },
+            {
+                format: Format.vintage,
+                input: `
+                    # Yorion with reduced min deck size
+                    Yorion, Sky Nomad *CMPN*
+                    Advantageous proclamation *Conspiracy*
+                    75 Plains
+                `,
+                errors: [],
+            },
+            {
+                format: Format.vintage,
+                input: `
+                    # Yorion with reduced min deck size error
+                    Yorion, Sky Nomad *CMPN*
+                    Advantageous proclamation *Conspiracy*
+                    74 Plains
+                `,
+                errors: [
+                    {type: 'deck-restriction-error'},
+                ],
+            },
+            {
+                input: `
+                    # No basics conspiracy
+                    Sovereign's Realm *Conspiracy*
+                    Plains
+                `,
+                errors: [
+                    {type: 'deck-restriction-error', cards: [{name: 'Plains'}]},
                 ],
             },
         ] as {

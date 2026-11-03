@@ -4,16 +4,14 @@ import {Deck} from "../deck";
 import {contrast} from "../color";
 import {CardList} from "../card-list";
 import {CardView} from "./card-view";
-import {CardGrouping} from "../card-sorting/card-grouping";
-import {NONE} from "../card-sorting/none";
-import {CardOrdering} from "../card-sorting/card-ordering";
 import {DeckCard} from "../deck-card";
+import {CardClassifier} from "../card-classifier/card-classifier";
 
 export class DeckView {
 
     static BY_BOARD: boolean = true;
-    static GROUPING: CardGrouping = NONE;
-    static ORDERING: CardOrdering = NONE;
+    static GROUPING: typeof CardClassifier = CardClassifier;
+    static ORDERING: typeof CardClassifier = CardClassifier;
 
     static render(deck: Deck = Deck.current): HTMLDivElement {
         for (let i = 0; i < deck.cards.length; i++) {
@@ -33,6 +31,8 @@ export class DeckView {
     }
 
     private static render_board(deck: Deck, board: Board = null): HTMLDivElement {
+        const grouping = new (this.GROUPING as any)(deck) as CardClassifier;
+        const ordering = new (this.ORDERING as any)(deck) as CardClassifier;
         const i = (board ?? Board.DEFAULT).code();
         const cards = board
             ? deck.board(board)
@@ -45,32 +45,30 @@ export class DeckView {
             board && HTML.div({class: 'header'}, HTML.span({class: 'label'}, HTML.span({style: {font_weight: 'bold'}}, board.name), ` (${cards.count()})`)),
             HTML.div(
                 {class: 'groups'},
-                ...this.GROUPING.groups(deck)
+                ...grouping.groups()
                     .map((group, j) => {
-                        const group_cards = cards
-                            .filter(card => this.GROUPING.test(card, group));
-                        if (group_cards.cards.length === 0) return null;
+                        if (!group.cards || group.cards.cards.length === 0) return null;
                         return HTML.div(
                             {id: `group-${i}-${j}`, class: ['group', group.name]},
-                            HTML.div({class: 'header'}, HTML.span({class: 'label', style: group.color && {
+                            HTML.div({class: 'header'}, HTML.div({class: 'label', style: group.color && {
                                     background: `linear-gradient(to right in oklab, ${group.color.join(',')})`,
                                     color: contrast(...group.color),
-                                }}, HTML.span({style: {font_weight: 'bold'}}, group.name), ` (${group_cards.count()})`)),
-                            ...group_cards
-                                .sort(DeckView.ORDERING)
+                                }}, HTML.div({style: {font_weight: 'bold'}}, group.name), ` (${group.cards.count()})`)),
+                            ...group.cards
+                                .sort((a, b) => ordering.compare(a, b))
                                 .each((card, k) => {
                                 rendered_cards.add(card);
-                                return CardView.render(card, k < group_cards.cards.length - 1);
+                                return CardView.render(card, k < group.cards.cards.length - 1);
                             }),
                         );
                     }),
                 (other = cards.filter(card => !rendered_cards.has(card))).cards.length > 0
                     ? HTML.div(
                         {id: `group-${i}-other`, class: 'group'},
-                        this.GROUPING.remainder_group_name &&
-                            HTML.div({class: 'header'}, HTML.span({class: 'label'}, HTML.span({style: {font_weight: 'bold'}}, this.GROUPING.remainder_group_name), ` (${other.count()})`)),
+                        this.GROUPING.ungrouped_name &&
+                            HTML.div({class: 'header'}, HTML.div({class: 'label'}, HTML.div({style: {font_weight: 'bold'}}, this.GROUPING.ungrouped_name), ` (${other.count()})`)),
                         ...other
-                            .sort(DeckView.ORDERING)
+                            .sort((a, b) => ordering.compare(a, b))
                             .each((card, k) => CardView.render(card, k < other.cards.length - 1)),
                     )
                     : null,

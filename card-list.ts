@@ -1,9 +1,12 @@
 import {DeckCard} from "./deck-card";
-import {CardOrdering} from "./card-sorting/card-ordering";
 
 export class CardList {
 
     constructor(public cards: DeckCard[] = []) {}
+
+    push(card: DeckCard) {
+        this.cards.push(card);
+    }
 
     add(card: DeckCard) {
         for (const existing_card of this.cards) {
@@ -18,7 +21,7 @@ export class CardList {
             }
         }
 
-        this.cards.push(card);
+        this.push(card);
     }
 
     *flat(): Generator<DeckCard> {
@@ -51,8 +54,8 @@ export class CardList {
         return this.cards.map(callback);
     }
 
-    sort(ordering: CardOrdering): CardList {
-        this.cards.sort(ordering.compare);
+    sort(comparator: (a: DeckCard, b: DeckCard) => number): CardList {
+        this.cards.sort(comparator);
         return this;
     }
 
