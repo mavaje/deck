@@ -3,6 +3,7 @@ import {CardClassifier} from "./card-classifier";
 
 export class Tag extends CardClassifier {
     static name: string = 'Tag';
+    static ungrouped_name: string = 'Untagged';
 
     groups() {
         return this.group_by(

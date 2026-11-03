@@ -255,6 +255,8 @@ export class Face<T extends Card | CardFace = Card | CardFace> {
     }
 
     card_name(printed: boolean = false): string {
-        return (printed && this.is_default_language() && this.face?.printed_name) || this.face?.name;
+        return printed && this.is_default_language()
+            ? this.face?.printed_name ?? this.face?.name
+            : this.face?.name;
     }
 }

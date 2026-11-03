@@ -61,17 +61,21 @@ export class Deck extends CardList {
     }
 
     static async load_current(input: string): Promise<Deck> {
+        Tag.clear();
         Deck.current = Deck.parse(input);
         DeckView.render();
-        await Deck.current.load();
-        DeckView.render();
+        await Deck.current.load(() => DeckView.render());
+        for (let i = 0; i < Deck.current.length; i++) {
+            if (DeckView.set_background(Deck.current[i])) break;
+        }
         return Deck.current;
     }
 
-    async load(): Promise<this> {
-        this.cards.forEach(card => card.load_from_cache());
+    async load(on_progress: () => void = null): Promise<this> {
+        this.forEach(card => card.load_from_cache());
+        on_progress?.();
 
-        const deck_cards = this.cards
+        const deck_cards = this
             .filter(card => !card.card && !card.not_found);
 
         for (let i = 0; i < deck_cards.length; i += API.CARDS_MAX) {
@@ -92,9 +96,16 @@ export class Deck extends CardList {
                     card.hydrate(cards.data[index++]).cache();
                 }
             }
+
+            on_progress?.();
         }
 
-        await Promise.all(deck_cards.map(card => card.load()));
+        await Promise.all(deck_cards.map(async card => {
+            await card.load();
+            on_progress?.();
+        }));
+
+        on_progress?.();
 
         return this;
     }
@@ -111,16 +122,16 @@ export class Deck extends CardList {
         if (commanders.count() === 0) return null;
 
         const color_identity = new ColorSet();
-        commanders.cards.forEach(card => color_identity.add(card.color_identity()));
+        commanders.forEach(card => color_identity.add(card.color_identity()));
 
         return color_identity;
     }
 
     to_string(card_format?: string): string {
         return Board.all()
-            .filter(board => this.board(board).cards.length > 0)
+            .filter(board => this.board(board).length > 0)
             .map(board => `# ${board.name}\n`
-                + this.board(board).cards.map(card => card.to_string(card_format)).join('\n') + '\n')
+                + this.board(board).map(card => card.to_string(card_format)).join('\n') + '\n')
             .join('\n');
     }
 

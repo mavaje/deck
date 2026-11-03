@@ -1,9 +1,11 @@
 import {API} from "./api";
 
+type CatalogStatus = 'empty' | 'pending' | 'loaded';
+
 export class Catalog {
 
     private static INSTANCES: Catalog[] = [];
-    private static IS_LOADED: boolean = false;
+    private static STATUS: CatalogStatus = 'empty';
 
     public static supertypes = new Catalog('supertypes');
     public static card_types = new Catalog('card-types');
@@ -30,6 +32,8 @@ export class Catalog {
 
     public static keyword_abilities = new Catalog('keyword-abilities');
 
+    private status: CatalogStatus = 'empty';
+
     private data: string[] = [];
     private map: Set<string> = new Set();
 
@@ -40,19 +44,21 @@ export class Catalog {
     }
 
     private async load(): Promise<void> {
+        if (this.status !== 'empty') return;
+        this.status = 'pending';
         this.data = (await API.catalog(this.type)).data;
         this.data.forEach(type => {
             this.map.add(type);
             this.map.add(type.toLowerCase());
         });
+        this.status = 'loaded';
     }
 
     static async load(): Promise<void> {
-        if (this.IS_LOADED) return;
-
+        if (this.STATUS !== 'empty') return;
+        this.STATUS = 'pending';
         await Promise.all(this.INSTANCES.map(catalog => catalog.load()));
-
-        this.IS_LOADED = true;
+        this.STATUS = 'loaded';
     }
 
     has(type: string): boolean {

@@ -48,8 +48,8 @@ export class DeckValidator {
 
         const conspiracies = this.deck.board(Board.conspiracies);
 
-        this.rulebreaks.push(...commanders.skip_empty().cards.flatMap(card => card.rulebreaks()));
-        this.rulebreaks.push(...conspiracies.skip_empty().cards.flatMap(card => card.rulebreaks()));
+        this.rulebreaks.push(...commanders.skip_empty().flatMap(card => card.rulebreaks()));
+        this.rulebreaks.push(...conspiracies.skip_empty().flatMap(card => card.rulebreaks()));
 
         if (format) {
             const banned_cards = this.deck
@@ -59,7 +59,7 @@ export class DeckValidator {
                 errors.push({
                     type: 'illegal-card',
                     message: `These cards are banned in this format`,
-                    cards: banned_cards.cards,
+                    cards: banned_cards,
                 });
             }
 
@@ -70,7 +70,7 @@ export class DeckValidator {
                 errors.push({
                     type: 'illegal-card',
                     message: `These cards are not legal in this format`,
-                    cards: illegal_cards.cards,
+                    cards: illegal_cards,
                 });
             }
 
@@ -139,7 +139,7 @@ export class DeckValidator {
                         errors.push({
                             type: 'illegal-commander',
                             message: `These cards cannot be commanders in this format`,
-                            cards: illegal_commanders.cards,
+                            cards: illegal_commanders,
                         });
                     }
                 }
@@ -154,14 +154,14 @@ export class DeckValidator {
             }
         }
 
-        errors.push(...this.deck.board(Board.companion).skip_empty().cards.flatMap(card => this.validate_deck_restrictions(card, format)));
-        errors.push(...conspiracies.skip_empty().cards.flatMap(card => this.validate_deck_restrictions(card, format)));
+        errors.push(...this.deck.board(Board.companion).skip_empty().flatMap(card => this.validate_deck_restrictions(card, format)));
+        errors.push(...conspiracies.skip_empty().flatMap(card => this.validate_deck_restrictions(card, format)));
 
         const color_identity = this.deck.color_identity();
 
         this.deck
             .board(...Board.STANDARD)
-            .each(card => {
+            .map(card => {
             if (color_identity) {
                 const additional_break = this.rulebreaks.find(rulebreak => rulebreak.breaks_color_identity(card));
                 if (additional_break) {
@@ -226,7 +226,7 @@ export class DeckValidator {
                     errors.push({
                         type: 'too-many-copies',
                         message: `You have only ${board.copy_limit} copy of each card in a ${board.name}`,
-                        cards: too_many.cards,
+                        cards: too_many,
                     });
                 }
             }
@@ -239,7 +239,7 @@ export class DeckValidator {
                     errors.push({
                         type: 'illegal-card',
                         message: `A ${board.name} can contain only ${board.card_types.join(' or ')} cards`,
-                        cards: wrong_type.cards,
+                        cards: wrong_type,
                     });
                 }
             }
@@ -251,7 +251,7 @@ export class DeckValidator {
             errors.push({
                 type: 'planar-deck-error',
                 message: `You can have up to 2 phenomenon cards in a planar deck`,
-                cards: phenomena.cards,
+                cards: phenomena,
             });
         }
 
@@ -291,7 +291,7 @@ export class DeckValidator {
                     ? [{
                         type: 'deck-restriction-error',
                         message: `Only ${description} are allowed in a deck with this companion`,
-                        cards: deck.cards,
+                        cards: deck,
                     }]
                     : [];
             }
@@ -304,7 +304,7 @@ export class DeckValidator {
                     ? [{
                         type: 'deck-restriction-error',
                         message: `Each card must has unique symbols in its mana cost with this companion`,
-                        cards: deck.cards,
+                        cards: deck,
                     }]
                     : [];
             }
@@ -353,7 +353,7 @@ export class DeckValidator {
                         ? [{
                             type: 'deck-restriction-error',
                             message: `${each_card} must be a ${joined_types} card with this companion`,
-                            cards: deck.cards,
+                            cards: deck,
                         }]
                         : [];
                 }
@@ -374,7 +374,7 @@ export class DeckValidator {
                         ? [{
                             type: 'deck-restriction-error',
                             message: `${each_card} must have mana value ${mv} or ${dir}`,
-                            cards: deck.cards,
+                            cards: deck,
                         }]
                         : [];
                 }
@@ -386,7 +386,7 @@ export class DeckValidator {
                         ? [{
                             type: 'deck-restriction-error',
                             message: `${each_card} must have a different name`,
-                            cards: deck.cards,
+                            cards: deck,
                         }]
                         : [];
                 }
@@ -408,7 +408,7 @@ export class DeckValidator {
                         ? [{
                             type: 'deck-restriction-error',
                             message: `${each_card} must share a card type`,
-                            cards: deck.cards,
+                            cards: deck,
                         }]
                         : [];
                 }
@@ -421,7 +421,7 @@ export class DeckValidator {
                         ? [{
                             type: 'deck-restriction-error',
                             message: `${each_card} must have an activated ability`,
-                            cards: deck.cards,
+                            cards: deck,
                         }]
                         : [];
                 }
@@ -438,7 +438,7 @@ export class DeckValidator {
                     ? [{
                         type: 'deck-restriction-error',
                         message: `You can't have any ${joined_types} in your deck`,
-                        cards: deck.cards,
+                        cards: deck,
                     }]
                     : [];
             }

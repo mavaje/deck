@@ -4,7 +4,6 @@ import {DeckCard} from "../deck-card";
 
 export class Set extends CardClassifier {
     static name: string = 'Set';
-    static ungrouped_name: string = 'Unknown';
 
     groups() {
         return this.group_by(

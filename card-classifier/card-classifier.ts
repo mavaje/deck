@@ -1,10 +1,10 @@
 import {DeckCard} from "../deck-card";
-import {Deck} from "../deck";
 import {is_nullish} from "../value";
 import {CardList} from "../card-list";
+import {Face} from "../face";
 
 export type Group = {
-    name: string;
+    name?: string;
     cards?: CardList;
     color?: string[];
 };
@@ -13,12 +13,14 @@ export abstract class CardClassifier {
     static STRING_COMPARATOR = new Intl.Collator('en', {numeric: true});
 
     static name: string = 'None';
-    static ungrouped_name: string = null;
+    static ungrouped_name: string = 'Unknown';
 
-    constructor(protected deck: Deck) {}
+    constructor(protected cards: CardList) {}
 
     groups(): Group[] {
-        return [];
+        return [{
+            cards: this.cards,
+        }];
     }
 
     protected group_by<T extends string | number>(
@@ -26,8 +28,8 @@ export abstract class CardClassifier {
         group: (value: T, card?: DeckCard) => Group = value => ({name: String(value)}),
         groups: Partial<Record<T, Group>> = {},
     ): Group[] {
-        this.deck
-            .each(card => {
+        this.cards
+            .map(card => {
                 let values = get(card);
                 if (!Array.isArray(values)) values = [values];
                 values.forEach(value => {
@@ -38,9 +40,11 @@ export abstract class CardClassifier {
                 });
             });
         return (Object.values(groups) as Group[])
-            .sort((g1: Group, g2: Group) => g1.cards?.cards.length > 0 && g2.cards?.cards.length > 0
-                ? this.compare(g1.cards.cards[0], g2.cards.cards[0])
-                : 0);
+            .sort((g1, g2) => {
+                const a = g1.cards?.[0];
+                const b = g2.cards?.[0];
+                return a && b ? this.compare(a, b) : 0;
+            });
     }
 
     compare(a: DeckCard, b: DeckCard): number {
@@ -74,9 +78,9 @@ export abstract class CardClassifier {
         return null_a - null_b;
     }
 
-    protected lands_first(a: DeckCard, b: DeckCard): number {
-        const land_a = a.is_type('Land') ? 1 : 0;
-        const land_b = b.is_type('Land') ? 1 : 0;
+    protected lands_first(a: Face, b: Face): number {
+        const land_a = a?.is_type('Land') ? 1 : 0;
+        const land_b = b?.is_type('Land') ? 1 : 0;
         return land_b - land_a;
     }
 }

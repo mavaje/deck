@@ -114,25 +114,38 @@ input[type=checkbox] {
 #deck .header {
     position: sticky;
     top: 0;
-    padding-left: 32px;
-    margin-bottom: 32px;
+    margin-bottom: 16px;
     z-index: 2;
     pointer-events: none;
     text-transform: capitalize;
     display: flex;
+    transition-property: padding;
+}
+
+#deck.show-quantity .header {
+    padding-left: 28px;
 }
 
 #deck .header .label {
     position: sticky;
-    left: 16px;
-    right: 16px;
-    margin-left: 24px;
-    margin-right: 16px;
-    box-shadow: 0 0 8px 0 black;
+    left: 12px;
+    right: 12px;
+    max-width: calc(25 * var(--card-scale) - 16px);
+    margin-inline: 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 1em;
+    transition-property: margin;
+}
+
+#deck:not(.compact) #deck .group:has(.card.landscape) > .header .label,
+#deck .group:has(.card.double) > .header .label {
+    max-width: calc(35 * var(--card-scale) - 16px);
+}
+
+.group:has(.card.landscape.double) > .header .label {
+    max-width: calc(49 * var(--card-scale) - 16px);
 }
 
 #deck .groups {
@@ -146,15 +159,19 @@ input[type=checkbox] {
 }
 
 #deck > .groups > .group {
-    padding-bottom: 64px;
+    padding-bottom: 12px;
 }
 
 #deck > .groups > .group:first-child {
-    padding-left: 16px;
+    padding-left: 12px;
 }
 
 #deck > .groups > .group:last-child {
-    padding-right: 32px;
+    padding-right: 12px;
+}
+
+.group:has(.card:hover) {
+    z-index: 2;
 }
 
 .card {
@@ -166,13 +183,19 @@ input[type=checkbox] {
     position: relative;
     width: var(--card-width);
     height: var(--card-height);
-    margin-inline: 16px;
+    margin-inline: 12px;
     margin-bottom: calc(var(--card-title-height) - var(--card-height));
     transform: perspective(1024px);
     transform-origin: 50% calc(8 * var(--card-scale));
     transform-style: preserve-3d;
     cursor: pointer;
-    transition-property: width, height, margin;
+    transition-property: width, height, margin, opacity;
+}
+
+#deck.show-quantity .card:not(.anchor) {
+    height: 0 !important;
+    margin-bottom: 0 !important;
+    opacity: 0;
 }
 
 #deck:not(.compact) .card.aftermath.invert,
@@ -184,8 +207,8 @@ input[type=checkbox] {
     margin-bottom: calc(var(--card-title-height) - var(--card-width));
 }
 
-#deck .group .card {
-    margin-left: 48px;
+#deck.show-quantity .group .card {
+    margin-left: 40px;
 }
 
 .card:last-of-type {
@@ -219,26 +242,18 @@ input[type=checkbox] {
     margin-top: calc(-1.5 * var(--card-scale));
 }
 
-.card.aftermath:not(.invert):has(.trigger:hover),
-#deck.compact .card.aftermath.invert:hover:not(:has(.trigger:hover)) {
-    margin-right: calc(16px + var(--card-height) - var(--card-width));
-}
-
-.card.landscape-front.invert:has(.trigger:hover),
-#deck.compact .card.landscape:not(.double):hover,
-#deck.compact .card.landscape-front:not(.double):not(.invert):not(:has(.trigger:hover)):hover {
-    margin-right: calc(16px + var(--card-width) - var(--card-height));
-}
-
 .card .backdrop {
     position: absolute;
     top: 0;
     height: var(--card-title-height);
-    left: -56px;
+    left: 0;
     right: 0;
     border-radius: 4px;
-    transition-property: background-color;
-    pointer-events: none;
+    transition-property: background-color, left;
+}
+
+#deck.show-quantity .card .backdrop {
+    left: -40px;
 }
 
 .card:hover .backdrop {
@@ -274,13 +289,18 @@ input[type=checkbox] {
 
 .card .count {
     margin-left: -40px;
-    padding: 12px 12px 0 0;
+    padding: 12px 8px 0 0;
     min-width: 32px;
     text-align: end;
+    transition-property: opacity;
 }
 
 .card.double .count {
     padding-top: 20px;
+}
+
+#deck:not(.show-quantity) .card .count {
+    opacity: 0;
 }
 
 .card-tilt {
@@ -308,7 +328,7 @@ input[type=checkbox] {
     border-radius: var(--card-radius);
     transform: var(--transform-initial);
     transform-style: preserve-3d;
-    transition-property: transform, box-shadow;
+    transition-property: transform, box-shadow, opacity;
     transition-duration: 0.3s;
     background-color: black;
     box-shadow: 0 0 4px 0 black;

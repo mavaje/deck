@@ -5,7 +5,6 @@ import {DeckCard} from "../deck-card";
 
 export class ColorIdentity extends CardClassifier {
     static name: string = 'Color Identity';
-    static ungrouped_name: string = 'Unknown';
 
     groups() {
         return this.group_by(

@@ -4,7 +4,6 @@ import {CARD_TYPES} from "./type";
 
 export class Subtype extends CardClassifier {
     static name: string = 'Subtype';
-    static ungrouped_name: string = 'Unknown';
 
     groups() {
         return CARD_TYPES.flatMap(type => {
@@ -14,15 +13,15 @@ export class Subtype extends CardClassifier {
                 ...catalog?.all()
                     .map(subtype => ({
                         name: `${type} - ${subtype}`,
-                        cards: this.deck.filter(card => card.is_card_type(type) && !card.is_all_types(type) && card.is_type(subtype)),
+                        cards: this.cards.filter(card => card.main_face().is_card_type(type) && !card.main_face().is_all_types(type) && card.main_face().is_type(subtype)),
                     })) ?? [],
                 {
                     name: `${type} - (All)`,
-                    cards: this.deck.filter(card => card.is_all_types(type)),
+                    cards: this.cards.filter(card => card.main_face().is_all_types(type)),
                 },
                 {
                     name: type,
-                    cards: this.deck.filter(card => card.is_card_type(type) && !(catalog?.all().some(subtype => card.is_type(subtype)))),
+                    cards: this.cards.filter(card => card.main_face().is_card_type(type) && !(catalog?.all().some(subtype => card.main_face().is_type(subtype)))),
                 }
             ];
         })

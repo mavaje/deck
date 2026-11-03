@@ -30,7 +30,7 @@ export class Type extends CardClassifier {
 
     groups() {
         return this.group_by(
-            card => card.card_types(),
+            card => card.main_face().card_types(),
             undefined,
             Object.fromEntries(CARD_TYPES.map(type => [type, {name: type}])),
         );

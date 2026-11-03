@@ -71,7 +71,7 @@ export const HTML = new Proxy(
                 if (children) {
                     element.innerText = '';
                     element.append(...children
-                        .filter(child => child !== undefined && child !== null)
+                        .filter(child => child || child === 0)
                         .map(child => child instanceof Node ? child : String(child)));
                 }
 

@@ -6,10 +6,13 @@ export class CardView {
 
     static render(
         card: DeckCard,
-        is_collapsed: boolean = false,
+        index_in_card: number,
+        last_in_stack: boolean = false,
     ): HTMLDivElement {
+        const is_last = index_in_card === card.quantity - 1;
         let show_back = true;
         const card_class: Set<string> = new Set(['card']);
+        if (is_last) card_class.add('anchor');
         const faces: HTMLDivElement[] = [];
 
         const add_face = (urls: string[], is_back: boolean = false): void => {
@@ -135,9 +138,9 @@ export class CardView {
                 class: [...card_class],
                 onpointermove: ({x, y}: MouseEvent) => {
                     const {top, left, width, height} = card_view.getBoundingClientRect();
-                    const effective_height = is_collapsed
-                        ? card_view.children[0].getBoundingClientRect().height
-                        : height;
+                    const effective_height = last_in_stack
+                        ? height
+                        : card_view.children[0].getBoundingClientRect().height;
                     const dx = x - (left + 24) - width / 2;
                     const dy = y - top - effective_height / 2;
                     const angle = Math.atan2(dy, dx);
@@ -161,7 +164,7 @@ export class CardView {
             HTML.div({class: 'trigger'}),
             HTML.div(
                 {class: 'card-shift'},
-                HTML.div({class: 'count'}, `${card.quantity}×`),
+                is_last && HTML.div({class: 'count'}, `${card.quantity}×`),
                 tilt = HTML.div(
                     {class: 'card-tilt'},
                     HTML.div({class: 'card-faces', style: faces_style}, faces),

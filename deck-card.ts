@@ -178,8 +178,12 @@ export class DeckCard extends Face {
         if (this.set && this.collector_number) {
             keys.push(`(${this.set}:${this.collector_number}:${this.language})`);
         } else if (this.name) {
-            this.all_names(true).forEach(name => {
-                keys.push(`${normalise(name)} (${this.set ?? ''}::${this.language})`);
+            [
+                this.name,
+                this.card?.name,
+                this.main_face(true).card?.name,
+            ].forEach(name => {
+                if (name) keys.push(`${normalise(name)} (${this.set ?? ''}::${this.language})`);
             });
         }
 
@@ -279,13 +283,34 @@ export class DeckCard extends Face {
     }
 
     main_face(display: boolean = false): Face {
-        return this.is_layout('split')
-            ? this
-            : this.faces()[display ? this.display_face_id : 0];
+        const face = display ? this.display_face_id : 0;
+        if (this.is_layout('split')) {
+            if (face === 0 || !this.has_keyword('Aftermath')) {
+                return this;
+            }
+        }
+        return this.faces()[face];
     }
 
     back_face(): Face {
         return this.faces()[1];
+    }
+
+    playable_faces(): Face[] {
+        switch (this.card?.layout) {
+            case 'split':
+                return this.has_keyword('Aftermath')
+                    ? [this.faces()[0]]
+                    : this.faces();
+
+            case 'modal_dfc':
+            case 'double_faced_token':
+            case 'adventure':
+                return this.faces();
+
+            default:
+                return [this];
+        }
     }
 
     image_urls(): string[] {
@@ -335,6 +360,10 @@ export class DeckCard extends Face {
     on_board(...boards: Board[]): boolean;
     on_board(...boards: Board[]): boolean {
         return boards.length === 0 || boards.includes(this.board);
+    }
+
+    card_name(printed: boolean = false): string {
+        return super.card_name(printed) ?? this.name;
     }
 
     all_names(printed: boolean = true): string[] {
