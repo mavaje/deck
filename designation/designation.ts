@@ -5,6 +5,8 @@ export type DesignationMap<T extends Designation = Designation> = T[] & Record<s
 export abstract class Designation {
     protected static INSTANCES: Record<string, DesignationMap> = {};
 
+    protected static allows_numeric_keys: boolean = false;
+
     private static card_names: string[] = [
         'conspiracy',
     ];
@@ -51,6 +53,8 @@ export abstract class Designation {
     }
 
     static match<T extends typeof Designation>(this: T, input: string, exclude_card_names: boolean = false): InstanceType<T> {
+        if (!this.allows_numeric_keys && !Number.isNaN(Number.parseInt(input))) return null;
+
         const instances = this.all();
 
         if (instances[input]) return instances[input];

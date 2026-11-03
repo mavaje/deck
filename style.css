@@ -175,6 +175,15 @@ input[type=checkbox] {
     transition-property: width, height, margin;
 }
 
+#deck:not(.compact) .card.aftermath.invert,
+.card.landscape-front.invert,
+#deck.compact .card.landscape:not(.double),
+#deck.compact .card.landscape-front:not(.double) {
+    width: var(--card-height);
+    height: var(--card-width);
+    margin-bottom: calc(var(--card-title-height) - var(--card-width));
+}
+
 #deck .group .card {
     margin-left: 48px;
 }
@@ -210,22 +219,14 @@ input[type=checkbox] {
     margin-top: calc(-1.5 * var(--card-scale));
 }
 
-#deck.compact .card.landscape:not(.double),
-#deck.compact .card.landscape-front:not(.double) {
-    width: var(--card-height);
-    height: var(--card-width);
-    margin-bottom: calc(var(--card-title-height) - var(--card-width));
-}
-
 .card.aftermath:not(.invert):has(.trigger:hover),
-.card.aftermath.invert:hover,
-#deck:not(.compact) .card.aftermath.invert {
+#deck.compact .card.aftermath.invert:hover:not(:has(.trigger:hover)) {
     margin-right: calc(16px + var(--card-height) - var(--card-width));
 }
 
+.card.landscape-front.invert:has(.trigger:hover),
 #deck.compact .card.landscape:not(.double):hover,
-#deck.compact .card.landscape-front:not(.double):not(.invert):not(:has(.trigger:hover)):hover,
-#deck.compact .card.landscape-front.invert:not(.double):has(.trigger:hover) {
+#deck.compact .card.landscape-front:not(.double):not(.invert):not(:has(.trigger:hover)):hover {
     margin-right: calc(16px + var(--card-width) - var(--card-height));
 }
 

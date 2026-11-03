@@ -2,6 +2,8 @@ import {Designation} from "./designation";
 
 export class Tag extends Designation {
 
+    protected static allows_numeric_keys: boolean = true;
+
     constructor(
         tag: string,
         codes?: string[],
