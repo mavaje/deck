@@ -16,6 +16,18 @@ export class Catalog {
     public static planeswalker_types = new Catalog('planeswalker-types');
     public static spell_types = new Catalog('spell-types');
 
+    public static subtypes: Record<string, Catalog> = {
+        'Land': Catalog.land_types,
+        'Artifact': Catalog.artifact_types,
+        'Enchantment': Catalog.enchantment_types,
+        'Creature': Catalog.creature_types,
+        'Kindred': Catalog.creature_types,
+        'Battle': Catalog.battle_types,
+        'Planeswalker': Catalog.planeswalker_types,
+        'Instant': Catalog.spell_types,
+        'Sorcery': Catalog.spell_types,
+    };
+
     public static keyword_abilities = new Catalog('keyword-abilities');
 
     private data: string[] = [];
@@ -50,5 +62,9 @@ export class Catalog {
 
     filter(callback: (type: string) => any): string[] {
         return this.data.filter(callback);
+    }
+
+    any(callback: (type: string) => any): boolean {
+        return this.data.some(callback);
     }
 }

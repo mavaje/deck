@@ -1,6 +1,6 @@
-import {CARD_TYPES} from "../card-types";
 import {Catalog} from "../scryfall/catalog";
 import {CardClassifier} from "./card-classifier";
+import {CARD_TYPES} from "./type";
 
 export class Subtype extends CardClassifier {
     static name: string = 'Subtype';
@@ -8,17 +8,7 @@ export class Subtype extends CardClassifier {
 
     groups() {
         return CARD_TYPES.flatMap(type => {
-            const catalog = {
-                'Land': Catalog.land_types,
-                'Artifact': Catalog.artifact_types,
-                'Enchantment': Catalog.enchantment_types,
-                'Creature': Catalog.creature_types,
-                'Kindred': Catalog.creature_types,
-                'Battle': Catalog.battle_types,
-                'Planeswalker': Catalog.planeswalker_types,
-                'Instant': Catalog.spell_types,
-                'Sorcery': Catalog.spell_types,
-            }[type];
+            const catalog = Catalog.subtypes[type];
 
             return [
                 ...catalog?.all()

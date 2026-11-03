@@ -108,13 +108,10 @@ export class Face<T extends Card | CardFace = Card | CardFace> {
 
         return types.every(type =>
             new RegExp(`\\b${type}\\b`, 'i').test(this.face.type_line)
-            || (this.is_all_types('Creature') && Catalog.creature_types.has(type))
-            || (this.is_all_types('Land') && Catalog.land_types.has(type))
+            || this.is_card_type(type)
+            || Catalog.card_types.any(type => Catalog.subtypes[type]?.has(type) && this.is_card_type(type))
             || {
                 Boar: /\bIgpay\b/i,
-                Creature: /\b(Summon|Eaturecray)\b/i,
-                Phenomenon: /\bPhenome-nom\b/i,
-                Planeswalker: /\bUniversewalker\b/i,
             }[type]?.test(this.face.type_line)
         );
     }
