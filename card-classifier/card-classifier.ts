@@ -3,11 +3,22 @@ import {is_nullish} from "../value";
 import {CardList} from "../card-list";
 import {Face} from "../face";
 
-export type Group = {
+export type BaseGroup = {
+    icon?: string;
     name?: string;
-    cards?: CardList;
     color?: string[];
 };
+
+export type CardGroup = BaseGroup & {
+    cards: CardList;
+};
+
+export type SuperGroup = BaseGroup & {
+    groups: Group[];
+    count: number;
+};
+
+export type Group = CardGroup | SuperGroup;
 
 export abstract class CardClassifier {
     static STRING_COMPARATOR = new Intl.Collator('en', {numeric: true});
@@ -25,8 +36,8 @@ export abstract class CardClassifier {
 
     protected group_by<T extends string | number>(
         get: (card: DeckCard) => T | T[],
-        group: (value: T, card?: DeckCard) => Group = value => ({name: String(value)}),
-        groups: Partial<Record<T, Group>> = {},
+        group: (value: T, card?: DeckCard) => BaseGroup = value => ({name: String(value)}),
+        groups: Partial<Record<T, Partial<CardGroup>>> = {},
     ): Group[] {
         this.cards
             .map(card => {
@@ -39,7 +50,7 @@ export abstract class CardClassifier {
                     groups[value].cards.push(card);
                 });
             });
-        return (Object.values(groups) as Group[])
+        return (Object.values(groups) as CardGroup[])
             .sort((g1, g2) => {
                 const a = g1.cards?.[0];
                 const b = g2.cards?.[0];

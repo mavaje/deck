@@ -1,18 +1,18 @@
-import {HTML} from "../html";
+import {HTML} from "./html";
 import {DeckCard} from "../deck-card";
-import {normalise_set} from "../text";
+import {CardEditView} from "./card-edit-view";
 
 export class CardView {
 
     static render(
         card: DeckCard,
-        index_in_card: number,
+        id: number | string,
+        last_in_card: boolean = false,
         last_in_stack: boolean = false,
     ): HTMLDivElement {
-        const is_last = index_in_card === card.quantity - 1;
         let show_back = true;
         const card_class: Set<string> = new Set(['card']);
-        if (is_last) card_class.add('anchor');
+        if (!last_in_card) card_class.add('collapsible');
         const faces: HTMLDivElement[] = [];
 
         const add_face = (urls: string[], is_back: boolean = false): void => {
@@ -107,7 +107,6 @@ export class CardView {
                 card_class.delete('landscape');
                 card_class.add('landscape-front');
                 if ([2, 3, 4].includes(card.display_face_id)) card_class.add('invert');
-                faces_style['transition-duration'] = '0.25s';
                 faces_style['transform-origin'] = 'calc(var(--card-width) / 2) 50%';
                 faces_style['--transform-initial'] = 'rotateZ(90deg)';
                 faces_style['--transform-final'] = 'rotateZ(0deg)';
@@ -134,7 +133,7 @@ export class CardView {
         let tilt: HTMLDivElement = null;
         return card_view = HTML.div(
             {
-                // id,
+                id,
                 class: [...card_class],
                 onpointermove: ({x, y}: MouseEvent) => {
                     const {top, left, width, height} = card_view.getBoundingClientRect();
@@ -153,18 +152,15 @@ export class CardView {
                     tilt.style.setProperty('--tilt-azimuth', `0`);
                 },
                 onclick: () => {
-                    console.log(`clicked ${this.name}`);
-                    console.log([
-                        normalise_set(card.card?.set ?? card.set, true) ?? '_',
-                        card.card?.collector_number ?? card.collector_number,
-                    ].join('-'));
+                    console.log(`clicked ${card.name}`);
+                    CardEditView.show(card);
                 },
             },
             HTML.div({class: 'backdrop'}),
             HTML.div({class: 'trigger'}),
             HTML.div(
                 {class: 'card-shift'},
-                is_last && HTML.div({class: 'count'}, `${card.quantity}×`),
+                last_in_card && HTML.div({class: 'count'}, `${card.quantity}×`),
                 tilt = HTML.div(
                     {class: 'card-tilt'},
                     HTML.div({class: 'card-faces', style: faces_style}, faces),

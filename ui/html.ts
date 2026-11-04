@@ -1,3 +1,4 @@
+import {is_nullish} from "../value";
 
 type Attributes = Record<string, any> & {
     class?: string | string[];
@@ -11,6 +12,8 @@ type HTMLConstructor<T extends keyof HTMLElementTagNameMap> =
     ((children?: Child[]) => HTMLElementTagNameMap[T]) &
     ((attributes: Attributes, children?: Child[]) => HTMLElementTagNameMap[T]) &
     ((attributes: Attributes, ...children: Child[]) => HTMLElementTagNameMap[T]);
+
+const EVENT_LISTENERS: WeakMap<HTMLElement, Record<string, any>> = new WeakMap();
 
 export const HTML = new Proxy(
     {},
@@ -38,6 +41,8 @@ export const HTML = new Proxy(
                 element ??= document.createElement(tag);
 
                 Object.entries(attributes).forEach(([key, value]) => {
+                    if (is_nullish(value)) return;
+
                     switch (key.replaceAll('_', '-')) {
                         case 'class':
                             if (Array.isArray(value)) value = value.join(' ');
@@ -49,7 +54,7 @@ export const HTML = new Proxy(
 
                         case 'style':
                             element.removeAttribute('style');
-                            if (value && typeof value === 'object') {
+                            if (typeof value === 'object') {
                                 Object.entries(value).map(([k, v]) => {
                                     if (v) element.style.setProperty(
                                         k.replaceAll('_', '-'),
@@ -61,7 +66,14 @@ export const HTML = new Proxy(
                             // fallthrough
                         default:
                             if (key.startsWith('on') && typeof value === 'function') {
-                                element.addEventListener(key.slice(2), value);
+                                const listeners = EVENT_LISTENERS.get(element) ?? {};
+                                const event = key.slice(2);
+                                if (listeners[event]) {
+                                    element.removeEventListener(event, listeners[event]);
+                                }
+                                element.addEventListener(event, value);
+                                listeners[event] = value;
+                                EVENT_LISTENERS.set(element, listeners);
                             } else {
                                 element.setAttribute(key, String(value));
                             }
@@ -69,10 +81,32 @@ export const HTML = new Proxy(
                 });
 
                 if (children) {
-                    element.innerText = '';
-                    element.append(...children
+                    const new_children: ChildNode[] = children
                         .filter(child => child || child === 0)
-                        .map(child => child instanceof Node ? child : String(child)));
+                        .map(child => child instanceof Node
+                            ? child as ChildNode
+                            : document.createTextNode(String(child)));
+
+                    const new_set = new Set(new_children);
+                    for (const old_child of [...element.childNodes]) {
+                        if (!new_set.has(old_child)) {
+                            old_child.remove();
+                        }
+                    }
+
+                    let last_child: ChildNode = null;
+                    for (const new_child of new_children) {
+                        if (last_child) {
+                            if (new_child !== last_child.nextSibling) {
+                                last_child.after(new_child);
+                            }
+                        } else {
+                            if (new_child !== element.childNodes[0]) {
+                                element.insertBefore(new_child, element.childNodes[0]);
+                            }
+                        }
+                        last_child = new_child;
+                    }
                 }
 
                 return element;

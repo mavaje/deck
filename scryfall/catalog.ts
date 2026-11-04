@@ -1,11 +1,10 @@
 import {API} from "./api";
-
-type CatalogStatus = 'empty' | 'pending' | 'loaded';
+import {OneTimeLoader} from "./one-time-loader";
 
 export class Catalog {
 
     private static INSTANCES: Catalog[] = [];
-    private static STATUS: CatalogStatus = 'empty';
+    private static LOADER = new OneTimeLoader();
 
     public static supertypes = new Catalog('supertypes');
     public static card_types = new Catalog('card-types');
@@ -32,7 +31,7 @@ export class Catalog {
 
     public static keyword_abilities = new Catalog('keyword-abilities');
 
-    private status: CatalogStatus = 'empty';
+    private loader = new OneTimeLoader();
 
     private data: string[] = [];
     private map: Set<string> = new Set();
@@ -44,21 +43,20 @@ export class Catalog {
     }
 
     private async load(): Promise<void> {
-        if (this.status !== 'empty') return;
-        this.status = 'pending';
-        this.data = (await API.catalog(this.type)).data;
-        this.data.forEach(type => {
-            this.map.add(type);
-            this.map.add(type.toLowerCase());
+        await this.loader.load(async () => {
+            const catalog = await API.catalog(this.type);
+            if (catalog) {
+                this.data = catalog.data;
+                this.data.forEach(type => {
+                    this.map.add(type);
+                    this.map.add(type.toLowerCase());
+                });
+            }
         });
-        this.status = 'loaded';
     }
 
     static async load(): Promise<void> {
-        if (this.STATUS !== 'empty') return;
-        this.STATUS = 'pending';
-        await Promise.all(this.INSTANCES.map(catalog => catalog.load()));
-        this.STATUS = 'loaded';
+        await this.LOADER.load(() => Promise.all(this.INSTANCES.map(catalog => catalog.load())));
     }
 
     has(type: string): boolean {

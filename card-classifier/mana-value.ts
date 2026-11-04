@@ -4,6 +4,7 @@ import {fraction} from "../text";
 
 export class ManaValue extends CardClassifier {
     static name: string = 'Mana Value';
+    static ungrouped_name: string = 'No Mana Cost';
 
     groups(): Group[] {
         return this.group_by(

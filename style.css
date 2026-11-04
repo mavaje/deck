@@ -23,10 +23,15 @@ body {
 
 #background,
 #background > *,
-#foreground {
+#foreground,
+#modals {
     position: absolute;
     width: 100%;
     height: 100%;
+}
+
+#modals {
+    pointer-events: none;
 }
 
 #card-image {
@@ -98,9 +103,26 @@ input[type=checkbox] {
 
 .label {
     padding: 4px 8px;
+    color: black;
+    border-radius: 4px;
+}
+
+.label.light {
+    background-color: white;
+    color: black;
+}
+
+.label.dark {
     background-color: black;
     color: white;
-    border-radius: 4px;
+}
+
+.icon {
+    height: 16px;
+}
+
+.label.dark .icon {
+    filter: invert(100%);
 }
 
 #deck {
@@ -115,10 +137,12 @@ input[type=checkbox] {
     position: sticky;
     top: 0;
     margin-bottom: 16px;
+    min-height: 24px;
     z-index: 2;
     pointer-events: none;
     text-transform: capitalize;
     display: flex;
+    align-items: center;
     transition-property: padding;
 }
 
@@ -137,6 +161,16 @@ input[type=checkbox] {
     align-items: center;
     gap: 1em;
     transition-property: margin;
+}
+
+#deck .header:before {
+    content: "";
+    position: absolute;
+    left: 40px;
+    background-color: #ffffff7f;
+    color: black;
+    height: 2px;
+    width: calc(100% - 52px);
 }
 
 #deck:not(.compact) #deck .group:has(.card.landscape) > .header .label,
@@ -159,19 +193,26 @@ input[type=checkbox] {
 }
 
 #deck > .groups > .group {
-    padding-bottom: 12px;
+    padding-bottom: 8px;
 }
 
 #deck > .groups > .group:first-child {
-    padding-left: 12px;
+    padding-left: 8px;
 }
 
 #deck > .groups > .group:last-child {
-    padding-right: 12px;
+    padding-right: 8px;
+}
+
+.group {
+    transition-property: z-index;
+    transition-timing-function: step-end;
+    z-index: 1;
 }
 
 .group:has(.card:hover) {
-    z-index: 2;
+    transition-timing-function: step-start;
+    z-index: 4;
 }
 
 .card {
@@ -183,7 +224,7 @@ input[type=checkbox] {
     position: relative;
     width: var(--card-width);
     height: var(--card-height);
-    margin-inline: 12px;
+    margin-inline: 8px;
     margin-bottom: calc(var(--card-title-height) - var(--card-height));
     transform: perspective(1024px);
     transform-origin: 50% calc(8 * var(--card-scale));
@@ -192,7 +233,7 @@ input[type=checkbox] {
     transition-property: width, height, margin, opacity;
 }
 
-#deck.show-quantity .card:not(.anchor) {
+#deck.show-quantity .card.collapsible {
     height: 0 !important;
     margin-bottom: 0 !important;
     opacity: 0;
@@ -289,7 +330,7 @@ input[type=checkbox] {
 
 .card .count {
     margin-left: -40px;
-    padding: 12px 8px 0 0;
+    padding: 8px 8px 0 0;
     min-width: 32px;
     text-align: end;
     transition-property: opacity;
@@ -371,7 +412,7 @@ input[type=checkbox] {
     --transform-compact: rotateZ(0deg);
 }
 
-.card.landscape-front.invert:not(.double) .card-faces {
+.card.landscape-front.transform.invert:not(.double) .card-faces {
     --transform-compact: rotateY(-180deg);
 }
 
@@ -451,6 +492,20 @@ input[type=checkbox] {
 
 .card.error .card-face {
     outline-color: #ff3f00;
+}
+
+.header,
+.card {
+    animation: fade-in 0.4s ease;
+}
+
+@keyframes fade-in {
+    from {
+        height: 0;
+        margin-top: 0;
+        margin-bottom: 0;
+        opacity: 0;
+    }
 }
 
 .card-face.foil:after {

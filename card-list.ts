@@ -30,6 +30,10 @@ export class CardList extends Array<DeckCard> {
         return this.reduce((count, card) => count + card.quantity, 0);
     }
 
+    copy(): CardList {
+        return new CardList(this);
+    }
+
     filter(predicate: (card: DeckCard, index: number, array: CardList) => any): CardList {
         return new CardList(super.filter(predicate));
     }

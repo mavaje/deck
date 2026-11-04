@@ -6,6 +6,9 @@
 1x The Prismatic Bridge (khm) 168 [Creature]
 1x Forest (plst) AKH-268 [Land]
 2x Island [Land] *FR*
+4x Indatha Triome
+Plains *IT*
+Mountain *DE*
 1x Lightning Bolt (a25) 141 [Instant]
 1x Turn // Burn [Instant]
 1x Nezumi Graverobber // Nighteyes the Desecrator (plst) CHK-129 [Creature]
@@ -23,6 +26,12 @@
 1x Grist, the Hunger Tide
 1x Grist, Voracious Larva
 1x Grist, the Plague Swarm
+1x Spider-Punk
+1x Bow of the Hunter
+1x The Champion
+1x Fallaji Wayfarer
+1x Stonework Packbeast
+1x Walk-In Closet // Forgotton Cellar
 
 # Side
 Burning Cinder Fury of Crimson Chaos Fire
@@ -32,7 +41,12 @@ Curse of the Fire Penguin
 Greater Morphling
 Infernal Spawn of Infernal Spawn of Evil
 Magical Hacker
-Who // What // When // Where // Why
+Who // What // When // Where // Why (UND:75)
+Who (UND:75)
+What (UND:75)
+When (UND:75)
+Where (UND:75)
+Why (UND:75)
 There // Their // They're
 Havengul Laboratory
 Havengul Mystery

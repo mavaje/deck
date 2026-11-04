@@ -38,7 +38,8 @@ export class Face<T extends Card | CardFace = Card | CardFace> {
     }
 
     off_battlefield_overrides(): Partial<Card> {
-        const match = this.oracle()?.match(/As long as ~ isn't on the battlefield, it's a ((?<power>\d+)\/(?<toughness>\d+) )?(?<type_line>\w+( \w+)*) in addition to its other types./i);
+        const match = this.oracle()?.match(/(^|\n)~ is also a (?<type_line>\w+(,? \w+)*)\./i)
+            ?? this.oracle()?.match(/(^|\n)As long as ~ isn't on the battlefield, it's a ((?<power>\d+)\/(?<toughness>\d+) )?(?<type_line>\w+( \w+)*) in addition to its other types\./i);
         return match?.groups ?? {};
     }
 
@@ -84,8 +85,9 @@ export class Face<T extends Card | CardFace = Card | CardFace> {
             : null;
     }
 
-    full_type_line() {
+    modified_type_line() {
         return (this.off_battlefield_overrides()?.type_line ?? '')
+                .replaceAll(/, (and )?/g, ' ')
             + ' ' + this.face?.type_line;
     }
 
@@ -96,12 +98,17 @@ export class Face<T extends Card | CardFace = Card | CardFace> {
     is_card_type(card_type: string): boolean {
         if (!this.card) return null;
 
-        return new RegExp(`^[a-z ]*\\b${card_type}\\b`, 'i').test(this.full_type_line())
+        return new RegExp(`^[a-z ]*\\b${card_type}\\b`, 'i').test(this.modified_type_line())
         || {
             creature: /\b(Summon|Eaturecray)\b/i,
             phenomenon: /\bPhenome-nom\b/i,
             planeswalker: /\bUniversewalker\b/i,
-        }[card_type.toLowerCase()]?.test(this.full_type_line());
+        }[card_type.toLowerCase()]?.test(this.modified_type_line());
+    }
+
+    is_any_card_type(...card_types: string[]): boolean {
+        if (!this.card) return null;
+        return card_types.some(type => this.is_card_type(type));
     }
 
     is_all_types(card_type: string): boolean {
@@ -111,19 +118,30 @@ export class Face<T extends Card | CardFace = Card | CardFace> {
         }[card_type.toLowerCase()]?.test(this.oracle()) ?? false);
     }
 
+    is_specified_type(type: string): boolean;
+    is_specified_type(...types: string[]): boolean;
+    is_specified_type(...types: string[]): boolean {
+        if (!this.card) return null;
+
+        return types.every(type =>
+            this.is_card_type(type)
+            || new RegExp(`\\b${type}\\b`, 'i').test(this.modified_type_line())
+            || {
+                boar: /\bIgpay\b/i,
+            }[type.toLowerCase()]?.test(this.modified_type_line())
+        );
+    }
+
     is_type(type: string): boolean;
     is_type(...types: string[]): boolean;
     is_type(...types: string[]): boolean {
         if (!this.card) return null;
 
-        return types.every(type =>
-            this.is_card_type(type)
-            || new RegExp(`\\b${type}\\b`, 'i').test(this.full_type_line())
-            || Catalog.card_types.any(card_type => this.is_all_types(card_type)
-                && Catalog.subtypes[card_type]?.has(type))
-            || {
-                boar: /\bIgpay\b/i,
-            }[type.toLowerCase()]?.test(this.full_type_line())
+        return this.is_specified_type(...types)
+            || types.every(type =>
+                Catalog.card_types.any(card_type => this.is_all_types(card_type)
+                    && Catalog.subtypes[card_type]?.has(type)
+            )
         );
     }
 
@@ -149,8 +167,45 @@ export class Face<T extends Card | CardFace = Card | CardFace> {
         ]);
     }
 
+    mana_value_from_cost(): number {
+        let mana_value = null;
+        if (this.face?.mana_cost) {
+            for (const match of this.face.mana_cost.matchAll(/\{(?<code>[^}]+)}/g)) {
+                const {code} = match.groups;
+                mana_value ??= 0;
+                mana_value += Number.isNaN(Number.parseFloat(code))
+                    ? {
+                        '½': 0.5,
+                        'HW': 0.5,
+                        'HU': 0.5,
+                        'HB': 0.5,
+                        'HR': 0.5,
+                        'HG': 0.5,
+                        '∞': Infinity,
+                    }[code] ?? 1
+                    : Number.parseFloat(code);
+            }
+        }
+        return mana_value;
+    }
+
     mana_value(): number {
-        return this.face?.cmc;
+        if (this.is_any_card_type(
+            "Boss",
+            "Conspiracy",
+            "Dungeon",
+            "Emblem",
+            "Event",
+            "Hero",
+            "Phenomenon",
+            "Plane",
+            "Scheme",
+            "Vanguard",
+        )) {
+            return null;
+        }
+
+        return this.face?.cmc ?? this.mana_value_from_cost();
     }
 
     power(): string {

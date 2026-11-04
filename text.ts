@@ -81,7 +81,12 @@ export function fraction(number: number): string {
     return `${number}`;
 }
 
-export function normalise(text: string, uppercase: boolean = false, strip: RegExp = /[^\w\s]/gi, separator: string = ' '): string {
+export function normalise(
+    text: string,
+    uppercase: boolean = false,
+    strip: RegExp = /[^\w\s]/gi,
+    separator: string = ' ',
+): string {
     if (!text) return text;
 
     return (uppercase
@@ -111,6 +116,53 @@ export function preserve_case(target: string, template: string) {
     } else {
         return target;
     }
+}
+
+export function levenshtein(
+    a: string,
+    b: string,
+): number {
+    if (!a) return b?.length ?? 0;
+    if (!b) return a.length;
+
+    if (a === b) return 0;
+
+    const distance: number[][] = [[]];
+    for (let y = 0; y <= b.length; y++) distance[0][y] = y;
+    for (let x = 1; x <= a.length; x++) {
+        distance[x] = [x];
+        for (let y = 1; y <= b.length; y++) {
+            distance[x][y] = Math.min(
+                distance[x - 1][y] + 1,
+                distance[x][y - 1] + 1,
+                distance[x - 1][y - 1] + (a[x - 1] !== b[y - 1] ? 1 : 0)
+            );
+        }
+    }
+
+    return distance[a.length][b.length];
+}
+
+export function trigram(
+    a: string,
+    b: string,
+): number {
+    const [
+        trigrams_a,
+        trigrams_b,
+    ] = [a, b].map(string => {
+        const set: Set<string> = new Set();
+        string = ` ${string} `;
+        for (let i = 0; i < string.length - 2; i++) {
+            set.add(string.slice(i, i + 3));
+        }
+        return set;
+    });
+
+    if (trigrams_a.size === 0 || trigrams_b.size === 0) return 0;
+
+    return trigrams_a.intersection(trigrams_b).size
+        / trigrams_a.union(trigrams_b).size;
 }
 
 export function format(message: string, values: object = {}) {

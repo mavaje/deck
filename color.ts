@@ -4,12 +4,12 @@ export const MTG_COLORS = {
     black: '#2e272e',
     white: '#fff7e0',
     blue: '#2886c8',
-    red: '#d32b22',
-    green: '#3b8f26',
-    gold: '#e6ae37',
+    red: '#d34222',
+    green: '#318f26',
+    gold: '#edb845',
     silver: '#aec3d3',
     purple: '#9c50b1',
-    orange: '#f86a07',
+    orange: '#f88007',
 };
 
 MTG_COLORS['W'] = MTG_COLORS.white;
@@ -18,7 +18,7 @@ MTG_COLORS['B'] = MTG_COLORS.black;
 MTG_COLORS['R'] = MTG_COLORS.red;
 MTG_COLORS['G'] = MTG_COLORS.green;
 
-export function contrast(...hexes: string[]): string {
+export function contrast(...hexes: string[]): boolean {
     const rgb = [0, 0, 0];
 
     hexes.forEach(hex => [1, 3, 5]
@@ -29,9 +29,7 @@ export function contrast(...hexes: string[]): string {
         }));
 
     const [r, g, b] = rgb;
-    return r * 0.299 + g * 0.587 + b * 0.114 > 0.5
-        ? '#000000'
-        : '#ffffff';
+    return r * 0.299 + g * 0.587 + b * 0.114 > 0.5;
 }
 
 export function gradient(identity: ColorSet): string[] {

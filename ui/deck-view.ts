@@ -1,4 +1,4 @@
-import {HTML} from "../html";
+import {HTML} from "./html";
 import {Board} from "../designation/board";
 import {Deck} from "../deck";
 import {contrast} from "../color";
@@ -24,53 +24,111 @@ export class DeckView {
         return HTML.div(
             {id: 'deck'},
             HTML.div(
-                {class: 'groups'},
+                {id: 'deck-groups', class: 'groups'},
                 show_boards
                     ? Board.all()
                         .map(board => this.render_board(deck.board(board), board))
-                    : [this.render_board(deck.filter(() => true))],
+                    : [this.render_board(deck.copy())],
             ),
         );
     }
 
-    private static render_board(cards: CardList, board?: Board): HTMLDivElement {
+    private static render_board(
+        cards: CardList,
+        board?: Board,
+    ): HTMLDivElement {
         const grouping = new (this.GROUPING as any)(cards) as CardClassifier;
         if (cards.length === 0) return null;
+        const id = `board-${board ?? 'all'}`;
         return HTML.div(
-            {class: 'group'},
-            board && HTML.div({class: 'header'}, HTML.span({class: 'label'}, HTML.span({style: {font_weight: 'bold'}}, board.name), ` (${cards.count()})`)),
+            {
+                id,
+                class: 'group',
+            },
+            board && HTML.div({
+                id: `${id}-header`,
+                class: 'header',
+            }, HTML.span({class: 'label'}, HTML.span({style: {font_weight: 'bold'}}, board.name), ` (${cards.count()})`)),
             HTML.div(
-                {class: 'groups'},
+                {
+                    id: `${id}-groups`,
+                    class: 'groups',
+                },
                 ...grouping.groups()
-                    .map(group => this.render_group(group)),
+                    .map((group, j) => this.render_group(group, `${id}-group-${j}`)),
                 this.render_group({
                     name: this.GROUPING.ungrouped_name,
                     cards: cards.filter(card => !this.rendered_cards.has(card)),
-                }),
+                }, `${id}-ungrouped`),
             ),
         );
     }
 
     static render_group(
         group: Group,
+        id: string | number = 0,
     ): HTMLDivElement {
-        if (!(group?.cards?.length > 0)) return null;
+        if (!group) return null;
+        let cards: CardList = null;
+        let groups: Group[] = null;
+        let count: number;
+        if ('cards' in group) {
+            cards = group.cards.copy();
+            count = cards.count();
+        } else {
+            groups = group.groups;
+            count = group.count;
+        }
+        if (!cards?.length && !groups?.length) return null;
         const ordering = new (this.ORDERING as any)() as CardClassifier;
         return HTML.div(
-            {class: ['group']},
-            group.name && HTML.div({class: 'header'}, HTML.div({class: 'label', style: group.color && {
-                    background: `linear-gradient(to right in oklab, ${group.color.join(',')})`,
-                    color: contrast(...group.color),
-                }}, HTML.div({style: {font_weight: 'bold'}}, group.name), ` (${group.cards.count()})`)),
-            ...group.cards
-                .sort((a, b) => ordering.compare(a, b))
+            {
+                id,
+                class: ['group'],
+            },
+            group.name && HTML.div(
+                {
+                    id: `${id}-header`,
+                    class: 'header',
+                },
+                HTML.div(
+                    {
+                        class: [
+                            'label',
+                            group.color && contrast(...group.color)
+                                ? 'light'
+                                : 'dark',
+                        ],
+                        style: group.color && {
+                            background: `linear-gradient(to right in oklab, ${group.color.join(',')})`,
+                        },
+                    },
+                    group.icon && HTML.img({class: 'icon', src: `public/icon/${group.icon}`}),
+                    HTML.div({style: {font_weight: 'bold'}}, group.name),
+                    ` (${count})`,
+                ),
+            ),
+            groups && HTML.div(
+                {
+                    id: `${id}-groups`,
+                    class: 'groups',
+                },
+                groups.map((group, i) => this.render_group(group, `${id}-${i}`)) ?? [],
+            ),
+            ...cards
+                ?.sort((a, b) => ordering.compare(a, b))
                 .flatMap((card, i, cards) => {
                     const last_deck_card = i === cards.length - 1;
                     const elements: HTMLDivElement[] = [];
 
                     for (let j = 0; j < card.quantity; j++) {
                         const last_of_card = j === card.quantity - 1;
-                        elements.push(CardView.render(card, j, last_deck_card && last_of_card));
+                        elements.push(CardView.render(
+                            card,
+                            `${id}-card-${i}-${j}`,
+                            last_of_card,
+                            last_deck_card && last_of_card,
+                        ));
                     }
 
                     const all_elements = this.rendered_cards.get(card) ?? [];
@@ -78,7 +136,7 @@ export class DeckView {
                     this.rendered_cards.set(card, all_elements);
 
                     return elements;
-                }),
+                }) ?? [],
         );
     }
 

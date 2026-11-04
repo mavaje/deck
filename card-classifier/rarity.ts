@@ -1,9 +1,9 @@
 import {Rarity as CardRarity} from "../scryfall/types";
 import {MTG_COLORS} from "../color";
-import {CardClassifier, Group} from "./card-classifier";
+import {BaseGroup, CardClassifier, Group} from "./card-classifier";
 import {DeckCard} from "../deck-card";
 
-const RARITIES: Record<CardRarity, Group> = {
+const RARITIES: Record<CardRarity, BaseGroup> = {
     common: {name: 'Common', color: ['#000000']},
     uncommon: {name: 'Uncommon', color: [MTG_COLORS.silver]},
     rare: {name: 'Rare', color: [MTG_COLORS.gold]},
@@ -18,8 +18,9 @@ export class Rarity extends CardClassifier {
     groups(): Group[] {
         return this.group_by(
             card => card.card?.rarity,
-            rarity => RARITIES[rarity],
-            RARITIES,
+            undefined,
+            Object.fromEntries(Object.entries(RARITIES)
+                .map(([key, group]) => [key, {...group}])),
         );
     }
 

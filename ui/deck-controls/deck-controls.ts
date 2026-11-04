@@ -1,4 +1,4 @@
-import {HTML} from "../../html";
+import {HTML} from "../html";
 import {DeckView} from "../deck-view";
 import {Type} from "../../card-classifier/type";
 import {Color} from "../../card-classifier/color";

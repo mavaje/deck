@@ -1,6 +1,6 @@
 import {Card, Identifier} from "./scryfall/types";
 import {API} from "./scryfall/api";
-import {normalise, normalise_set, preserve_case, words_to_number} from "./text";
+import {normalise, normalise_set, preserve_case, trigram, words_to_number} from "./text";
 import {Format} from "./format";
 import {Cache} from "./scryfall/cache";
 import {RuleBreak} from "./rule-break";
@@ -180,8 +180,7 @@ export class DeckCard extends Face {
         } else if (this.name) {
             [
                 this.name,
-                this.card?.name,
-                this.main_face(true).card?.name,
+                this.main_face(true).card_name(true),
             ].forEach(name => {
                 if (name) keys.push(`${normalise(name)} (${this.set ?? ''}::${this.language})`);
             });
@@ -253,6 +252,7 @@ export class DeckCard extends Face {
 
     hydrate(card = this.card): this {
         super.hydrate(card);
+
         if (card) {
             if (this.set !== normalise_set(card.set, true)) {
                 this.set = null;
@@ -262,13 +262,30 @@ export class DeckCard extends Face {
                 this.collector_number = null;
             }
 
-            if (card.card_faces?.[1]?.name === this.name
-                || card.card_faces?.[1]?.printed_name === this.name
-            ) {
-                this.display_face_id = 1;
+            if (this.name && card.card_faces) {
+                const normal_name = normalise(this.name);
+                let max_similarity = 0;
+                this.faces().some((face, id) => {
+                    const candidates = new Set([
+                        face.card_name(false),
+                        face.card_name(true),
+                    ]);
+                    if (id === 0) {
+                        candidates.add(this.card_name(false));
+                        candidates.add(this.all_names(true).join(' // '));
+                    }
+                    return [...candidates].some(name => {
+                        const similarity = trigram(normal_name, normalise(name));
+                        if (similarity > max_similarity) {
+                            max_similarity = similarity;
+                            this.display_face_id = id;
+                            return max_similarity === 1;
+                        }
+                    });
+                });
             }
 
-            this.name = card.name;
+            this.name = this.deck_list_name();
         }
 
         return this;
@@ -284,12 +301,9 @@ export class DeckCard extends Face {
 
     main_face(display: boolean = false): Face {
         const face = display ? this.display_face_id : 0;
-        if (this.is_layout('split')) {
-            if (face === 0 || !this.has_keyword('Aftermath')) {
-                return this;
-            }
-        }
-        return this.faces()[face];
+        return face === 0 && this.is_layout('split')
+            ? this
+            : this.faces()[face];
     }
 
     back_face(): Face {
