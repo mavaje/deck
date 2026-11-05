@@ -2,15 +2,17 @@ import {CardClassifier, Group} from "./card-classifier";
 import {DeckCard} from "../deck-card";
 import {fraction} from "../text";
 
-export class ManaValue extends CardClassifier {
+export class ManaValue extends CardClassifier<number> {
     static name: string = 'Mana Value';
     static ungrouped_name: string = 'No Mana Cost';
 
     groups(): Group[] {
         return this.group_by(
             card => card.main_face().is_type('Land') ? -1 : card.main_face().mana_value(),
-            mv => ({name: `${fraction(mv)}-drop`}),
-            {[-1]: {name: 'Land'}},
+            mv => ({
+                name: mv < 0 ? 'Land' : `${fraction(mv)}-drop`,
+                value: mv,
+            }),
         );
     }
 

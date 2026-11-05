@@ -9,6 +9,7 @@ export class CardView {
         id: number | string,
         last_in_card: boolean = false,
         last_in_stack: boolean = false,
+        face_id: number = card.display_face_id,
     ): HTMLDivElement {
         let show_back = true;
         const card_class: Set<string> = new Set(['card']);
@@ -37,7 +38,7 @@ export class CardView {
             case 'art_series':
                 show_back = false;
                 card_class.add('transform');
-                if (card.display_face_id === 1) card_class.add('invert');
+                if (face_id === 1) card_class.add('invert');
                 add_face(card.back_face().image_urls(), true);
                 break;
 
@@ -45,7 +46,7 @@ export class CardView {
                 if (card.has_keyword('Aftermath')) {
                     show_back = false;
                     card_class.add('aftermath');
-                    if (card.display_face_id === 1) card_class.add('invert');
+                    if (face_id === 1) card_class.add('invert');
                 } else {
                     card_class.add('landscape');
                 }
@@ -54,7 +55,7 @@ export class CardView {
             case 'flip':
                 show_back = false;
                 card_class.add('flip');
-                if (card.display_face_id === 1) card_class.add('invert');
+                if (face_id === 1) card_class.add('invert');
                 break;
 
             case 'meld':
@@ -106,7 +107,7 @@ export class CardView {
             case 'adfe1b07-dd82-4c39-a7a6-ded0b1c39761':
                 card_class.delete('landscape');
                 card_class.add('landscape-front');
-                if ([2, 3, 4].includes(card.display_face_id)) card_class.add('invert');
+                if ([2, 3, 4].includes(face_id)) card_class.add('invert');
                 faces_style['transform-origin'] = 'calc(var(--card-width) / 2) 50%';
                 faces_style['--transform-initial'] = 'rotateZ(90deg)';
                 faces_style['--transform-final'] = 'rotateZ(0deg)';

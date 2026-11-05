@@ -18,17 +18,29 @@ MTG_COLORS['B'] = MTG_COLORS.black;
 MTG_COLORS['R'] = MTG_COLORS.red;
 MTG_COLORS['G'] = MTG_COLORS.green;
 
-export function contrast(...hexes: string[]): boolean {
-    const rgb = [0, 0, 0];
-
-    hexes.forEach(hex => [1, 3, 5]
+export function hex2rgb(hex: string): number[] {
+    return [1, 3, 5]
         .map(i => hex.slice(i, i + 2))
-        .map(s => Number.parseInt(s, 16) / 255)
-        .forEach((v, i) => {
-            rgb[i] += v / hexes.length;
-        }));
+        .map(s => Number.parseInt(s, 16) / 255);
+}
 
-    const [r, g, b] = rgb;
+export function rgb2hex(rgb: number[]): string {
+    return rgb
+        .reduce((hex, c) => hex + Math.round(c * 255).toString(16), '#');
+}
+
+export function blend(...hexes: string[]): string {
+    if (hexes.length < 2) return hexes[0];
+
+    const rgb = hexes
+        .map(hex2rgb)
+        .reduce((blended, rgb) => blended.map((v, i) => v + rgb[i] / hexes.length), [0, 0, 0]);
+
+    return rgb2hex(rgb);
+}
+
+export function contrast(hex: string): boolean {
+    const [r, g, b] = hex2rgb(hex);
     return r * 0.299 + g * 0.587 + b * 0.114 > 0.5;
 }
 

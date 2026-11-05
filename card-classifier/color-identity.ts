@@ -2,18 +2,21 @@ import {ColorSet} from "../color-set";
 import {gradient} from "../color";
 import {CardClassifier} from "./card-classifier";
 import {DeckCard} from "../deck-card";
+import {Color} from "./color";
 
-export class ColorIdentity extends CardClassifier {
+export class ColorIdentity extends CardClassifier<number> {
     static name: string = 'Color Identity';
 
     groups() {
         return this.group_by(
             card => ColorSet.index(card.color_identity()),
             undefined,
-            Object.fromEntries(Object.entries(ColorSet.all()).map(([name, colors], index) => [index, {
+            Object.entries(ColorSet.all()).map(([name, colors], index) => ({
                 name,
+                value: index,
                 color: gradient(colors),
-            }])),
+                ...Color.COLOR_GROUPS[name] ?? {},
+            })),
         );
     }
 

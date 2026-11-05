@@ -1,7 +1,7 @@
 import {HTML} from "./html";
 import {Board} from "../designation/board";
 import {Deck} from "../deck";
-import {contrast} from "../color";
+import {blend, contrast} from "../color";
 import {CardView} from "./card-view";
 import {DeckCard} from "../deck-card";
 import {CardClassifier, Group} from "../card-classifier/card-classifier";
@@ -46,16 +46,19 @@ export class DeckView {
                 class: 'group',
             },
             board && HTML.div({
-                id: `${id}-header`,
-                class: 'header',
-            }, HTML.span({class: 'label'}, HTML.span({style: {font_weight: 'bold'}}, board.name), ` (${cards.count()})`)),
+                id: `${id}-label`,
+                class: ['label', 'dark'],
+            }, HTML.div(
+                HTML.span({style: {font_weight: 'bold'}}, board.name),
+                ` (${cards.count()})`,
+            )),
             HTML.div(
                 {
                     id: `${id}-groups`,
                     class: 'groups',
                 },
                 ...grouping.groups()
-                    .map((group, j) => this.render_group(group, `${id}-group-${j}`)),
+                    .map((group, j) => this.render_group(group, `${id}-group-${j}`, grouping)),
                 this.render_group({
                     name: this.GROUPING.ungrouped_name,
                     cards: cards.filter(card => !this.rendered_cards.has(card)),
@@ -67,6 +70,7 @@ export class DeckView {
     static render_group(
         group: Group,
         id: string | number = 0,
+        grouping?: CardClassifier,
     ): HTMLDivElement {
         if (!group) return null;
         let cards: CardList = null;
@@ -88,23 +92,24 @@ export class DeckView {
             },
             group.name && HTML.div(
                 {
-                    id: `${id}-header`,
-                    class: 'header',
+                    id: `${id}-label`,
+                    class: [
+                        'label',
+                        group.color && contrast(group.color.length > 1 ? blend(
+                            group.color[0],
+                            group.color[0],
+                            group.color[1],
+                        ) : group.color[0])
+                            ? 'light'
+                            : 'dark',
+                    ],
+                    style: {
+                        background: group.color && `linear-gradient(to right in ${group.color_space ?? 'oklch'}, ${group.color.join(',')})`,
+                    },
                 },
                 HTML.div(
-                    {
-                        class: [
-                            'label',
-                            group.color && contrast(...group.color)
-                                ? 'light'
-                                : 'dark',
-                        ],
-                        style: group.color && {
-                            background: `linear-gradient(to right in oklab, ${group.color.join(',')})`,
-                        },
-                    },
-                    group.icon && HTML.img({class: 'icon', src: `public/icon/${group.icon}`}),
-                    HTML.div({style: {font_weight: 'bold'}}, group.name),
+                    group.icon && HTML.img({class: 'icon', src: group.icon}),
+                    HTML.span({style: {font_weight: 'bold'}}, group.name),
                     ` (${count})`,
                 ),
             ),
@@ -113,7 +118,7 @@ export class DeckView {
                     id: `${id}-groups`,
                     class: 'groups',
                 },
-                groups.map((group, i) => this.render_group(group, `${id}-${i}`)) ?? [],
+                groups.map((group, i) => this.render_group(group, `${id}-${i}`, grouping)) ?? [],
             ),
             ...cards
                 ?.sort((a, b) => ordering.compare(a, b))
@@ -128,6 +133,7 @@ export class DeckView {
                             `${id}-card-${i}-${j}`,
                             last_of_card,
                             last_deck_card && last_of_card,
+                            grouping?.face_id(card, group.value),
                         ));
                     }
 

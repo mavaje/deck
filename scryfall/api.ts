@@ -1,4 +1,4 @@
-import {Card, Catalog, Error, Identifier, List, SFObject} from "./types";
+import {Card, Catalog, Error, Identifier, List, Set, SFObject} from "./types";
 import {Cache} from "./cache";
 import {normalise, normalise_set} from "../text";
 import {Language} from "../designation/language";
@@ -124,6 +124,14 @@ export class API {
         return this.url(`cards/autocomplete`, {q: name, ...parameters});
     }
 
+    public static set_url(code: string, parameters: object = {}): string {
+        return this.url(`sets/${code}`, parameters);
+    }
+
+    public static sets_url(parameters: object = {}): string {
+        return this.url(`sets`, parameters);
+    }
+
     public static catalog_url(type: string, parameters: object = {}): string {
         return this.url(`catalog/${type}`, parameters);
     }
@@ -192,6 +200,14 @@ export class API {
         query: string,
     ): Promise<Card> {
         return this.card_search(query).then(list => list?.data[0]);
+    }
+
+    public static set(code: string): Promise<Set> {
+        return this.get<Set>(this.set_url(code));
+    }
+
+    public static sets(): Promise<List<Set>> {
+        return this.get<List<Set>>(this.sets_url());
     }
 
     public static next_page<T extends List>(page: T): Promise<T> {

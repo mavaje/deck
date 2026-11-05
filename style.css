@@ -105,6 +105,16 @@ input[type=checkbox] {
     padding: 4px 8px;
     color: black;
     border-radius: 4px;
+    display: flex;
+    justify-content: start;
+    align-items: center;
+    gap: 8px;
+    min-height: 24px;
+    text-transform: capitalize;
+}
+
+.label:has(.icon) {
+    padding-inline-start: 4px;
 }
 
 .label.light {
@@ -117,8 +127,20 @@ input[type=checkbox] {
     color: white;
 }
 
+.label div {
+    position: sticky;
+    left: 8px;
+    right: 8px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+}
+
 .icon {
-    height: 16px;
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
 }
 
 .label.dark .icon {
@@ -133,53 +155,18 @@ input[type=checkbox] {
     padding-top: 64px;
 }
 
-#deck .header {
+#deck .label {
     position: sticky;
     top: 0;
     margin-bottom: 16px;
-    min-height: 24px;
-    z-index: 2;
+    margin-inline: 8px;
     pointer-events: none;
-    text-transform: capitalize;
-    display: flex;
-    align-items: center;
-    transition-property: padding;
-}
-
-#deck.show-quantity .header {
-    padding-left: 28px;
-}
-
-#deck .header .label {
-    position: sticky;
-    left: 12px;
-    right: 12px;
-    max-width: calc(25 * var(--card-scale) - 16px);
-    margin-inline: 12px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1em;
     transition-property: margin;
+    z-index: 5;
 }
 
-#deck .header:before {
-    content: "";
-    position: absolute;
-    left: 40px;
-    background-color: #ffffff7f;
-    color: black;
-    height: 2px;
-    width: calc(100% - 52px);
-}
-
-#deck:not(.compact) #deck .group:has(.card.landscape) > .header .label,
-#deck .group:has(.card.double) > .header .label {
-    max-width: calc(35 * var(--card-scale) - 16px);
-}
-
-.group:has(.card.landscape.double) > .header .label {
-    max-width: calc(49 * var(--card-scale) - 16px);
+#deck.show-quantity .label {
+    margin-left: 40px;
 }
 
 #deck .groups {
@@ -204,13 +191,13 @@ input[type=checkbox] {
     padding-right: 8px;
 }
 
-.group {
+#deck .group {
     transition-property: z-index;
     transition-timing-function: step-end;
     z-index: 1;
 }
 
-.group:has(.card:hover) {
+#deck .group:has(.card:hover) {
     transition-timing-function: step-start;
     z-index: 4;
 }
@@ -494,7 +481,7 @@ input[type=checkbox] {
     outline-color: #ff3f00;
 }
 
-.header,
+.label,
 .card {
     animation: fade-in 0.4s ease;
 }

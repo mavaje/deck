@@ -13,21 +13,23 @@ import {RankEDHREC, RankPenny} from "../../card-classifier/rank";
 import {CardClassifier} from "../../card-classifier/card-classifier";
 import {Subtype} from "../../card-classifier/subtype";
 import {Keyword} from "../../card-classifier/keyword";
+import {Artist} from "../../card-classifier/artist";
 
-const CARD_GROUPINGS: (typeof CardClassifier)[] = [
+const CARD_GROUPINGS: (typeof CardClassifier<string | number>)[] = [
     CardClassifier,
+    Set,
+    Rarity,
     Type,
     Subtype,
     Color,
     ColorIdentity,
     ManaValue,
-    Set,
-    Rarity,
+    Artist,
     Keyword,
     Tag,
 ];
 
-const CARD_ORDERINGS: (typeof CardClassifier)[] = [
+const CARD_ORDERINGS: (typeof CardClassifier<string | number>)[] = [
     CardClassifier,
     Name,
     Set,

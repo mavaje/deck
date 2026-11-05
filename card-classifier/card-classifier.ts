@@ -3,24 +3,26 @@ import {is_nullish} from "../value";
 import {CardList} from "../card-list";
 import {Face} from "../face";
 
-export type BaseGroup = {
-    icon?: string;
+export type BaseGroup<T = string | number> = {
     name?: string;
+    value?: T;
+    icon?: string;
     color?: string[];
+    color_space?: 'oklab' | 'oklch';
 };
 
-export type CardGroup = BaseGroup & {
+export type CardGroup<T = string | number> = BaseGroup<T> & {
     cards: CardList;
 };
 
-export type SuperGroup = BaseGroup & {
-    groups: Group[];
+export type SuperGroup<T = string | number> = BaseGroup<T> & {
+    groups: Group<T>[];
     count: number;
 };
 
-export type Group = CardGroup | SuperGroup;
+export type Group<T = string | number> = CardGroup<T> | SuperGroup<T>;
 
-export abstract class CardClassifier {
+export abstract class CardClassifier<T extends string | number = string | number> {
     static STRING_COMPARATOR = new Intl.Collator('en', {numeric: true});
 
     static name: string = 'None';
@@ -34,16 +36,27 @@ export abstract class CardClassifier {
         }];
     }
 
-    protected group_by<T extends string | number>(
+    match_face(face: Face, value: T): boolean {
+        return true;
+    }
+
+    face_id(card: DeckCard, value: T): number {
+        return this.match_face(card.main_face(true), value)
+            ? card.display_face_id
+            : card.faces()?.findIndex(face => this.match_face(face, value));
+
+    }
+
+    protected group_by(
         get: (card: DeckCard) => T | T[],
-        group: (value: T, card?: DeckCard) => BaseGroup = value => ({name: String(value)}),
+        group: (value: T, card?: DeckCard) => BaseGroup<T> = value => ({name: String(value), value}),
         groups: Partial<Record<T, Partial<CardGroup>>> = {},
     ): Group[] {
         this.cards
             .map(card => {
                 let values = get(card);
                 if (!Array.isArray(values)) values = [values];
-                values.forEach(value => {
+                [...new Set(values)].forEach(value => {
                     if (is_nullish(value)) return;
                     groups[value] ??= group(value, card);
                     groups[value].cards ??= new CardList();

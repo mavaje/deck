@@ -12,7 +12,7 @@ const RARITIES: Record<CardRarity, BaseGroup> = {
     bonus: {name: 'Bonus', color: [MTG_COLORS.orange]},
 };
 
-export class Rarity extends CardClassifier {
+export class Rarity extends CardClassifier<string> {
     static name: string = 'Rarity';
 
     groups(): Group[] {
@@ -20,7 +20,7 @@ export class Rarity extends CardClassifier {
             card => card.card?.rarity,
             undefined,
             Object.fromEntries(Object.entries(RARITIES)
-                .map(([key, group]) => [key, {...group}])),
+                .map(([key, group]) => [key, {value: key, ...group}])),
         );
     }
 
