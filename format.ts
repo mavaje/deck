@@ -54,4 +54,11 @@ export class Format {
             || this.has_brawler
             || this.has_oathbreaker;
     }
+
+    static all(): Record<string, Format> {
+        return Object.fromEntries(
+            Object.entries(this)
+                .filter(([_, value]) => value instanceof this)
+        );
+    }
 }

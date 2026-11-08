@@ -2,11 +2,12 @@ import {ColorSet} from "../color-set";
 import {gradient} from "../color";
 import {BaseGroup, CardClassifier, Group} from "./card-classifier";
 import {DeckCard} from "../deck-card";
+import {Type} from "./type";
 
 export class Color extends CardClassifier<number> {
     static name: string = 'Color';
 
-    static COLOR_GROUPS: Record<string, BaseGroup> = {
+    static COLOR_GROUPS: Record<string, BaseGroup<never>> = {
         'colorless': {icon: 'public/icon/colorless.svg'},
         'white': {icon: 'public/icon/white.svg'},
         'blue': {icon: 'public/icon/blue.svg'},
@@ -14,16 +15,16 @@ export class Color extends CardClassifier<number> {
         'red': {icon: 'public/icon/red.svg'},
         'green': {icon: 'public/icon/green.svg'},
 
-        'azorius': {color_space: 'oklab'},
-        'dimir': {},
-        'rakdos': {},
-        'gruul': {},
-        'selesnya': {},
-        'orzhov': {},
-        'izzet': {},
-        'golgari': {},
-        'boros': {},
-        'simic': {color_space: 'oklab'},
+        'azorius': {icon: 'public/icon/azorius.webp'},
+        'dimir': {icon: 'public/icon/dimir.webp'},
+        'rakdos': {icon: 'public/icon/rakdos.webp'},
+        'gruul': {icon: 'public/icon/gruul.webp'},
+        'selesnya': {icon: 'public/icon/selesnya.webp'},
+        'orzhov': {icon: 'public/icon/orzhov.webp'},
+        'izzet': {icon: 'public/icon/izzet.webp'},
+        'golgari': {icon: 'public/icon/golgari.webp'},
+        'boros': {icon: 'public/icon/boros.webp'},
+        'simic': {icon: 'public/icon/simic.webp'},
 
         'abzan': {icon: 'public/icon/abzan.webp'},
         'jeskai': {icon: 'public/icon/jeskai.webp'},
@@ -32,14 +33,20 @@ export class Color extends CardClassifier<number> {
         'temur': {icon: 'public/icon/temur.webp'},
     };
 
+    split_by_face: boolean = true;
+
     groups() {
-        return this.group_by(
-            card => card.main_face().is_type('Land')
+        return this.group_by_face(
+            face => face.is_type('Land')
                 ? 0
-                : ColorSet.index(card.main_face().colors()) + 1,
+                : ColorSet.index(face.colors()) + 1,
             undefined,
             [
-                {name: 'Land', value: 0},
+                {
+                    name: 'Land',
+                    value: 0,
+                    ...Type.TYPE_GROUPS['Land'],
+                },
                 ...Object.entries(ColorSet.all()).map(([name, colors], index) => ({
                     name,
                     value: index + 1,
@@ -51,7 +58,7 @@ export class Color extends CardClassifier<number> {
     }
 
     compare(a: DeckCard, b: DeckCard): number {
-        return this.lands_first(a.main_face(), b.main_face())
-            || this.compare_number(a, b, card => ColorSet.index(card.main_face().colors()));
+        return this.lands_first(a, b)
+            || this.compare_number(a, b, face => ColorSet.index(face.colors()));
     }
 }

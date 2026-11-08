@@ -14,7 +14,7 @@ export class Board extends Designation {
     static contraptions = new Board('Contraption Deck', ['contraption', 'contraptions'], [15], 1, ['Contraption']);
     static planar = new Board('Planar Deck', ['planar', 'planes'], [10], 1, ['Plane', 'Phenomenon']);
     static schemes = new Board('Scheme Deck', ['scheme', 'schemes', 'archenemy'], [20], 2, ['Scheme']);
-    static tokens = new Board('Tokens', ['tokens', 'emblems', 'dungeons'], [20], 2, ['Token', 'Emblem', 'Dungeon']);
+    static tokens = new Board('Tokens', ['tokens', 'emblems', 'dungeons'], [20], 2, ['Token', 'Emblem', 'Dungeon', 'Card']);
     static maybeboard = new Board('Maybeboard', ['mb', 'maybe board', 'maybe']);
     static acquireboard = new Board('Acquireboard', ['ab', 'acquire', 'acquire board']);
 

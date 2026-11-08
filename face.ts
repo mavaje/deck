@@ -1,10 +1,12 @@
-import {Card, CardFace, Color, Legality} from "./scryfall/types";
+import {Card, CardFace, Color, COLORS, Legality} from "./scryfall/types";
 import {Language} from "./designation/language";
 import {Catalog} from "./scryfall/catalog";
 import {Format} from "./format";
 import {ColorSet} from "./color-set";
 
 export class Face<T extends Card | CardFace = Card | CardFace> {
+
+    static DEFAULT_CARD_BACK_ID = '0aeebaf5-8c7d-4636-9e82-8c27447861f7';
 
     constructor(
         public card: Card,
@@ -69,8 +71,10 @@ export class Face<T extends Card | CardFace = Card | CardFace> {
     }
 
     colors(): ColorSet {
-        const colors = this.face?.colors ?? this.card?.colors;
-        return colors ? new ColorSet(colors) : null;
+        const colors = this.face?.colors;
+        return colors
+            ? new ColorSet(colors)
+            : this.infer_colors();
     }
 
     color_identity(): ColorSet {
@@ -83,6 +87,18 @@ export class Face<T extends Card | CardFace = Card | CardFace> {
         return this.card
             ? new ColorSet(this.card.produced_mana as Color[])
             : null;
+    }
+
+    infer_colors(): ColorSet {
+        const colors = new ColorSet();
+        if (this.face?.mana_cost) {
+            COLORS.forEach(color => {
+                if (this.face.mana_cost.includes(color)) {
+                    colors.add(color);
+                }
+            });
+        }
+        return colors;
     }
 
     modified_type_line() {
@@ -167,7 +183,7 @@ export class Face<T extends Card | CardFace = Card | CardFace> {
         ]);
     }
 
-    mana_value_from_cost(): number {
+    infer_mana_cost(): number {
         let mana_value = null;
         if (this.face?.mana_cost) {
             for (const match of this.face.mana_cost.matchAll(/\{(?<code>[^}]+)}/g)) {
@@ -190,22 +206,32 @@ export class Face<T extends Card | CardFace = Card | CardFace> {
     }
 
     mana_value(): number {
-        if (this.is_any_card_type(
-            "Boss",
-            "Conspiracy",
-            "Dungeon",
-            "Emblem",
-            "Event",
-            "Hero",
-            "Phenomenon",
-            "Plane",
-            "Scheme",
-            "Vanguard",
-        )) {
-            return null;
-        }
+        const mv = this.face?.cmc ?? this.infer_mana_cost();
 
-        return this.face?.cmc ?? this.mana_value_from_cost();
+        if (mv !== 0) return mv;
+
+        if (this.is_any_card_type(
+            'Boss',
+            'Conspiracy',
+            'Dungeon',
+            'Emblem',
+            'Event',
+            'Hero',
+            'Phenomenon',
+            'Plane',
+            'Scheme',
+            'Stickers',
+            'Token',
+            'Vanguard',
+            'Card',
+        ) || this.is_any_type([
+            ['Artifact', 'Attraction'],
+            ['Artifact', 'Contraption'],
+        ])) {
+            return null;
+        } else {
+            return mv;
+        }
     }
 
     power(): string {
@@ -309,9 +335,27 @@ export class Face<T extends Card | CardFace = Card | CardFace> {
         return [];
     }
 
+    back_id(): string {
+        return this.card?.card_back_id;
+    }
+
+    has_alternative_back(): boolean {
+        return this.back_id() !== Face.DEFAULT_CARD_BACK_ID;
+    }
+
+    back_image_url(): string {
+        const id = this.back_id();
+        if (!id) return null;
+        return `https://backs.scryfall.io/large/${id[0]}/${id[1]}/${id}.jpg`;
+    }
+
     card_name(printed: boolean = false): string {
         return printed && this.is_default_language()
             ? this.face?.printed_name ?? this.face?.name
             : this.face?.name;
+    }
+
+    artist(): string {
+        return this.face?.artist ?? this.card?.artist;
     }
 }

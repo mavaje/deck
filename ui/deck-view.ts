@@ -1,4 +1,4 @@
-import {HTML} from "./html";
+import {HTML} from "./xml";
 import {Board} from "../designation/board";
 import {Deck} from "../deck";
 import {blend, contrast} from "../color";
@@ -6,12 +6,14 @@ import {CardView} from "./card-view";
 import {DeckCard} from "../deck-card";
 import {CardClassifier, Group} from "../card-classifier/card-classifier";
 import {CardList} from "../card-list";
+import {FaceSelector} from "../card-classifier/face-selector";
 
 export class DeckView {
 
     static BY_BOARD: boolean = true;
     static GROUPING: typeof CardClassifier = CardClassifier;
     static ORDERING: typeof CardClassifier = CardClassifier;
+    static FACE_SELECTOR: FaceSelector = FaceSelector.front;
 
     static rendered_cards: WeakMap<DeckCard, HTMLDivElement[]> = new WeakMap();
 
@@ -96,15 +98,14 @@ export class DeckView {
                     class: [
                         'label',
                         group.color && contrast(group.color.length > 1 ? blend(
-                            group.color[0],
-                            group.color[0],
-                            group.color[1],
+                            ...group.color
+                                .flatMap((c, i, g) => Array(g.length - i).fill(c)),
                         ) : group.color[0])
                             ? 'light'
                             : 'dark',
                     ],
                     style: {
-                        background: group.color && `linear-gradient(to right in ${group.color_space ?? 'oklch'}, ${group.color.join(',')})`,
+                        background: group.color && `linear-gradient(to right in oklab, ${group.color.join(',')})`,
                     },
                 },
                 HTML.div(

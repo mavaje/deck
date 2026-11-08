@@ -1,4 +1,4 @@
-import {HTML} from "../html";
+import {HTML} from "../xml";
 import {Deck} from "../../deck";
 import {DeckCard} from "../../deck-card";
 

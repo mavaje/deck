@@ -1,7 +1,8 @@
 import {Card, Catalog, Error, Identifier, List, Set, SFObject} from "./types";
 import {Cache} from "./cache";
-import {normalise, normalise_set} from "../text";
+import {normalise} from "../text";
 import {Language} from "../designation/language";
+import {SetCache} from "./set-cache";
 
 export class API {
     private static BASE_URL = 'https://api.scryfall.com';
@@ -9,6 +10,12 @@ export class API {
     private static TOO_MANY_REQUESTS: boolean = false;
 
     public static CACHE = new Cache<SFObject>();
+    
+    public static SETS = new SetCache();
+
+    static {
+        setTimeout(() => this.SETS.load().then(() => this.SETS.dump()));
+    }
 
     private static url(path: string, parameters: object = {}): string {
         let url = `${this.BASE_URL}/${path}`;
@@ -90,7 +97,6 @@ export class API {
         language?: string,
         parameters: object = {},
     ): string {
-        set = normalise_set(set);
         return this.url(language !== Language.DEFAULT.code()
             ? `cards/${set}/${collector_number}/${language}`
             : `cards/${set}/${collector_number}`, parameters);
@@ -103,7 +109,6 @@ export class API {
         parameters: object = {},
     ): string {
         name = normalise(name);
-        set = normalise_set(set);
         return this.url(`cards/named`, {
             [exact ? 'exact' : 'fuzzy']: name,
             set,

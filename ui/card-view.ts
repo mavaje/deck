@@ -1,6 +1,7 @@
-import {HTML} from "./html";
+import {HTML, SVG} from "./xml";
 import {DeckCard} from "../deck-card";
 import {CardEditView} from "./card-edit-view";
+import {html_encode} from "../text";
 
 export class CardView {
 
@@ -11,24 +12,9 @@ export class CardView {
         last_in_stack: boolean = false,
         face_id: number = card.display_face_id,
     ): HTMLDivElement {
-        let show_back = true;
         const card_class: Set<string> = new Set(['card']);
         if (!last_in_card) card_class.add('collapsible');
         const faces: HTMLDivElement[] = [];
-
-        const add_face = (urls: string[], is_back: boolean = false): void => {
-            urls.push('/public/skeleton-card.svg');
-            faces.push(HTML.div({
-                class: is_back ? ['card-face', 'back'] : 'card-face',
-                style: {
-                    background_image: urls
-                        .map(url => `url(${url})`)
-                        .join(', '),
-                },
-            }));
-        };
-
-        add_face(card.main_face().image_urls());
 
         switch (card.layout()) {
             case 'transform':
@@ -36,15 +22,12 @@ export class CardView {
             case 'double_faced_token':
             case 'reversible_card':
             case 'art_series':
-                show_back = false;
                 card_class.add('transform');
                 if (face_id === 1) card_class.add('invert');
-                add_face(card.back_face().image_urls(), true);
                 break;
 
             case 'split':
                 if (card.has_keyword('Aftermath')) {
-                    show_back = false;
                     card_class.add('aftermath');
                     if (face_id === 1) card_class.add('invert');
                 } else {
@@ -53,7 +36,6 @@ export class CardView {
                 break;
 
             case 'flip':
-                show_back = false;
                 card_class.add('flip');
                 if (face_id === 1) card_class.add('invert');
                 break;
@@ -94,8 +76,8 @@ export class CardView {
         switch (card.card?.oracle_id) {
             // Topsy Turvy
             case '4516f30c-fb21-4371-818f-7dd211612a72':
-                show_back = false;
                 card_class.add('flip');
+                card_class.add('invert');
                 break;
 
             // Burning Cinder Fury of Crimson Chaos Fire
@@ -118,17 +100,62 @@ export class CardView {
             card_class.add('double');
         }
 
-        if (!card.finish.is_default()) {
-            faces.forEach(face => {
-                face.classList.add('foil');
-            })
-        }
+        [0, 1].forEach(face_id => {
+            if (face_id > 0 && !(card.is_double_faced() || card.has_alternative_back())) {
+                return;
+            }
 
-        if (show_back && card.has_alternative_back()) {
-            const id = card.back_id();
-            card_class.add('transform');
-            add_face([`https://backs.scryfall.io/large/${id[0]}/${id[1]}/${id}.jpg`], true);
-        }
+            const face = card.faces()[face_id];
+            const urls: string[] = [];
+            if (face_id === 0 || card.is_double_faced()) {
+                urls.push(...face.image_urls());
+
+                const face_name = card.is_double_faced()
+                    && face.card_name(true)
+                    || card.card_name(true);
+
+                urls.push(`data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 25 35"><text x="2" y="2.5" font-size="1.5" font-family="monospace" fill="white">${html_encode(face_name)}</text></svg>`)
+                    .replaceAll(/[()]/g, s => `%${s.charCodeAt(0).toString(16)}`)}`);
+
+                // console.log(SVG.svg(
+                //     {
+                //         xmlns: 'http://www.w3.org/2000/svg',
+                //         viewBox: '0 0 25 35',
+                //     },
+                //     SVG.text({
+                //         x: 2,
+                //         y: 2.5,
+                //         font_size: 1.5,
+                //         font_family: 'monospace',
+                //         fill: 'white',
+                //     }, html_encode(face_name))
+                // ).outerHTML);
+
+                urls.push('/public/skeleton-card.svg');
+            } else if (card.has_alternative_back()) {
+                const back_url = card.back_image_url();
+                if (back_url) {
+                    card_class.add('transform');
+                    urls.push(card.back_image_url());
+                    urls.push('/public/skeleton-card-back.svg');
+                }
+            }
+
+            faces.push(HTML.div(
+                {
+                    class: [
+                        'card-face',
+                        ['front', 'back'][face_id],
+                        !card.finish.is_default() && 'foil',
+                    ],
+                    style: {
+                        background_image: urls
+                            .map(url => `url(${url})`)
+                            .join(', '),
+                    },
+                },
+            ));
+        });
 
         let card_view: HTMLDivElement = null;
         let tilt: HTMLDivElement = null;

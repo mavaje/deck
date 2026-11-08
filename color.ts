@@ -1,12 +1,12 @@
 import {ColorSet} from "./color-set";
 
 export const MTG_COLORS = {
-    black: '#2e272e',
-    white: '#fff7e0',
+    black: '#231825',
+    white: '#f8e7b9',
     blue: '#2886c8',
     red: '#d34222',
     green: '#318f26',
-    gold: '#edb845',
+    gold: '#cd9e45',
     silver: '#aec3d3',
     purple: '#9c50b1',
     orange: '#f88007',

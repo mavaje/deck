@@ -1,0 +1,93 @@
+Commander
+1 Ratadrabik of Urborg (DMU) 213
+
+Deck
+1 Loran of the Third Path (BRO) 12
+1 Elesh Norn, Mother of Machines (ONE) 10
+1 Skrelv, Defector Mite (ONE) 33
+1 Sheoldred, Whispering One (MUL) 81
+1 Ao, the Dawn Sky (NEO) 2
+1 Teysa Karlov (RNA) 212
+1 Sheoldred (MOM) 125
+1 Helm of the Host (DAR) 217
+1 Nazgûl (LTR) 339
+1 Talisman of Hierarchy (MH1) 233
+1 Orzhov Signet (RVR) 263
+1 Black Market Connections (HBG) 145
+1 Takenuma, Abandoned Mire (NEO) 278
+1 Malakir Rebirth (ZNR) 111
+1 Bleachbone Verge (DFT) 250
+1 Brightclimb Pathway (ZNR) 259
+1 Godless Shrine (RNA) 248
+1 Caves of Koilos (DMU) 244
+1 Shattered Sanctum (VOW) 264
+1 Command Tower (ELD) 333
+1 Three Tree City (BLB) 260
+1 Arcane Signet (ELD) 331
+1 Gríma Wormtongue (LTR) 88
+1 Bloodstained Mire (KTK) 230
+1 Samwise the Stouthearted (LTR) 28
+1 Gollum, Patient Plotter (LTR) 84
+1 Relic of Legends (DMU) 236
+1 Great Hall of the Citadel (LTR) 254
+1 Plaza of Heroes (DMU) 252
+1 Eiganjo, Seat of the Empire (NEO) 268
+1 Mondrak, Glory Dominus (ONE) 23
+1 Gandalf the White (LTR) 19
+1 Ashnod's Altar (BRR) 4
+1 Phyrexian Tower (JMP) 493
+1 Junji, the Midnight Sky (NEO) 102
+1 Elas il-Kor, Sadistic Pilgrim (DMU) 198
+1 Bartolomé del Presidio (LCI) 224
+1 Ojer Taq, Deepest Foundation (LCI) 26
+1 Boromir, Warden of the Tower (LTR) 4
+1 Primevals' Glorious Rebirth (DAR) 201
+1 Roaming Throne (LCI) 258
+1 Flooded Strand (KTK) 233
+1 Polluted Delta (KTK) 239
+1 Nazgûl (LTR) 338
+1 Nazgûl (LTR) 337
+1 Nazgûl (LTR) 100
+1 Nazgûl (LTR) 332
+1 Nazgûl (LTR) 333
+1 Nazgûl (LTR) 334
+1 The One Ring (LTR) 246
+1 Palantír of Orthanc (LTR) 247
+1 Minas Tirith (LTR) 256
+1 Fell the Profane (MH3) 244
+1 Shadowy Backstreet (MKM) 268
+1 Cavern of Souls (LCI) 269
+1 Windswept Heath (KTK) 248
+1 Warren Soultrader (MH3) 110
+1 Nykthos, Shrine to Nyx (THS) 223
+1 Concealed Courtyard (OTJ) 268
+1 Kambal, Profiteering Mayor (OTJ) 211
+1 Invasion of Fiora (MOM) 114
+1 Teferi's Protection (STA) 11
+1 Drivnod, Carnage Dominus (ONE) 90
+1 Yahenni, Undying Partisan (KLR) 111
+1 Yawgmoth, Thran Physician (MH1) 116
+1 Mithril Coat (LTR) 245
+1 Dark Ritual (STA) 26
+1 Westvale Abbey (SIR) 275
+1 Nazgûl (LTR) 336
+1 Nazgûl (LTR) 335
+1 Adagia, Windswept Bastion (EOE) 250
+1 Mox Amber (DAR) 224
+1 Sephiroth, Fabled SOLDIER (FIN) 115
+1 Solar Transformer (MH3) 211
+1 Castle Locthwain (ELD) 241
+1 Isolated Chapel (Y25) 6
+1 Urborg, Tomb of Yawgmoth (PIO) 118
+1 Arid Mesa (SPG) 109
+1 Marsh Flats (SPG) 110
+1 Verdant Catacombs (SPG) 113
+1 Gaius van Baelsar (FIN) 102
+1 Rhys, the Evermore (ECL) 32
+1 Eirdu, Carrier of Dawn (ECL) 13
+1 Lotho, Corrupt Shirriff (LTR) 213
+1 Ayara, First of Locthwain (MUL) 78
+1 Priest of Forgotten Gods (RNA) 83
+1 The Sackville-Bagginses (HOB) 83
+6 Plains (ONE) 267
+6 Swamp (ONE) 269

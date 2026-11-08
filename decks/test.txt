@@ -1,3 +1,9 @@
+# Vanguard
+1x Ashnod
+
+# Conspiracy
+Advantageous Proclamation
+
 # Commander
 1x Tovolar, Dire Overlord // Tovolar, the Midnight Scourge (mid) 311 *F*
 
@@ -33,6 +39,10 @@ Mountain *DE*
 1x Stonework Packbeast
 1x Walk-In Closet // Forgotton Cellar
 1x Aang, at the Crossroads (TLA:346)
+1x Aang's Iceberg (TLA:336)
+1x Etali, Primal Conqueror
+1x Jodah, Archmage Eternal (DAR)
+1x Jodah, Archmage Eternal (DAR:198)
 
 # Side
 Burning Cinder Fury of Crimson Chaos Fire
@@ -48,24 +58,52 @@ What (UND:75)
 When (UND:75)
 Where (UND:75)
 Why (UND:75)
-There // Their // They're
+There // They're // Their
 Havengul Laboratory
 Havengul Mystery
 Hawkins National Laboratory
 The Upside Down
-B.F.M. (Big Furry Monster)
 Topsy Turvy
 Plant a Sapling // Fully-Grown Treefolk
 Little Girl
 Armageddon (MP2:31)
 Byode, Inverse Sun
-That's Enough Slices
 Garruk the Slayer
 Ghave, Guru of Spores (OCMD)
 Nearby Planet
+BFM (UGL:28)
+BFM (UGL:29)
+Essence of Ajani
+Old Fogey
+
+# Stickers
+Ancestral Hot Dog Minotaur
+
+# Attractions
+Balloon Stand
+
+# Contraptions
+Buzz Buggy
+
+# Planar Deck
+Bant
+Esper
+Grixis
+Jund
+Naya
+Agyrem
+Akoum
+Chaotic Aether
+Morphic Tide
+That's Enough Slices
+
+# Schemes
+1x A Display of my dark power
+
+# Tokens
+Treasure
+Copy (TWHO:1) *F*
+Poison Counter
 
 # Maybe
-1x Bant
-1x A Display of my dark power
-1x Ashnod
 1x Hydra Head

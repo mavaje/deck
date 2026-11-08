@@ -98,10 +98,6 @@ export function normalise(
         .replaceAll(/\s+/g, separator);
 }
 
-export function normalise_set(set: string, uppercase: boolean = false): string {
-    return normalise(set, uppercase, /[^0-9a-z]/gi)
-}
-
 export function preserve_case(target: string, template: string) {
     if (!target) return '';
     if (!template) return target;
@@ -191,4 +187,13 @@ export function format(message: string, values: object = {}) {
     });
 
     return message;
+}
+
+export function html_encode(text: string): string {
+    return text
+        .replaceAll(/&/g, '&amp;')
+        .replaceAll(/</g, '&lt;')
+        .replaceAll(/>/g, '&gt;')
+        .replaceAll(/"/g, '&quot;')
+        .replaceAll(/'/g, '&#39;');
 }

@@ -1,0 +1,11 @@
+<svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 25 35"
+>
+    <rect x="0" y="0" width="25" height="35" fill="#000000"/>
+    <rect x="2" y="2" width="21" height="31" fill="white" opacity="50%"/>
+    
+    <rect x="0" y="0" width="25" height="35">
+        <animate attributeName="fill" values="#0000007f;#000000bf;#0000007f" dur="4s" repeatCount="indefinite"/>
+    </rect>
+</svg>

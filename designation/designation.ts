@@ -55,11 +55,10 @@ export abstract class Designation {
     static match<T extends typeof Designation>(this: T, input: string, exclude_card_names: boolean = false): InstanceType<T> {
         if (!this.allows_numeric_keys && !Number.isNaN(Number.parseInt(input))) return null;
 
-        const instances = this.all();
+        const map = this.map();
+        if (map[input]) return map[input];
 
-        if (instances[input]) return instances[input];
-
-        for (const instance of instances) {
+        for (const instance of this.all()) {
             if (instance.matches(input, exclude_card_names)) {
                 return instance;
             }
@@ -68,8 +67,24 @@ export abstract class Designation {
         return null;
     }
 
-    static all<T extends typeof Designation>(this: T): DesignationMap<InstanceType<T>> {
-        return (this.INSTANCES?.[this.name] ?? []) as DesignationMap<InstanceType<T>>;
+    static all<T extends typeof Designation>(this: T): InstanceType<T>[] {
+        return Object.values(this.map());
+    }
+
+    static map<T extends typeof Designation>(this: T): Record<string, InstanceType<T>> {
+        const collected: Set<InstanceType<T>> = new Set();
+        return Object.fromEntries(
+            Object.entries(this)
+                .filter(([_, value]) => {
+                    if (value instanceof this
+                        && !collected.has(value as InstanceType<T>)
+                    ) {
+                            collected.add(value as InstanceType<T>);
+                            return true;
+                    }
+                    return false;
+                })
+        );
     }
 
     static clear<T extends typeof Designation>(this: T): void {

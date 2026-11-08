@@ -10,11 +10,11 @@ export class Tag extends CardClassifier<string> {
             card => [...card.tags].map(tag => tag.name),
             tag_name => {
                 const tag = CardTag.match(tag_name);
-                return {
+                return tag ? {
                     name: tag.name,
                     value: tag.name,
                     color: tag.hex ? [tag.hex] : null,
-                };
+                } : null;
             },
         );
     }

@@ -7,7 +7,11 @@ export class Catalog {
     private static LOADER = new OneTimeLoader();
 
     public static supertypes = new Catalog('supertypes');
-    public static card_types = new Catalog('card-types');
+    public static card_types = new Catalog('card-types', [
+        'Card',
+        'Stickers',
+        'Token',
+    ]);
 
     public static artifact_types = new Catalog('artifact-types');
     public static battle_types = new Catalog('battle-types');
@@ -38,6 +42,7 @@ export class Catalog {
 
     constructor(
         private type: string,
+        private extra: string[] = [],
     ) {
         Catalog.INSTANCES.push(this);
     }
@@ -47,6 +52,7 @@ export class Catalog {
             const catalog = await API.catalog(this.type);
             if (catalog) {
                 this.data = catalog.data;
+                this.data.push(...this.extra);
                 this.data.forEach(type => {
                     this.map.add(type);
                     this.map.add(type.toLowerCase());

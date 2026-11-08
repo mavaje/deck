@@ -1,10 +1,10 @@
-import {HTML} from "../html";
+import {HTML} from "../xml";
 import {DeckView} from "../deck-view";
 import {Type} from "../../card-classifier/type";
 import {Color} from "../../card-classifier/color";
 import {ColorIdentity} from "../../card-classifier/color-identity";
 import {ManaValue} from "../../card-classifier/mana-value";
-import {Set} from "../../card-classifier/set";
+import {SetClassifier} from "../../card-classifier/set-classifier";
 import {Rarity} from "../../card-classifier/rarity";
 import {Tag} from "../../card-classifier/tag";
 import {Name} from "../../card-classifier/name";
@@ -14,10 +14,12 @@ import {CardClassifier} from "../../card-classifier/card-classifier";
 import {Subtype} from "../../card-classifier/subtype";
 import {Keyword} from "../../card-classifier/keyword";
 import {Artist} from "../../card-classifier/artist";
+import {DeckCard} from "../../deck-card";
+import {Face} from "../../face";
 
 const CARD_GROUPINGS: (typeof CardClassifier<string | number>)[] = [
     CardClassifier,
-    Set,
+    SetClassifier,
     Rarity,
     Type,
     Subtype,
@@ -32,7 +34,7 @@ const CARD_GROUPINGS: (typeof CardClassifier<string | number>)[] = [
 const CARD_ORDERINGS: (typeof CardClassifier<string | number>)[] = [
     CardClassifier,
     Name,
-    Set,
+    SetClassifier,
     Rarity,
     Color,
     ColorIdentity,

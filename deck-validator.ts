@@ -393,11 +393,13 @@ export class DeckValidator {
 
                 const shared_type_match = quality.match(/shares a card type/);
                 if (shared_type_match) {
-                    let types: string[] = Catalog.card_types.all();
+                    let types: Set<string> = new Set(Catalog.card_types.all());
 
                     deck = deck.filter(card => {
-                        if (card.card_types().some(type => types.includes(type))) {
-                            types = types.filter(type => card.card_types().includes(type));
+                        const card_types = new Set(card.card_types());
+                        const intersection = types.intersection(card_types)
+                        if (intersection.size > 0) {
+                            types = intersection;
                             return false;
                         } else {
                             return true;

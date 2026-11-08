@@ -77,7 +77,7 @@ export class ColorSet {
     static all(): Record<string, ColorSet> {
         return Object.fromEntries(
             Object.entries(this)
-                .filter(([_, value]) => value instanceof ColorSet)
+                .filter(([_, value]) => value instanceof this)
         );
     }
 

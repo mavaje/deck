@@ -109,7 +109,7 @@ input[type=checkbox] {
     justify-content: start;
     align-items: center;
     gap: 8px;
-    min-height: 24px;
+    min-height: 16px;
     text-transform: capitalize;
 }
 
@@ -143,8 +143,12 @@ input[type=checkbox] {
     object-fit: contain;
 }
 
+.label.light .icon {
+    filter: brightness(0);
+}
+
 .label.dark .icon {
-    filter: invert(100%);
+    filter: brightness(0) invert(100%);
 }
 
 #deck {
@@ -153,16 +157,6 @@ input[type=checkbox] {
     height: calc(100% - 48px);
     overflow: auto;
     padding-top: 64px;
-}
-
-#deck .label {
-    position: sticky;
-    top: 0;
-    margin-bottom: 16px;
-    margin-inline: 8px;
-    pointer-events: none;
-    transition-property: margin;
-    z-index: 5;
 }
 
 #deck.show-quantity .label {
@@ -177,6 +171,15 @@ input[type=checkbox] {
 #deck .group {
     display: flex;
     flex-direction: column;
+    transition-property: z-index;
+    transition-timing-function: step-end;
+    z-index: 1;
+    position: relative;
+}
+
+#deck .group:has(.card:hover) {
+    transition-timing-function: step-start;
+    z-index: 4;
 }
 
 #deck > .groups > .group {
@@ -191,15 +194,14 @@ input[type=checkbox] {
     padding-right: 8px;
 }
 
-#deck .group {
-    transition-property: z-index;
-    transition-timing-function: step-end;
-    z-index: 1;
-}
-
-#deck .group:has(.card:hover) {
-    transition-timing-function: step-start;
-    z-index: 4;
+#deck .label {
+    position: sticky;
+    top: 0;
+    margin-bottom: 16px;
+    margin-inline: 8px;
+    pointer-events: none;
+    transition-property: margin;
+    z-index: 5;
 }
 
 .card {
@@ -246,7 +248,6 @@ input[type=checkbox] {
 .card.double {
     --card-width: calc(35 * var(--card-scale));
     --card-height: calc(49 * var(--card-scale));
-    --card-title-height: calc(6 * var(--card-scale));
     --card-radius: calc(2 * var(--card-scale));
 }
 
@@ -292,12 +293,12 @@ input[type=checkbox] {
     position: absolute;
     top: 0;
     bottom: 0;
-    left: calc(25 * var(--card-scale) / 2);
+    left: calc(min(var(--card-width), var(--card-height)) / 2);
     right: 0;
 }
 
 .card.double .trigger {
-    left: calc(35 * var(--card-scale) / 2);
+    left: calc(var(--card-width) / 2);
 }
 
 .card .card-shift {
@@ -317,14 +318,10 @@ input[type=checkbox] {
 
 .card .count {
     margin-left: -40px;
-    padding: 8px 8px 0 0;
+    padding: calc(1.5 * var(--card-scale)) 8px 0 0;
     min-width: 32px;
     text-align: end;
     transition-property: opacity;
-}
-
-.card.double .count {
-    padding-top: 20px;
 }
 
 #deck:not(.show-quantity) .card .count {
@@ -517,4 +514,35 @@ input[type=checkbox] {
 
 @keyframes foil-animation {
     100% { background-position: var(--foil-scale) 0 }
+}
+
+.card-face .name-overlay {
+    position: absolute;
+    top: calc(1.5 * var(--card-scale));
+    left: calc(1.5 * var(--card-scale));
+    max-width: calc(var(--card-width) - 3 * var(--card-scale) - 8px);
+    padding: 2px 4px;
+    background-color: #ffffff3f;
+    backdrop-filter: blur(4px);
+    border-radius: 4px;
+    color: black;
+    font-weight: bold;
+    font-size: calc(1.5 * var(--card-scale));
+    transition-property: opacity;
+}
+
+.card-face.back .name-overlay {
+    background-color: #0000003f;
+    color: white;
+}
+
+.card.landscape .card-face .name-overlay,
+.card.landscape-front .card-face.front .name-overlay {
+    transform: rotate(-90deg)
+        translateX(calc(3 * var(--card-scale) - var(--card-width)));
+    transform-origin: 0 0;
+}
+
+.card:not(:hover) .card-face .name-overlay {
+    opacity: 0;
 }

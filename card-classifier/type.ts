@@ -20,16 +20,19 @@ export class Type extends CardClassifier {
         'Sorcery',
 
         'Kindred',
-        'Emblem',
-        'Dungeon',
+        'Stickers',
         'Plane',
         'Phenomenon',
         'Scheme',
         'Boss',
         'Event',
+        'Token',
+        'Emblem',
+        'Dungeon',
+        'Card',
     ];
 
-    static TYPE_GROUPS: Record<string, BaseGroup> = {
+    static TYPE_GROUPS: Record<string, BaseGroup<never>> = {
         'Land': {icon: 'public/icon/land.svg'},
         'Artifact': {icon: 'public/icon/artifact.svg'},
         'Enchantment': {icon: 'public/icon/enchantment.svg'},
@@ -40,9 +43,15 @@ export class Type extends CardClassifier {
         'Sorcery': {icon: 'public/icon/sorcery.svg'},
     };
 
+    static {
+        Catalog.load();
+    }
+
+    split_by_face: boolean = true;
+
     groups() {
-        return this.group_by(
-            card => card.faces().flatMap(face => face.card_types()),
+        return this.group_by_face(
+            face => face.card_types(),
             undefined,
             Object.fromEntries(Type.CARD_TYPE_ORDER.map(type => [
                 type,
@@ -59,5 +68,3 @@ export class Type extends CardClassifier {
         return face.is_card_type(type);
     }
 }
-
-Catalog.load();

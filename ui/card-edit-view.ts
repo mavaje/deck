@@ -1,4 +1,4 @@
-import {HTML} from "./html";
+import {HTML} from "./xml";
 import {DeckCard} from "../deck-card";
 
 export class CardEditView {

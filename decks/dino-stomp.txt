@@ -1,0 +1,79 @@
+Commander
+1 Etali, Primal Conqueror (MOM) 137
+
+Deck
+1 Panharmonicon (KLR) 258
+1 Bonders' Enclave (IKO) 245
+1 Cavern of Souls (LCI) 269
+1 Arcane Signet (ANB) 117
+1 Nykthos, Shrine to Nyx (THS) 223
+1 Plaza of Heroes (DMU) 252
+1 Temple of Abandon (FDN) 696
+1 Stomping Ground (RNA) 259
+1 Into the North (CSP) 111
+1 Arena of Glory (MH3) 215
+1 Circuitous Route (FDN) 635
+1 Rampant Growth (J25) 704
+1 Vigorous Farming (Y25) 19
+1 Map the Frontier (OTJ) 170
+1 Ruby, Daring Tracker (WOE) 212
+1 Utopia Sprawl (WOT) 63
+1 Delighted Halfling (LTR) 158
+1 Invasion of Zendikar (MOM) 194
+1 Castle Garenbrig (ELD) 240
+1 Arboreal Grazer (WAR) 149
+1 Explore (JMP) 393
+1 Coldsteel Heart (CSP) 136
+1 Boseiju, Who Endures (NEO) 266
+1 Kami of Bamboo Groves (Y22) 24
+1 Migration Path (IKO) 164
+1 Reach the Horizon (FIN) 195
+1 Solar Transformer (MH3) 211
+1 Shared Roots (TLA) 196
+1 Mind Stone (WTH) 153
+1 Thirsting Roots (ONE) 185
+1 Encroaching Dragonstorm (TDM) 142
+1 Elvish Mystic (M14) 169
+1 Gruul Signet (RVR) 259
+1 Vastwood Surge (ZNR) 217
+8 Snow-Covered Mountain (KHM) 282
+18 Snow-Covered Forest (KHM) 284
+1 Talisman of Impulse (MRD) 254
+1 Farseek (FCA) 45
+1 Commercial District (MKM) 259
+1 Llanowar Elves (DAR) 168
+1 Sylvan Caryatid (PIO) 196
+1 Broken Bond (DAR) 157
+1 Lair of the Hydra (AFR) 259
+1 Restless Ridgeline (LCI) 283
+1 Inkmoth Nexus (EOS) 20
+1 Rogue's Passage (PIO) 273
+1 Goblin Anarchomancer (MH2) 200
+1 Spikefield Hazard (ZNR) 166
+1 Tangled Florahedron (ZNR) 211
+1 Stump Stomp (MH3) 259
+1 Menagerie Curator (Y22) 15
+1 Arid Archway (OTJ) 252
+1 Karn's Bastion (WAR) 248
+1 Song of Seasons (Y25) 26
+1 Worldweave (Y25) 21
+1 Icetill Explorer (EOE) 192
+1 Shifting Woodland (MH3) 228
+1 Birds of Paradise (BLC) 81
+1 Urza's Cave (MH3) 234
+1 Great Hall of the Citadel (LTR) 254
+1 Exploration (DMR) 159
+1 Spelunking (LCI) 213
+1 Roaming Throne (LCI) 258
+1 New Generation's Technique (TMT) 126
+1 Ragavan, Nimble Pilferer (MUL) 86
+1 Bala Ged Recovery (ZNR) 180
+1 Rofellos, Llanowar Emissary (UDS) 118
+1 Burgeoning (SPG) 0
+1 Mirkwood Spider (LTR) 178
+1 Gift of the Viper (MH3) 156
+1 Mirrex (ONE) 254
+1 Daily Bugle Building (SPM) 179
+1 Hashep Oasis (AKR) 301
+1 Sandstorm Verge (OTJ) 263
+1 Heartwood Crafter (FRA) 105

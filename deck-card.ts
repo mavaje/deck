@@ -1,6 +1,6 @@
 import {Card, Identifier} from "./scryfall/types";
 import {API} from "./scryfall/api";
-import {normalise, normalise_set, preserve_case, trigram, words_to_number} from "./text";
+import {normalise, preserve_case, trigram, words_to_number} from "./text";
 import {Format} from "./format";
 import {Cache} from "./scryfall/cache";
 import {RuleBreak} from "./rule-break";
@@ -27,10 +27,9 @@ export class DeckCard extends Face {
         'Theme',
     ]);
 
-    static DEFAULT_CARD_BACK_ID = '0aeebaf5-8c7d-4636-9e82-8c27447861f7';
-
     raw?: string;
 
+    raw_name?: string = null;
     name?: string = null;
     set?: string = null;
     collector_number?: string = null;
@@ -43,12 +42,13 @@ export class DeckCard extends Face {
 
     tags: Set<Tag> = new Set();
 
-    display_face_id: number = 0;
+    display_face_id: number = null;
     not_found: boolean = false;
 
     constructor(card: Partial<DeckCard> = {}) {
         super(card.card);
         Object.assign(this, card);
+        this.raw_name ??= this.name;
     }
 
     static regenerate_line_regexp(): void {
@@ -101,7 +101,8 @@ export class DeckCard extends Face {
             raw: input,
             quantity: Number.parseInt(quantity),
             name,
-            set: normalise_set(set, true),
+            raw_name: name,
+            set: API.SETS.normalise(set),
             collector_number,
             board: default_board,
         });
@@ -160,12 +161,16 @@ export class DeckCard extends Face {
     }
 
     static from_card(card: Card, exact: boolean = false): DeckCard {
-        const deck_card = new DeckCard({card});
+        const deck_card = new DeckCard({
+            card,
+            finish: Object.entries(Finish.map())
+                .find(([finish]) => card.finishes.includes(finish as any))[1]
+        });
 
         deck_card.hydrate(card);
 
         if (exact) {
-            deck_card.set = normalise_set(card.set, true);
+            deck_card.set = API.SETS.normalise(card.set);
             deck_card.collector_number = card.collector_number;
         }
 
@@ -179,7 +184,8 @@ export class DeckCard extends Face {
             keys.push(`(${this.set}:${this.collector_number}:${this.language})`);
         } else if (this.name) {
             [
-                this.name,
+                this.raw_name,
+                this.main_face(false).card_name(true),
                 this.main_face(true).card_name(true),
             ].forEach(name => {
                 if (name) keys.push(`${normalise(name)} (${this.set ?? ''}::${this.language})`);
@@ -228,20 +234,22 @@ export class DeckCard extends Face {
                 this.card ??= await API.random_card(`include:extras name:'${name}'`);
             }
 
-            this.card ??= await API.card_named(name, set);
+            if (!collector_number) {
+                this.card ??= await API.card_named(name, set);
+            }
+
+            this.card ??= await API.card_named(name);
 
             if (this.card && this.card.lang !== language.code()) {
                 let query = `oracle_id:${this.card.oracle_id} lang:${language}`;
-                if (set) query += ` set:${normalise_set(set)}`
+                if (set) query += ` set:${set}`;
                 this.card = await API.random_card(query) ?? this.card;
             }
         }
 
         this.not_found = !this.card;
 
-        return this
-            .hydrate()
-            .cache();
+        return this.hydrate().cache();
     }
 
     async reload(): Promise<this> {
@@ -254,7 +262,7 @@ export class DeckCard extends Face {
         super.hydrate(card);
 
         if (card) {
-            if (this.set !== normalise_set(card.set, true)) {
+            if (this.set !== card.set) {
                 this.set = null;
             }
 
@@ -264,25 +272,26 @@ export class DeckCard extends Face {
 
             if (this.name && card.card_faces) {
                 const normal_name = normalise(this.name);
-                let max_similarity = 0;
-                this.faces().some((face, id) => {
-                    const candidates = new Set([
-                        face.card_name(false),
-                        face.card_name(true),
-                    ]);
-                    if (id === 0) {
-                        candidates.add(this.card_name(false));
-                        candidates.add(this.all_names(true).join(' // '));
-                    }
-                    return [...candidates].some(name => {
-                        const similarity = trigram(normal_name, normalise(name));
-                        if (similarity > max_similarity) {
-                            max_similarity = similarity;
-                            this.display_face_id = id;
-                            return max_similarity === 1;
-                        }
-                    });
-                });
+
+                let max_similarity = Math.max(...[
+                    this.card_name(false),
+                    this.all_names(true).join(' // '),
+                ].map(name => trigram(normal_name, normalise(name))));
+
+                if (max_similarity < 1) {
+                    this.faces()
+                        .some((face, id) => [
+                            face.card_name(false),
+                            face.card_name(true),
+                        ].some(name => {
+                            const similarity = trigram(normal_name, normalise(name));
+                            if (similarity > max_similarity) {
+                                max_similarity = similarity;
+                                this.display_face_id = id;
+                                return max_similarity === 1;
+                            }
+                        }));
+                }
             }
 
             this.name = this.deck_list_name();
@@ -299,32 +308,40 @@ export class DeckCard extends Face {
         return this;
     }
 
-    main_face(display: boolean = false): Face {
+    main_face(display: boolean = null): Face {
+        display ??= {
+            'double_faced_token': true,
+            'reversible_card': true,
+            'art_series': true,
+        }[this.card?.layout] ?? false;
         const face = display ? this.display_face_id : 0;
-        return face === 0 && this.is_layout('split')
-            ? this
-            : this.faces()[face];
+        return (face !== null || !this.is_layout('split'))
+            && this.faces()[face ?? 0]
+            || this;
     }
 
     back_face(): Face {
         return this.faces()[1];
     }
 
-    playable_faces(): Face[] {
-        switch (this.card?.layout) {
-            case 'split':
-                return this.has_keyword('Aftermath')
-                    ? [this.faces()[0]]
-                    : this.faces();
-
+    is_double_faced(): boolean {
+        switch (this.layout()) {
+            case 'transform':
             case 'modal_dfc':
             case 'double_faced_token':
-            case 'adventure':
-                return this.faces();
-
+            case 'reversible_card':
+            case 'art_series':
+                return true;
             default:
-                return [this];
+                return false;
         }
+    }
+
+    all_faces(): Face[] {
+        return [
+            ...this.faces(),
+            this,
+        ];
     }
 
     image_urls(): string[] {
@@ -342,12 +359,19 @@ export class DeckCard extends Face {
         return urls;
     }
 
-    back_id(): string {
-        return this.card?.card_back_id;
-    }
+    back_image_url(): string {
+        const back_image: string = super.back_image_url();
 
-    has_alternative_back(): boolean {
-        return this.back_id() && this.back_id() !== DeckCard.DEFAULT_CARD_BACK_ID;
+        if (!back_image) {
+            const {set, collector_number, language} = this;
+            const parameters = {format: 'image', version: 'grid', face: 'back'};
+
+            if (set && collector_number) {
+                return API.card_url(set, collector_number, language.code(), parameters);
+            }
+        }
+
+        return back_image;
     }
 
     matches(card: DeckCard) {

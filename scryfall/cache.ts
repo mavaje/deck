@@ -2,7 +2,12 @@ export class Cache<T> {
 
     constructor(private data: Record<string, T> = {}) {}
 
+    normalise_key(key: string): string {
+        return key;
+    }
+
     public has(key: string): boolean {
+        key = this.normalise_key(key);
         return key in this.data;
     }
 
@@ -11,6 +16,7 @@ export class Cache<T> {
     }
 
     public get(key: string): T {
+        key = this.normalise_key(key);
         return this.data[key];
     }
 
@@ -20,15 +26,17 @@ export class Cache<T> {
     }
 
     public put(key: string, data: T) {
+        key = this.normalise_key(key);
         this.data[key] = data;
     }
 
     public put_each(keys: string[], data: T) {
-        keys.forEach(key => this.data[key] = data);
+        keys.forEach(key => this.put(key, data));
     }
 
     public put_all(data: Record<string, T>) {
-        Object.assign(this.data, data);
+        Object.entries(data)
+            .forEach(([key, data]) => this.put(key, data));
     }
 
     public dump() {

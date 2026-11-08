@@ -32,10 +32,10 @@ export class CardParseTest extends Test {
             'forest *spanish*': new DeckCard({name: 'forest', language: Language.spanish}),
 
             // TappedOut
-            '1x Llanowar Elves (M10)': new DeckCard({quantity: 1, name: 'Llanowar Elves', set: 'M10'}),
+            '1x Llanowar Elves (M10)': new DeckCard({quantity: 1, name: 'Llanowar Elves', set: 'm10'}),
             '1x Greven Il Vec *CMDR*': new DeckCard({quantity: 1, name: 'Greven Il Vec', board: Board.commander}),
             '1x Gyruda, Doom of Depths *CMPN*': new DeckCard({quantity: 1, name: 'Gyruda, Doom of Depths', board: Board.companion}),
-            '1x Mishra\'s Factory (ATQ:1074)': new DeckCard({quantity: 1, name: 'Mishra\'s Factory', set: 'ATQ', collector_number: '1074'}),
+            '1x Mishra\'s Factory (ATQ:1074)': new DeckCard({quantity: 1, name: 'Mishra\'s Factory', set: 'atq', collector_number: '1074'}),
             '1x Llanowar Elves *GE*': new DeckCard({quantity: 1, name: 'Llanowar Elves', language: Language.german}),
             '1x Llanowar Elves *SL*': new DeckCard({quantity: 1, name: 'Llanowar Elves', condition: Condition.slightly_played}),
             '1x Llanowar Elves *mythic*': new DeckCard({quantity: 1, name: 'Llanowar Elves', tags: this.tag_set('mythic')}),
@@ -49,11 +49,11 @@ export class CardParseTest extends Test {
             // Archidekt
             '2 Sensei\'s Divining Top': new DeckCard({quantity: 2, name: 'Sensei\'s Divining Top'}),
             '2x Sensei\'s Divining Top': new DeckCard({quantity: 2, name: 'Sensei\'s Divining Top'}),
-            '1 Mountain (DOM) 263': new DeckCard({quantity: 1, name: 'Mountain', set: 'DOM', collector_number: '263'}),
+            '1 Mountain (DOM) 263': new DeckCard({quantity: 1, name: 'Mountain', set: 'dom', collector_number: '263'}),
             '1 Counterspell': new DeckCard({quantity: 1, name: 'Counterspell'}),
             '1 Path to Exile': new DeckCard({quantity: 1, name: 'Path to Exile'}),
             '2x Sol Ring': new DeckCard({quantity: 2, name: 'Sol Ring'}),
-            '1x Path to Exile (cmm) [Removal] ^To Remove,#FF0000^': new DeckCard({quantity: 1, name: 'Path to Exile', set: 'CMM', tags: this.tag_set('Removal', 'To Remove')}),
+            '1x Path to Exile (cmm) [Removal] ^To Remove,#FF0000^': new DeckCard({quantity: 1, name: 'Path to Exile', set: 'cmm', tags: this.tag_set('Removal', 'To Remove')}),
             '1 Wrath of God': new DeckCard({quantity: 1, name: 'Wrath of God'}),
             '2 Island': new DeckCard({quantity: 2, name: 'Island'}),
             '1 Forest': new DeckCard({quantity: 1, name: 'Forest'}),
@@ -61,8 +61,8 @@ export class CardParseTest extends Test {
             // Edge Cases
             '1 Hazmat Suit (Used)': new DeckCard({quantity: 1, name: 'Hazmat Suit (Used)'}),
             '1 Hazmat Suit (Used) (UST)': new DeckCard({quantity: 1, name: 'Hazmat Suit (Used)', set: 'UST'}),
-            '1 Hazmat Suit (Used) 123': new DeckCard({quantity: 1, name: 'Hazmat Suit', set: 'USED', collector_number: '123'}),
-            '1 Hazmat Suit (Used:123)': new DeckCard({quantity: 1, name: 'Hazmat Suit', set: 'USED', collector_number: '123'}),
+            '1 Hazmat Suit (Used) 123': new DeckCard({quantity: 1, name: 'Hazmat Suit', set: 'used', collector_number: '123'}),
+            '1 Hazmat Suit (Used:123)': new DeckCard({quantity: 1, name: 'Hazmat Suit', set: 'used', collector_number: '123'}),
             '17-Year Cicadas': new DeckCard({name: '17-Year Cicadas'}),
             '17 Year Cicadas': new DeckCard({quantity: 17, name: 'Year Cicadas'}),
             '3 17-Year Cicadas': new DeckCard({quantity: 3, name: '17-Year Cicadas'}),
@@ -75,7 +75,7 @@ export class CardParseTest extends Test {
             '_____ Goblin': new DeckCard({name: '_____ Goblin'}),
             '"Ach! Hans, Run!"': new DeckCard({name: '"Ach! Hans, Run!"'}),
             'Éomer, King of Rohan': new DeckCard({name: 'Éomer, King of Rohan'}),
-            '1 Sheoldred, Whispering One (PNPH) 73★ *F*': new DeckCard({quantity: 1, name: 'Sheoldred, Whispering One', set: 'PNPH', collector_number: '73★', finish: Finish.foil}),
+            '1 Sheoldred, Whispering One (PNPH) 73★ *F*': new DeckCard({quantity: 1, name: 'Sheoldred, Whispering One', set: 'pnph', collector_number: '73★', finish: Finish.foil}),
         }).forEach(([input, expected]) => {
             const card = DeckCard.parse(input);
 
