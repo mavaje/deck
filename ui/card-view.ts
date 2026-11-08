@@ -1,7 +1,7 @@
-import {HTML, SVG} from "./xml";
+import {HTML} from "./xml";
 import {DeckCard} from "../deck-card";
 import {CardEditView} from "./card-edit-view";
-import {html_encode} from "../text";
+import {data_url, skeleton, skeleton_back} from "./skeleton";
 
 export class CardView {
 
@@ -114,47 +114,28 @@ export class CardView {
                     && face.card_name(true)
                     || card.card_name(true);
 
-                urls.push(`data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 25 35"><text x="2" y="2.5" font-size="1.5" font-family="monospace" fill="white">${html_encode(face_name)}</text></svg>`)
-                    .replaceAll(/[()]/g, s => `%${s.charCodeAt(0).toString(16)}`)}`);
-
-                // console.log(SVG.svg(
-                //     {
-                //         xmlns: 'http://www.w3.org/2000/svg',
-                //         viewBox: '0 0 25 35',
-                //     },
-                //     SVG.text({
-                //         x: 2,
-                //         y: 2.5,
-                //         font_size: 1.5,
-                //         font_family: 'monospace',
-                //         fill: 'white',
-                //     }, html_encode(face_name))
-                // ).outerHTML);
-
-                urls.push('/public/skeleton-card.svg');
+                urls.push(data_url(skeleton(face_name)));
             } else if (card.has_alternative_back()) {
                 const back_url = card.back_image_url();
                 if (back_url) {
                     card_class.add('transform');
                     urls.push(card.back_image_url());
-                    urls.push('/public/skeleton-card-back.svg');
+                    urls.push(data_url(skeleton_back()));
                 }
             }
 
-            faces.push(HTML.div(
-                {
-                    class: [
-                        'card-face',
-                        ['front', 'back'][face_id],
-                        !card.finish.is_default() && 'foil',
-                    ],
-                    style: {
-                        background_image: urls
-                            .map(url => `url(${url})`)
-                            .join(', '),
-                    },
+            faces.push(HTML.div({
+                class: [
+                    'card-face',
+                    ['front', 'back'][face_id],
+                    !card.finish.is_default() && 'foil',
+                ],
+                style: {
+                    background_image: urls
+                        .map(url => `url(${url})`)
+                        .join(', '),
                 },
-            ));
+            }));
         });
 
         let card_view: HTMLDivElement = null;

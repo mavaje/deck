@@ -188,12 +188,3 @@ export function format(message: string, values: object = {}) {
 
     return message;
 }
-
-export function html_encode(text: string): string {
-    return text
-        .replaceAll(/&/g, '&amp;')
-        .replaceAll(/</g, '&lt;')
-        .replaceAll(/>/g, '&gt;')
-        .replaceAll(/"/g, '&quot;')
-        .replaceAll(/'/g, '&#39;');
-}

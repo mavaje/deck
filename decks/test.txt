@@ -43,6 +43,7 @@ Mountain *DE*
 1x Etali, Primal Conqueror
 1x Jodah, Archmage Eternal (DAR)
 1x Jodah, Archmage Eternal (DAR:198)
+1x Minsc & Boo
 
 # Side
 Burning Cinder Fury of Crimson Chaos Fire

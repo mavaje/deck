@@ -40,7 +40,7 @@ export class CardParseTest extends Test {
             '1x Llanowar Elves *SL*': new DeckCard({quantity: 1, name: 'Llanowar Elves', condition: Condition.slightly_played}),
             '1x Llanowar Elves *mythic*': new DeckCard({quantity: 1, name: 'Llanowar Elves', tags: this.tag_set('mythic')}),
             '1x Llanowar Elves *CMC:20*': new DeckCard({quantity: 1, name: 'Llanowar Elves', tags: this.tag_set('CMC:20')}),
-            '1x Llanowar Elves (M10) *F* *IT* *SL*': new DeckCard({quantity: 1, name: 'Llanowar Elves', set: 'M10', finish: Finish.foil, language: Language.italian, condition: Condition.slightly_played}),
+            '1x Llanowar Elves (M10) *F* *IT* *SL*': new DeckCard({quantity: 1, name: 'Llanowar Elves', set: 'm10', finish: Finish.foil, language: Language.italian, condition: Condition.slightly_played}),
             '1x Island #Land': new DeckCard({quantity: 1, name: 'Island', tags: this.tag_set('Land')}),
             '1x Storm Crow #Wincon': new DeckCard({quantity: 1, name: 'Storm Crow', tags: this.tag_set('Wincon')}),
             '1x Llanowar Elves #Category_With_Spaces': new DeckCard({quantity: 1, name: 'Llanowar Elves', tags: this.tag_set('Category_With_Spaces')}),
@@ -60,7 +60,7 @@ export class CardParseTest extends Test {
 
             // Edge Cases
             '1 Hazmat Suit (Used)': new DeckCard({quantity: 1, name: 'Hazmat Suit (Used)'}),
-            '1 Hazmat Suit (Used) (UST)': new DeckCard({quantity: 1, name: 'Hazmat Suit (Used)', set: 'UST'}),
+            '1 Hazmat Suit (Used) (UST)': new DeckCard({quantity: 1, name: 'Hazmat Suit (Used)', set: 'ust'}),
             '1 Hazmat Suit (Used) 123': new DeckCard({quantity: 1, name: 'Hazmat Suit', set: 'used', collector_number: '123'}),
             '1 Hazmat Suit (Used:123)': new DeckCard({quantity: 1, name: 'Hazmat Suit', set: 'used', collector_number: '123'}),
             '17-Year Cicadas': new DeckCard({name: '17-Year Cicadas'}),

@@ -314,7 +314,7 @@ export class DeckCard extends Face {
             'reversible_card': true,
             'art_series': true,
         }[this.card?.layout] ?? false;
-        const face = display ? this.display_face_id : 0;
+        const face = display ? this.display_face_id : null;
         return (face !== null || !this.is_layout('split'))
             && this.faces()[face ?? 0]
             || this;
@@ -344,35 +344,35 @@ export class DeckCard extends Face {
         ];
     }
 
-    image_urls(): string[] {
-        let urls: string[] = super.image_urls();
+    // image_urls(): string[] {
+    //     let urls: string[] = super.image_urls();
+    //
+    //     if (urls.length === 0) {
+    //         const {set, collector_number, language} = this;
+    //         const parameters = {format: 'image', version: 'grid'};
+    //
+    //         if (set && collector_number) {
+    //             urls.push(API.card_url(set, collector_number, language.code(), parameters));
+    //         }
+    //     }
+    //
+    //     return urls;
+    // }
 
-        if (urls.length === 0) {
-            const {set, collector_number, language} = this;
-            const parameters = {format: 'image', version: 'grid'};
-
-            if (set && collector_number) {
-                urls.push(API.card_url(set, collector_number, language.code(), parameters));
-            }
-        }
-
-        return urls;
-    }
-
-    back_image_url(): string {
-        const back_image: string = super.back_image_url();
-
-        if (!back_image) {
-            const {set, collector_number, language} = this;
-            const parameters = {format: 'image', version: 'grid', face: 'back'};
-
-            if (set && collector_number) {
-                return API.card_url(set, collector_number, language.code(), parameters);
-            }
-        }
-
-        return back_image;
-    }
+    // back_image_url(): string {
+    //     const back_image: string = super.back_image_url();
+    //
+    //     if (!back_image) {
+    //         const {set, collector_number, language} = this;
+    //         const parameters = {format: 'image', version: 'grid', face: 'back'};
+    //
+    //         if (set && collector_number) {
+    //             return API.card_url(set, collector_number, language.code(), parameters);
+    //         }
+    //     }
+    //
+    //     return back_image;
+    // }
 
     matches(card: DeckCard) {
         for (const field of [

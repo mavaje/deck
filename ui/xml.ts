@@ -24,7 +24,8 @@ const EVENT_LISTENERS: WeakMap<Element, Record<string, any>> = new WeakMap();
 
 function create_element<T extends string>(
     tag: T,
-    ...parameters: (Attributes | Child[] | Child)[]
+    parameters: (Attributes | Child[] | Child)[],
+    namespace?: string,
 ): Element {
     let attributes: Attributes = {};
     let children: Child[] = null;
@@ -44,12 +45,16 @@ function create_element<T extends string>(
     if ('id' in attributes) {
         element = document.getElementById(String(attributes.id));
     }
-    element ??= document.createElement(tag);
+    element ??= namespace
+        ? document.createElementNS(namespace, tag)
+        : document.createElement(tag);
 
     Object.entries(attributes).forEach(([key, value]) => {
         if (is_nullish(value)) return;
 
-        switch (key.replaceAll('_', '-')) {
+        key = key.replaceAll('_', '-');
+
+        switch (key) {
             case 'class':
                 if (!Array.isArray(value)) value = value.split(/\s+/g);
                 element.className = '';
@@ -121,7 +126,7 @@ export const HTML = new Proxy(
     {
         get(_, tag: keyof HTMLElementTagNameMap) {
             return (...parameters: (Attributes | Child[] | Child)[]) => {
-                return create_element(tag, ...parameters);
+                return create_element(tag, parameters);
             }
         }
     }
@@ -134,7 +139,7 @@ export const SVG = new Proxy(
     {
         get(_, tag: keyof SVGElementTagNameMap) {
             return (...parameters: (Attributes | Child[] | Child)[]) => {
-                return create_element(tag, ...parameters);
+                return create_element(tag, parameters, 'http://www.w3.org/2000/svg');
             }
         }
     }

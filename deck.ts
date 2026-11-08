@@ -78,22 +78,33 @@ export class Deck extends CardList {
         const deck_cards = this
             .filter(card => !card.card && !card.not_found);
 
-        for (let i = 0; i < deck_cards.length; i += API.CARDS_MAX) {
-            const chunk = deck_cards.slice(i, i + API.CARDS_MAX);
+        const card_map: Record<string, DeckCard[]> = {};
+
+        deck_cards.forEach(card => {
+            const id = JSON.stringify(card.identifier());
+            card_map[id] ??= [];
+            card_map[id].push(card);
+        });
+
+        const unique_cards = Object.values(card_map);
+
+        for (let i = 0; i < unique_cards.length; i += API.CARDS_MAX) {
+            const chunk = unique_cards.slice(i, i + API.CARDS_MAX);
 
             if (chunk.length < 2) break;
 
-            const cards = await API.cards(chunk.map(c => c.identifier()));
-            if (!cards) break;
+            const card_list = await API.cards(chunk.map(c => c[0].identifier()));
+            if (!card_list) break;
 
             let index = 0;
-            for (const card of chunk) {
-                const i1 = card.identifier();
-                if (!cards.not_found.some(i2 =>
+            for (const cards of chunk) {
+                const i1 = cards[0].identifier();
+                if (!card_list.not_found.some(i2 =>
                     Object.keys(i1).length === Object.keys(i2).length &&
                     Object.keys(i1).every(key => i1[key] === i2[key])
                 )) {
-                    card.hydrate(cards.data[index++]).cache();
+                    cards.forEach(card => card.hydrate(card_list.data[index]).cache());
+                    index++;
                 }
             }
 

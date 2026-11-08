@@ -3,7 +3,6 @@ import {normalise} from "../text";
 export type DesignationMap<T extends Designation = Designation> = T[] & Record<string, T>;
 
 export abstract class Designation {
-    protected static INSTANCES: Record<string, DesignationMap> = {};
 
     protected static allows_numeric_keys: boolean = false;
 
@@ -15,9 +14,6 @@ export abstract class Designation {
         public name: string,
         public codes: string[] = [],
     ) {
-        Designation.INSTANCES[this.constructor.name] ??= [] as DesignationMap;
-        Designation.INSTANCES[this.constructor.name].push(this);
-        Designation.INSTANCES[this.constructor.name][this.code()] = this;
     }
 
     code(upper: boolean = false): string {
@@ -88,6 +84,7 @@ export abstract class Designation {
     }
 
     static clear<T extends typeof Designation>(this: T): void {
-        this.INSTANCES[this.name] = [] as DesignationMap;
+        Object.keys(this.map())
+            .forEach(key => delete this[key]);
     }
 }

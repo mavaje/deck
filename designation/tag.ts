@@ -13,7 +13,14 @@ export class Tag extends Designation {
     }
 
     public static match_or_new(input: string, hex?: string): Tag {
-        return Tag.match(input) ?? new Tag(input, undefined, hex?.toLowerCase());
+        let tag = Tag.match(input);
+
+        if (!tag) {
+            tag = new Tag(input, undefined, hex?.toLowerCase());
+            this[tag.code()] = tag;
+        }
+
+        return tag;
     }
 
     public to_string(separator: string = ':'): string {
