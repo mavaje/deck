@@ -240,9 +240,9 @@ export class DeckCard extends Face {
     async load(): Promise<this> {
         if (this.card) return;
 
-        const {name, set, collector_number, language} = this;
-
         this.load_from_cache();
+
+        const {name, set, collector_number, language} = this;
 
         const is_alchemy_set = /^y\d\d$/i.test(set);
 
