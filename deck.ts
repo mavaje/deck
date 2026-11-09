@@ -75,15 +75,14 @@ export class Deck extends CardList {
         this.forEach(card => card.load_from_cache());
         on_progress?.();
 
-        const deck_cards = this
-            .filter(card => !card.card && !card.not_found);
-
         const card_map: Record<string, DeckCard[]> = {};
 
-        deck_cards.forEach(card => {
-            const id = JSON.stringify(card.identifier());
-            card_map[id] ??= [];
-            card_map[id].push(card);
+        this.forEach(card => {
+            if (card.can_bulk_load()) {
+                const id = JSON.stringify(card.identifier());
+                card_map[id] ??= [];
+                card_map[id].push(card);
+            }
         });
 
         const unique_cards = Object.values(card_map);
@@ -111,12 +110,10 @@ export class Deck extends CardList {
             on_progress?.();
         }
 
-        await Promise.all(deck_cards.map(async card => {
+        await Promise.all(this.map(async card => {
             await card.load();
             on_progress?.();
         }));
-
-        on_progress?.();
 
         return this;
     }

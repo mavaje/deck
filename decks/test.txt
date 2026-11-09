@@ -76,6 +76,8 @@ BFM (UGL:28)
 BFM (UGL:29)
 Essence of Ajani
 Old Fogey
+Viscera Seer (SLD:VS)
+Baldur's Gate Wilderness (TCLB:0)
 
 # Stickers
 Ancestral Hot Dog Minotaur

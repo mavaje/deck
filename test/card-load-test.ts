@@ -29,7 +29,7 @@ export class CardLoadTest extends Test {
         } as Record<string, TestMatcher<DeckCard>>).map(async ([input, expected]) => {
             const card = await DeckCard.parse(input).load();
 
-            if (!card.not_found) {
+            if (card.card) {
                 this.assert_match(
                     expected,
                     card,

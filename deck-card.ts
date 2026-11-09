@@ -43,7 +43,6 @@ export class DeckCard extends Face {
     tags: Set<Tag> = new Set();
 
     display_face_id: number = null;
-    not_found: boolean = false;
 
     constructor(card: Partial<DeckCard> = {}) {
         super(card.card);
@@ -207,6 +206,14 @@ export class DeckCard extends Face {
         return keys;
     }
 
+    can_bulk_load(): boolean {
+        return [
+            !this.card,
+            this.identifier(),
+            !/^y\d\d$/i.test(this.set),
+        ].every(Boolean);
+    }
+
     identifier(): Identifier {
         const {set, collector_number} = this;
         if (set && collector_number) {
@@ -231,13 +238,15 @@ export class DeckCard extends Face {
     }
 
     async load(): Promise<this> {
-        if (this.not_found) return this;
+        if (this.card) return;
 
         const {name, set, collector_number, language} = this;
 
         this.load_from_cache();
 
-        if (set && collector_number) {
+        const is_alchemy_set = /^y\d\d$/i.test(set);
+
+        if (set && collector_number && !is_alchemy_set) {
             this.card ??= await API.card(set, collector_number, language.code());
         }
 
@@ -246,27 +255,26 @@ export class DeckCard extends Face {
                 this.card ??= await API.random_card(`include:extras name:'${name}'`);
             }
 
-            if (!collector_number) {
+            if (is_alchemy_set) {
+                this.card ??= await API.random_card(`st:alchemy name:'${name}'`);
+            } else if (set && !collector_number) {
                 this.card ??= await API.card_named(name, set);
             }
 
             this.card ??= await API.card_named(name);
 
-            if (this.card && this.card.lang !== language.code()) {
+            if (this.card && this.card.lang !== language.code() && !language.is_default()) {
                 let query = `oracle_id:${this.card.oracle_id} lang:${language}`;
-                if (set) query += ` set:${set}`;
+                if (set && !is_alchemy_set) query += ` set:${set}`;
                 this.card = await API.random_card(query) ?? this.card;
             }
         }
-
-        this.not_found = !this.card;
 
         return this.hydrate().cache();
     }
 
     async reload(): Promise<this> {
         this.flush();
-        this.not_found = false;
         return this.load();
     }
 

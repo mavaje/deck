@@ -1291,7 +1291,6 @@ var init_deck_card = __esm({
       board = Board.DEFAULT;
       tags = /* @__PURE__ */ new Set();
       display_face_id = null;
-      not_found = false;
       constructor(card = {}) {
         super(card.card);
         Object.assign(this, card);
@@ -1417,6 +1416,13 @@ var init_deck_card = __esm({
         }
         return keys;
       }
+      can_bulk_load() {
+        return [
+          !this.card,
+          this.identifier(),
+          !/^y\d\d$/i.test(this.set)
+        ].every(Boolean);
+      }
       identifier() {
         const { set, collector_number } = this;
         if (set && collector_number) {
@@ -1435,32 +1441,33 @@ var init_deck_card = __esm({
         }
       }
       async load() {
-        if (this.not_found) return this;
+        if (this.card) return;
         const { name, set, collector_number, language } = this;
         this.load_from_cache();
-        if (set && collector_number) {
+        const is_alchemy_set = /^y\d\d$/i.test(set);
+        if (set && collector_number && !is_alchemy_set) {
           this.card ??= await API.card(set, collector_number, language.code());
         }
         if (name) {
           if (/^_{6,}$/.test(name) && !set) {
             this.card ??= await API.random_card(`include:extras name:'${name}'`);
           }
-          if (!collector_number) {
+          if (is_alchemy_set) {
+            this.card ??= await API.random_card(`st:alchemy name:'${name}'`);
+          } else if (set && !collector_number) {
             this.card ??= await API.card_named(name, set);
           }
           this.card ??= await API.card_named(name);
-          if (this.card && this.card.lang !== language.code()) {
+          if (this.card && this.card.lang !== language.code() && !language.is_default()) {
             let query = `oracle_id:${this.card.oracle_id} lang:${language}`;
-            if (set) query += ` set:${set}`;
+            if (set && !is_alchemy_set) query += ` set:${set}`;
             this.card = await API.random_card(query) ?? this.card;
           }
         }
-        this.not_found = !this.card;
         return this.hydrate().cache();
       }
       async reload() {
         this.flush();
-        this.not_found = false;
         return this.load();
       }
       hydrate(card = this.card) {
@@ -1535,34 +1542,6 @@ var init_deck_card = __esm({
           this
         ];
       }
-      // image_urls(): string[] {
-      //     let urls: string[] = super.image_urls();
-      //
-      //     if (urls.length === 0) {
-      //         const {set, collector_number, language} = this;
-      //         const parameters = {format: 'image', version: 'grid'};
-      //
-      //         if (set && collector_number) {
-      //             urls.push(API.card_url(set, collector_number, language.code(), parameters));
-      //         }
-      //     }
-      //
-      //     return urls;
-      // }
-      // back_image_url(): string {
-      //     const back_image: string = super.back_image_url();
-      //
-      //     if (!back_image) {
-      //         const {set, collector_number, language} = this;
-      //         const parameters = {format: 'image', version: 'grid', face: 'back'};
-      //
-      //         if (set && collector_number) {
-      //             return API.card_url(set, collector_number, language.code(), parameters);
-      //         }
-      //     }
-      //
-      //     return back_image;
-      // }
       matches(card) {
         for (const field of [
           "name",
@@ -2396,12 +2375,12 @@ var init_deck = __esm({
       async load(on_progress = null) {
         this.forEach((card) => card.load_from_cache());
         on_progress?.();
-        const deck_cards = this.filter((card) => !card.card && !card.not_found);
         const card_map = {};
-        deck_cards.forEach((card) => {
+        const deck_cards = this.filter((card) => card.can_bulk_load()).map((card) => {
           const id = JSON.stringify(card.identifier());
           card_map[id] ??= [];
           card_map[id].push(card);
+          return card;
         });
         const unique_cards = Object.values(card_map);
         for (let i = 0; i < unique_cards.length; i += API.CARDS_MAX) {
@@ -2421,7 +2400,7 @@ var init_deck = __esm({
           }
           on_progress?.();
         }
-        await Promise.all(deck_cards.map(async (card) => {
+        await Promise.all(this.map(async (card) => {
           await card.load();
           on_progress?.();
         }));
