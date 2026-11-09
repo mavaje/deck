@@ -56,7 +56,7 @@ export class DeckCard extends Face {
             '^',
             '((?<quantity>\\d{1,3})[x*×]?\\s)?',
             `(?<name>[^([^#*]+?(\\s*\\((\d{4}|[^)]*[ '][^)]*|${[...this.bracket_words].join('|')})\\))?)?`,
-            '(\\((?<set>[0-9A-Z]{3,5})((:|\\)\\s*)(?<collector_number>[^)[(#*:\\s]+))?\\)?)?',
+            '(?<set_num>\\([0-9A-Z]{3,5}\\)(\\s*[^)[(#*:\\s]+)?|\\([0-9A-Z]{3,5}:[^)[(#*:\\s]+\\))?',
             '(?<extra>([#*^[]).*)?',
             '$'
         ].join('\\s*'), 'i');
@@ -92,10 +92,22 @@ export class DeckCard extends Face {
         const {
             quantity = '1',
             name = null,
-            set = null,
-            collector_number = null,
+            set_num = null,
             extra,
         } = match.groups;
+
+        let set = null;
+        let collector_number = null;
+
+        if (set_num) {
+            const match =
+                /\((?<set>[0-9A-Z]{3,5})\)(\s*(?<collector_number>[^)[(#*:\s]+))?/i.exec(set_num) ??
+                /\((?<set>[0-9A-Z]{3,5}):(?<collector_number>[^)[(#*:\s]+)\)/i.exec(set_num);
+            ({
+                set = null,
+                collector_number = null,
+            } = match?.groups ?? {});
+        }
 
         const card = new DeckCard({
             raw: input,
