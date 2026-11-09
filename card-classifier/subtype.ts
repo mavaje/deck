@@ -18,9 +18,9 @@ export class Subtype extends CardClassifier {
     ];
 
     static SUBTYPE_GROUPS: Record<string, Partial<Group>> = {
-        'Plains': {icon: 'public/icon/white.svg', color: [MTG_COLORS.white]},
+        'Plains': {icon: 'public/icon/white.svg', color: [MTG_COLORS.yellow]},
         'Island': {icon: 'public/icon/blue.svg', color: [MTG_COLORS.blue]},
-        'Swamp': {icon: 'public/icon/black.svg', color: [MTG_COLORS.black]},
+        'Swamp': {icon: 'public/icon/black.svg', color: [MTG_COLORS.purple]},
         'Mountain': {icon: 'public/icon/red.svg', color: [MTG_COLORS.red]},
         'Forest': {icon: 'public/icon/green.svg', color: [MTG_COLORS.green]},
     };

@@ -24,7 +24,9 @@ export function skeleton(name?: string): SVGSVGElement {
                 repeatCount: 'indefinite',
             }),
         ]),
-        name && SVG.text({x: 2, y: 2.5, font_size: 1.5, font_family: 'monospace', fill: 'white'}, (name)),
+        name && SVG.text({x: 2, y: 2.5, font_size: 1.5, font_family: 'monospace', fill: 'white'}, name.length > 24
+            ? name.slice(0, 21) + '...'
+            : name),
     ])
 }
 

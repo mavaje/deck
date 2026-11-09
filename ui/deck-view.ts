@@ -50,7 +50,7 @@ export class DeckView {
             },
             board && HTML.div({
                 id: `${id}-label`,
-                class: ['label', 'dark'],
+                class: 'label',
             }, HTML.div(
                 HTML.span({style: {font_weight: 'bold'}}, board.name),
                 ` (${cards.count()})`,
@@ -87,17 +87,11 @@ export class DeckView {
             group.name && HTML.div(
                 {
                     id: `${id}-label`,
-                    class: [
-                        'label',
-                        group.color && contrast(group.color.length > 1 ? blend(
-                            ...group.color
-                                .flatMap((c, i, g) => Array(g.length - i).fill(c)),
-                        ) : group.color[0])
-                            ? 'light'
-                            : 'dark',
-                    ],
+                    class: 'label',
                     style: {
-                        background: group.color && `linear-gradient(to right in oklab, ${group.color.join(',')})`,
+                        '--gradient': group.color && `linear-gradient(to right in oklab, ${
+                            group.color.map((c, i, {length}) => `${c} ${{0: '16px', [length - 1]: 'calc(100% - 16px)'}[i] ?? ''}`).join(',')
+                        })`,
                     },
                 },
                 HTML.div(
@@ -113,29 +107,35 @@ export class DeckView {
                 },
                 groups.map((group, i) => this.render_group(group, `${id}-${i}`, grouping)) ?? [],
             ),
-            ...cards
-                ?.sort((a, b) => ordering.compare(a, b))
-                .flatMap((card, i, cards) => {
-                    const last_deck_card = i === cards.length - 1;
-                    const elements: HTMLDivElement[] = [];
+            cards && HTML.div(
+                {
+                    id: `${id}-stack`,
+                    class: 'stack',
+                },
+                cards
+                    .sort((a, b) => ordering.compare(a, b))
+                    .flatMap((card, i, cards) => {
+                        const last_deck_card = i === cards.length - 1;
+                        const elements: HTMLDivElement[] = [];
 
-                    for (let j = 0; j < card.quantity; j++) {
-                        const last_of_card = j === card.quantity - 1;
-                        elements.push(CardView.render(
-                            card,
-                            `${id}-card-${i}-${j}`,
-                            last_of_card,
-                            last_deck_card && last_of_card,
-                            grouping?.face_id(card, group.value),
-                        ));
-                    }
+                        for (let j = 0; j < card.quantity; j++) {
+                            const last_of_card = j === card.quantity - 1;
+                            elements.push(CardView.render(
+                                card,
+                                `${id}-card-${i}-${j}`,
+                                last_of_card,
+                                last_deck_card && last_of_card,
+                                grouping?.face_id(card, group.value),
+                            ));
+                        }
 
-                    const all_elements = this.rendered_cards.get(card) ?? [];
-                    all_elements.push(...elements);
-                    this.rendered_cards.set(card, all_elements);
+                        const all_elements = this.rendered_cards.get(card) ?? [];
+                        all_elements.push(...elements);
+                        this.rendered_cards.set(card, all_elements);
 
-                    return elements;
-                }) ?? [],
+                        return elements;
+                    }),
+            ),
         );
     }
 

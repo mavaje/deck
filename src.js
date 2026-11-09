@@ -1758,55 +1758,6 @@ var init_card_list = __esm({
   }
 });
 
-// color.ts
-function hex2rgb(hex) {
-  return [1, 3, 5].map((i) => hex.slice(i, i + 2)).map((s) => Number.parseInt(s, 16) / 255);
-}
-function rgb2hex(rgb) {
-  return rgb.reduce((hex, c) => hex + Math.round(c * 255).toString(16), "#");
-}
-function blend(...hexes) {
-  if (hexes.length < 2) return hexes[0];
-  const rgb = hexes.map(hex2rgb).reduce((blended, rgb2) => blended.map((v, i) => v + rgb2[i] / hexes.length), [0, 0, 0]);
-  return rgb2hex(rgb);
-}
-function contrast(hex) {
-  const [r, g, b] = hex2rgb(hex);
-  return r * 0.299 + g * 0.587 + b * 0.114 > 0.5;
-}
-function gradient(identity) {
-  switch (identity.colors.length) {
-    case 0:
-      return [MTG_COLORS.silver];
-    case 1:
-    case 2:
-      return identity.colors.map((c) => MTG_COLORS[c]);
-    default:
-      return [MTG_COLORS.gold];
-  }
-}
-var MTG_COLORS;
-var init_color = __esm({
-  "color.ts"() {
-    MTG_COLORS = {
-      black: "#231825",
-      white: "#f8e7b9",
-      blue: "#2886c8",
-      red: "#d34222",
-      green: "#318f26",
-      gold: "#cd9e45",
-      silver: "#aec3d3",
-      purple: "#9c50b1",
-      orange: "#f88007"
-    };
-    MTG_COLORS["W"] = MTG_COLORS.white;
-    MTG_COLORS["U"] = MTG_COLORS.blue;
-    MTG_COLORS["B"] = MTG_COLORS.black;
-    MTG_COLORS["R"] = MTG_COLORS.red;
-    MTG_COLORS["G"] = MTG_COLORS.green;
-  }
-});
-
 // ui/card-edit-view.ts
 var CardEditView;
 var init_card_edit_view = __esm({
@@ -1848,7 +1799,7 @@ function skeleton(name) {
         repeatCount: "indefinite"
       })
     ]),
-    name && SVG.text({ x: 2, y: 2.5, font_size: 1.5, font_family: "monospace", fill: "white" }, name)
+    name && SVG.text({ x: 2, y: 2.5, font_size: 1.5, font_family: "monospace", fill: "white" }, name.length > 24 ? name.slice(0, 21) + "..." : name)
   ]);
 }
 function skeleton_back() {
@@ -2188,7 +2139,6 @@ var init_deck_view = __esm({
     init_xml();
     init_board();
     init_deck();
-    init_color();
     init_card_view();
     init_card_classifier();
     init_face_selector();
@@ -2221,7 +2171,7 @@ var init_deck_view = __esm({
           },
           board && HTML.div({
             id: `${id}-label`,
-            class: ["label", "dark"]
+            class: "label"
           }, HTML.div(
             HTML.span({ style: { font_weight: "bold" } }, board.name),
             ` (${cards.count()})`
@@ -2252,14 +2202,9 @@ var init_deck_view = __esm({
           group.name && HTML.div(
             {
               id: `${id}-label`,
-              class: [
-                "label",
-                group.color && contrast(group.color.length > 1 ? blend(
-                  ...group.color.flatMap((c, i, g) => Array(g.length - i).fill(c))
-                ) : group.color[0]) ? "light" : "dark"
-              ],
+              class: "label",
               style: {
-                background: group.color && `linear-gradient(to right in oklab, ${group.color.join(",")})`
+                "--gradient": group.color && `linear-gradient(to right in oklab, ${group.color.map((c, i, { length }) => `${c} ${{ 0: "16px", [length - 1]: "calc(100% - 16px)" }[i] ?? ""}`).join(",")})`
               }
             },
             HTML.div(
@@ -2275,24 +2220,30 @@ var init_deck_view = __esm({
             },
             groups.map((group2, i) => this.render_group(group2, `${id}-${i}`, grouping)) ?? []
           ),
-          ...cards?.sort((a, b) => ordering.compare(a, b)).flatMap((card, i, cards2) => {
-            const last_deck_card = i === cards2.length - 1;
-            const elements = [];
-            for (let j = 0; j < card.quantity; j++) {
-              const last_of_card = j === card.quantity - 1;
-              elements.push(CardView.render(
-                card,
-                `${id}-card-${i}-${j}`,
-                last_of_card,
-                last_deck_card && last_of_card,
-                grouping?.face_id(card, group.value)
-              ));
-            }
-            const all_elements = this.rendered_cards.get(card) ?? [];
-            all_elements.push(...elements);
-            this.rendered_cards.set(card, all_elements);
-            return elements;
-          }) ?? []
+          cards && HTML.div(
+            {
+              id: `${id}-stack`,
+              class: "stack"
+            },
+            cards.sort((a, b) => ordering.compare(a, b)).flatMap((card, i, cards2) => {
+              const last_deck_card = i === cards2.length - 1;
+              const elements = [];
+              for (let j = 0; j < card.quantity; j++) {
+                const last_of_card = j === card.quantity - 1;
+                elements.push(CardView.render(
+                  card,
+                  `${id}-card-${i}-${j}`,
+                  last_of_card,
+                  last_deck_card && last_of_card,
+                  grouping?.face_id(card, group.value)
+                ));
+              }
+              const all_elements = this.rendered_cards.get(card) ?? [];
+              all_elements.push(...elements);
+              this.rendered_cards.set(card, all_elements);
+              return elements;
+            })
+          )
         );
       }
       static set_background(card) {
@@ -2521,6 +2472,38 @@ var init_type = __esm({
   }
 });
 
+// color.ts
+function gradient(identity) {
+  switch (identity.colors.length) {
+    case 0:
+      return [MTG_COLORS.silver];
+    case 1:
+    case 2:
+    // return identity.colors.map(c => MTG_COLORS[c]);
+    default:
+      return identity.colors.map((c) => MTG_COLORS[c]);
+  }
+}
+var MTG_COLORS;
+var init_color = __esm({
+  "color.ts"() {
+    MTG_COLORS = {
+      blue: "#00b2ff",
+      red: "#ff3000",
+      green: "#63d500",
+      yellow: "#ffd145",
+      silver: "#a4b7c6",
+      purple: "#9300bd",
+      orange: "#ff9200"
+    };
+    MTG_COLORS["W"] = MTG_COLORS.yellow;
+    MTG_COLORS["U"] = MTG_COLORS.blue;
+    MTG_COLORS["B"] = MTG_COLORS.purple;
+    MTG_COLORS["R"] = MTG_COLORS.red;
+    MTG_COLORS["G"] = MTG_COLORS.green;
+  }
+});
+
 // card-classifier/color.ts
 var Color3;
 var init_color2 = __esm({
@@ -2709,9 +2692,9 @@ var init_rarity = __esm({
     init_card_classifier();
     init_group();
     RARITIES = {
-      common: { name: "Common", color: ["#000000"] },
+      common: { name: "Common" },
       uncommon: { name: "Uncommon", color: [MTG_COLORS.silver] },
-      rare: { name: "Rare", color: [MTG_COLORS.gold] },
+      rare: { name: "Rare", color: [MTG_COLORS.yellow] },
       mythic: { name: "Mythic Rare", color: [MTG_COLORS.red] },
       special: { name: "Special", color: [MTG_COLORS.purple] },
       bonus: { name: "Bonus", color: [MTG_COLORS.orange] }
@@ -2838,9 +2821,9 @@ var init_subtype = __esm({
         "Forest"
       ];
       static SUBTYPE_GROUPS = {
-        "Plains": { icon: "public/icon/white.svg", color: [MTG_COLORS.white] },
+        "Plains": { icon: "public/icon/white.svg", color: [MTG_COLORS.yellow] },
         "Island": { icon: "public/icon/blue.svg", color: [MTG_COLORS.blue] },
-        "Swamp": { icon: "public/icon/black.svg", color: [MTG_COLORS.black] },
+        "Swamp": { icon: "public/icon/black.svg", color: [MTG_COLORS.purple] },
         "Mountain": { icon: "public/icon/red.svg", color: [MTG_COLORS.red] },
         "Forest": { icon: "public/icon/green.svg", color: [MTG_COLORS.green] }
       };

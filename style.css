@@ -101,66 +101,12 @@ input[type=checkbox] {
     margin: 4px;
 }
 
-.label {
-    padding: 4px 8px;
-    border-radius: 4px;
-    display: flex;
-    justify-content: start;
-    align-items: center;
-    gap: 8px;
-    min-height: 16px;
-    text-transform: capitalize;
-}
-
-.label:has(.icon) {
-    padding-inline-start: 4px;
-}
-
-.label.light {
-    background-color: white;
-    color: black;
-}
-
-.label.dark {
-    background-color: black;
-    color: white;
-}
-
-.label div {
-    position: sticky;
-    left: 8px;
-    right: 8px;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 8px;
-}
-
-.icon {
-    width: 20px;
-    height: 20px;
-    margin: -2px;
-    object-fit: contain;
-}
-
-.label.light .icon {
-    filter: brightness(0);
-}
-
-.label.dark .icon {
-    filter: brightness(0) invert(100%);
-}
-
 #deck {
     position: absolute;
     width: 100%;
     height: calc(100% - 48px);
     overflow: auto;
-    padding-top: 64px;
-}
-
-#deck.show-quantity .label {
-    margin-left: 40px;
+    padding-top: 45px;
 }
 
 #deck .groups {
@@ -195,13 +141,99 @@ input[type=checkbox] {
 }
 
 #deck .label {
+    --gradient: transparent;
+
     position: sticky;
     top: 0;
-    margin-bottom: 16px;
     margin-inline: 8px;
     pointer-events: none;
     transition-property: margin;
     z-index: 5;
+    padding: 8px;
+    display: flex;
+    justify-content: start;
+    align-items: center;
+    gap: 8px;
+    min-height: 16px;
+    text-transform: capitalize;
+    color: white;
+    border-bottom: solid 2px #ffffff;
+    backdrop-filter: blur(4px);
+}
+
+#deck .label:has(.icon) {
+    padding-inline-start: 4px;
+}
+
+#deck.show-quantity .label {
+    margin-left: 40px;
+}
+
+#deck .label::before {
+    content: "";
+    position: absolute;
+    bottom: -32px;
+    left: -16px;
+    right: -16px;
+    height: 64px;
+    background: var(--gradient);
+    mask-image: linear-gradient(
+        to bottom,
+        #00000000,
+        #0000000f,
+        #0000001f,
+        #0000003f,
+        #0000007f,
+        #000000ff,
+        #0000007f,
+        #0000003f,
+        #0000001f,
+        #0000000f,
+        #00000000
+    ), linear-gradient(
+        to right,
+        #00000000,
+        #0000000f,
+        #0000001f,
+        #0000003f,
+        #0000007f,
+        #000000bf 16px,
+        #000000ff 32px,
+        #000000ff calc(100% - 32px),
+        #000000bf calc(100% - 16px),
+        #0000007f,
+        #0000003f,
+        #0000001f,
+        #0000000f,
+        #00000000
+    );
+    mask-composite: intersect;
+    mix-blend-mode: lighten;
+}
+
+.label div {
+    position: sticky;
+    left: 8px;
+    right: 8px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+}
+
+.icon {
+    width: 24px;
+    height: 24px;
+    margin: -4px;
+    object-fit: contain;
+}
+
+.label .icon {
+    filter: invert(100%);
+}
+
+.stack {
+    margin-top: 12px;
 }
 
 .card {

@@ -1,20 +1,18 @@
 import {ColorSet} from "./color-set";
 
 export const MTG_COLORS = {
-    black: '#231825',
-    white: '#f8e7b9',
-    blue: '#2886c8',
-    red: '#d34222',
-    green: '#318f26',
-    gold: '#cd9e45',
-    silver: '#aec3d3',
-    purple: '#9c50b1',
-    orange: '#f88007',
+    blue: '#00b2ff',
+    red: '#ff3000',
+    green: '#63d500',
+    yellow: '#ffd145',
+    silver: '#a4b7c6',
+    purple: '#9300bd',
+    orange: '#ff9200',
 };
 
-MTG_COLORS['W'] = MTG_COLORS.white;
+MTG_COLORS['W'] = MTG_COLORS.yellow;
 MTG_COLORS['U'] = MTG_COLORS.blue;
-MTG_COLORS['B'] = MTG_COLORS.black;
+MTG_COLORS['B'] = MTG_COLORS.purple;
 MTG_COLORS['R'] = MTG_COLORS.red;
 MTG_COLORS['G'] = MTG_COLORS.green;
 
@@ -50,8 +48,9 @@ export function gradient(identity: ColorSet): string[] {
             return [MTG_COLORS.silver];
         case 1:
         case 2:
-            return identity.colors.map(c => MTG_COLORS[c]);
+            // return identity.colors.map(c => MTG_COLORS[c]);
         default:
-            return [MTG_COLORS.gold];
+            return identity.colors.map(c => MTG_COLORS[c]);
+            // return [MTG_COLORS.gold];
     }
 }

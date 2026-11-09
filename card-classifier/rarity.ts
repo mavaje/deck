@@ -5,9 +5,9 @@ import {DeckCard} from "../deck-card";
 import {Group} from "./group";
 
 const RARITIES: Record<CardRarity, Partial<Group>> = {
-    common: {name: 'Common', color: ['#000000']},
+    common: {name: 'Common'},
     uncommon: {name: 'Uncommon', color: [MTG_COLORS.silver]},
-    rare: {name: 'Rare', color: [MTG_COLORS.gold]},
+    rare: {name: 'Rare', color: [MTG_COLORS.yellow]},
     mythic: {name: 'Mythic Rare', color: [MTG_COLORS.red]},
     special: {name: 'Special', color: [MTG_COLORS.purple]},
     bonus: {name: 'Bonus', color: [MTG_COLORS.orange]},
