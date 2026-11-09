@@ -1,53 +1,60 @@
-import {CardClassifier, Group} from "./card-classifier";
+import {CardClassifier} from "./card-classifier";
 import {DeckCard} from "../deck-card";
 import {API} from "../scryfall/api";
-import {Card, Set as SFSet} from "../scryfall/types";
+import {Group} from "./group";
 
 export class SetClassifier extends CardClassifier<string> {
     static name: string = 'Set';
     static ungrouped_name: string = 'Unspecified';
 
-    groups(): Group[] {
-        if (API.SETS.is_loaded()) {
-            const sets: Set<SFSet> = new Set();
-            this.cards.forEach(card => {
-                let set_code = card.card?.set ?? card.set;
-                while (set_code) {
-                    const set = API.SETS.get(set_code);
-                    if (!set || sets.has(set)) break;
-                    sets.add(set);
-                    set_code = set.parent_set_code;
-                }
-            });
-            return this.set_groups(
-                [...sets],
-                set => !set.parent_set_code,
-            );
-        } else {
-            return this.group_by(
-                card => card.card?.set ?? card.set,
-                (code, card) => ({
-                    name: card.card?.set_name ?? code.toUpperCase(),
-                    value: code,
-                }),
-            );
+    private group_map: Record<string, Group<string>> = {};
+
+    private add_set(top_groups: Group<string>[], set_code: string): Group<string> {
+        const set = API.SETS.get(set_code);
+
+        if (!set) return null;
+
+        if (set.code in this.group_map) {
+            return this.group_map[set.code];
         }
+
+        const cards = this.cards.filter(card => card.set_code() === set.code);
+        const group = new Group<string>({
+            name: set.name,
+            value: set.code,
+            icon: set.icon_svg_uri,
+            groups: [
+                new Group<string>({cards}),
+            ],
+        });
+        this.group_map[set.code] = group;
+
+        const parent = this.add_set(top_groups, set.parent_set_code);
+        if (parent) {
+            parent.groups.push(group);
+            parent.groups.sort((a, b) =>
+                this.nulls_first(a.value, b.value)
+                || this.compare_string(a.value, b.value));
+        } else {
+            top_groups.push(group);
+        }
+
+        return group;
     }
 
-    set_groups(sets: SFSet[], filter: (set: SFSet) => any): Group[] {
-        return sets
-            .filter(filter)
-            .map(set => ({
-                name: set.name,
-                value: set.code,
-                icon: set.icon_svg_uri,
-                cards: this.cards.filter(card => API.SETS.normalise_key(card.card?.set ?? card.set) === set.code),
-                groups: this.set_groups(sets, set => set.parent_set_code === set.code),
-            } as Group<string>));
+    groups(): Group<string>[] {
+        const groups: Group<string>[] = [];
+
+        this.cards.forEach(card => {
+            let set_code = card.set_code();
+            this.add_set(groups, set_code);
+        });
+
+        return groups.sort((a, b) => this.compare_string(a.value, b.value));
     }
 
     compare(a: DeckCard, b: DeckCard): number {
-        return this.compare_string(a, b, face =>
+        return this.compare_card_string(a, b, face =>
             face.card?.set
                 ? [
                     face.card.set,

@@ -1,6 +1,7 @@
-import {BaseGroup, CardClassifier} from "./card-classifier";
+import {CardClassifier} from "./card-classifier";
 import {Catalog} from "../scryfall/catalog";
 import {Face} from "../face";
+import {Group} from "./group";
 
 export class Type extends CardClassifier {
     static name: string = 'Type';
@@ -32,7 +33,7 @@ export class Type extends CardClassifier {
         'Card',
     ];
 
-    static TYPE_GROUPS: Record<string, BaseGroup<never>> = {
+    static TYPE_GROUPS: Record<string, Partial<Group>> = {
         'Land': {icon: 'public/icon/land.svg'},
         'Artifact': {icon: 'public/icon/artifact.svg'},
         'Enchantment': {icon: 'public/icon/enchantment.svg'},
@@ -55,11 +56,11 @@ export class Type extends CardClassifier {
             undefined,
             Object.fromEntries(Type.CARD_TYPE_ORDER.map(type => [
                 type,
-                {
+                new Group({
                     name: type,
                     value: type,
                     ...Type.TYPE_GROUPS[type] ?? {},
-                },
+                }),
             ])),
         );
     }

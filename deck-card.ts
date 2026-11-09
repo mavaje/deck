@@ -320,6 +320,10 @@ export class DeckCard extends Face {
         return this;
     }
 
+    set_code(): string {
+        return API.SETS.normalise(this.set ?? this.card?.set);
+    }
+
     main_face(display: boolean = null): Face {
         display ??= {
             'double_faced_token': true,
@@ -355,36 +359,6 @@ export class DeckCard extends Face {
             this,
         ];
     }
-
-    // image_urls(): string[] {
-    //     let urls: string[] = super.image_urls();
-    //
-    //     if (urls.length === 0) {
-    //         const {set, collector_number, language} = this;
-    //         const parameters = {format: 'image', version: 'grid'};
-    //
-    //         if (set && collector_number) {
-    //             urls.push(API.card_url(set, collector_number, language.code(), parameters));
-    //         }
-    //     }
-    //
-    //     return urls;
-    // }
-
-    // back_image_url(): string {
-    //     const back_image: string = super.back_image_url();
-    //
-    //     if (!back_image) {
-    //         const {set, collector_number, language} = this;
-    //         const parameters = {format: 'image', version: 'grid', face: 'back'};
-    //
-    //         if (set && collector_number) {
-    //             return API.card_url(set, collector_number, language.code(), parameters);
-    //         }
-    //     }
-    //
-    //     return back_image;
-    // }
 
     matches(card: DeckCard) {
         for (const field of [

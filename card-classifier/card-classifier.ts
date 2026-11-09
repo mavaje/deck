@@ -4,24 +4,7 @@ import {CardList} from "../card-list";
 import {Face} from "../face";
 import {DeckView} from "../ui/deck-view";
 import {FaceSelector} from "./face-selector";
-
-export type BaseGroup<T = string | number> = {
-    name?: string;
-    value?: T;
-    icon?: string;
-    color?: string[];
-};
-
-export type CardGroup<T = string | number> = BaseGroup<T> & {
-    cards: CardList;
-};
-
-export type SuperGroup<T = string | number> = BaseGroup<T> & {
-    groups: Group<T>[];
-    count: number;
-};
-
-export type Group<T = string | number> = CardGroup<T> | SuperGroup<T>;
+import {Group} from "./group";
 
 export abstract class CardClassifier<T extends string | number = string | number> {
     static STRING_COMPARATOR = new Intl.Collator('en', {numeric: true});
@@ -33,10 +16,10 @@ export abstract class CardClassifier<T extends string | number = string | number
 
     constructor(protected cards: CardList) {}
 
-    groups(): Group[] {
-        return [{
-            cards: this.cards,
-        }];
+    groups(): Group<T>[] {
+        return [
+            new Group({cards: this.cards.copy()}),
+        ];
     }
 
     match_face(face: Face, value: T): boolean {
@@ -56,9 +39,9 @@ export abstract class CardClassifier<T extends string | number = string | number
 
     protected group_by_face(
         get: (face: Face) => T | T[],
-        group?: (value: T, face: Face) => BaseGroup<T>,
-        groups?: Partial<Record<T, Partial<CardGroup>>>,
-    ) {
+        group?: (value: T, face: Face) => Partial<Group<T>>,
+        groups?: Record<T, Group>,
+    ): Group<T>[] {
         return this.group_by(
             card => DeckView.FACE_SELECTOR.get(card).flatMap(get),
             group,
@@ -68,23 +51,24 @@ export abstract class CardClassifier<T extends string | number = string | number
 
     protected group_by(
         get: (card: DeckCard) => T | T[],
-        group: (value: T, card: DeckCard) => BaseGroup<T> = value => ({name: String(value), value}),
-        groups: Partial<Record<T, Partial<CardGroup>>> = {},
-    ): Group[] {
+        group: (value: T, card: DeckCard) => Partial<Group<T>> = value => new Group({name: String(value), value}),
+        groups: Record<T, Group> = {} as Record<T, Group>,
+    ): Group<T>[] {
         this.cards
             .map(card => {
                 let values = get(card);
                 if (!Array.isArray(values)) values = [values];
                 [...new Set(values)].forEach(value => {
                     if (is_nullish(value)) return;
-                    groups[value] ??= group(value, card);
-                    if (groups[value]) {
+                    const g = group(value, card);
+                    if (g) {
+                        groups[value] ??= new Group(g);
                         groups[value].cards ??= new CardList();
                         groups[value].cards.push(card);
                     }
                 });
             });
-        return (Object.values(groups) as CardGroup[])
+        return (Object.values(groups) as Group<T>[])
             .filter(Boolean)
             .sort((g1, g2) => {
                 const a = g1.cards?.[0];
@@ -97,36 +81,44 @@ export abstract class CardClassifier<T extends string | number = string | number
         return 0;
     }
 
-    protected compare_number(a: DeckCard, b: DeckCard, get: (face: Face, card: DeckCard) => number): number {
+    protected compare_card_number(a: DeckCard, b: DeckCard, get: (face: Face, card: DeckCard) => number): number {
         const value_a = get(DeckView.FACE_SELECTOR.get(a)[0], a);
         const value_b = get(DeckView.FACE_SELECTOR.get(b)[0], b);
         return this.nulls_last(value_a, value_b)
             || value_a - value_b;
     }
 
-    protected compare_string(a: DeckCard, b: DeckCard, get: (face: Face, card: DeckCard) => string): number {
+    protected compare_card_string(a: DeckCard, b: DeckCard, get: (face: Face, card: DeckCard) => string): number {
         const value_a = get(DeckView.FACE_SELECTOR.get(a)[0], a);
         const value_b = get(DeckView.FACE_SELECTOR.get(b)[0], b);
         return this.nulls_last(value_a, value_b)
             || CardClassifier.STRING_COMPARATOR.compare(value_a, value_b);
     }
 
-    protected compare_index<T>(a: DeckCard, b: DeckCard, get: (face: Face, card: DeckCard) => T, ordering: T[]): number {
+    protected compare_card_index<T>(a: DeckCard, b: DeckCard, get: (face: Face, card: DeckCard) => T, ordering: T[]): number {
         const value_a = get(DeckView.FACE_SELECTOR.get(a)[0], a);
         const value_b = get(DeckView.FACE_SELECTOR.get(b)[0], b);
         return this.nulls_last(value_a, value_b)
             || ordering.indexOf(value_a) - ordering.indexOf(value_b);
     }
 
-    protected nulls_last(a: any, b: any): number {
-        const null_a = is_nullish(a) ? 1 : 0;
-        const null_b = is_nullish(b) ? 1 : 0;
-        return null_a - null_b;
+    protected compare_string(a: string, b: string): number {
+        return CardClassifier.STRING_COMPARATOR.compare(a, b);
     }
 
     protected lands_first(a: DeckCard, b: DeckCard): number {
         const land_a = DeckView.FACE_SELECTOR.get(a)[0]?.is_type('Land') ? 1 : 0;
         const land_b = DeckView.FACE_SELECTOR.get(b)[0]?.is_type('Land') ? 1 : 0;
         return land_b - land_a;
+    }
+
+    protected nulls_first(a: any, b: any): number {
+        return this.nulls_last(b, a);
+    }
+
+    protected nulls_last(a: any, b: any): number {
+        const null_a = is_nullish(a) ? 1 : 0;
+        const null_b = is_nullish(b) ? 1 : 0;
+        return null_a - null_b;
     }
 }

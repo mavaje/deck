@@ -1,9 +1,10 @@
 import {Catalog} from "../scryfall/catalog";
-import {BaseGroup, CardClassifier} from "./card-classifier";
+import {CardClassifier} from "./card-classifier";
 import {Type} from "./type";
 import {MTG_COLORS} from "../color";
 import {Face} from "../face";
 import {DeckView} from "../ui/deck-view";
+import {Group} from "./group";
 
 export class Subtype extends CardClassifier {
     static name: string = 'Subtype';
@@ -16,7 +17,7 @@ export class Subtype extends CardClassifier {
         'Forest',
     ];
 
-    static SUBTYPE_GROUPS: Record<string, BaseGroup> = {
+    static SUBTYPE_GROUPS: Record<string, Partial<Group>> = {
         'Plains': {icon: 'public/icon/white.svg', color: [MTG_COLORS.white]},
         'Island': {icon: 'public/icon/blue.svg', color: [MTG_COLORS.blue]},
         'Swamp': {icon: 'public/icon/black.svg', color: [MTG_COLORS.black]},
@@ -30,18 +31,17 @@ export class Subtype extends CardClassifier {
 
     split_by_face: boolean = true;
 
-    groups() {
+    groups(): Group[] {
         return Type.CARD_TYPE_ORDER.map(type => {
             const catalog = Catalog.subtypes[type];
             const cards = this.cards.filter(card => DeckView.FACE_SELECTOR.get(card).some(face => face.is_card_type(type)));
             if (cards.length === 0) return null;
-            return {
+            return new Group({
                 name: type,
                 value: type,
-                count: cards.count(),
                 groups: [
                     ...catalog?.all()
-                        .map(subtype => ({
+                        .map(subtype => new Group({
                             name: subtype,
                             value: `${type} - ${subtype}`,
                             cards: cards.filter(card => DeckView.FACE_SELECTOR.get(card).some(face => face.is_specified_type(subtype))),
@@ -54,18 +54,18 @@ export class Subtype extends CardClassifier {
                             if (index_b === -1) index_b = Infinity;
                             return index_a - index_b;
                         }) ?? [],
-                    {
+                    new Group({
                         name: `All ${type} types`,
                         value: `${type} - *`,
                         cards: cards.filter(card => DeckView.FACE_SELECTOR.get(card).some(face => face.is_all_types(type))),
-                    },
-                    {
+                    }),
+                    new Group({
                         value: type,
                         cards: cards.filter(card => !(catalog?.all().some(subtype => DeckView.FACE_SELECTOR.get(card).some(face => face.is_type(subtype))))),
-                    }
+                    }),
                 ],
                 ...Type.TYPE_GROUPS[type] ?? {},
-            };
+            });
         })
     }
 

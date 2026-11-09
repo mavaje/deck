@@ -138,9 +138,9 @@ input[type=checkbox] {
 }
 
 .icon {
-    width: 24px;
-    height: 24px;
-    margin: -4px;
+    width: 20px;
+    height: 20px;
+    margin: -2px;
     object-fit: contain;
 }
 
@@ -223,6 +223,14 @@ input[type=checkbox] {
     transition-property: width, height, margin, opacity;
 }
 
+.card.double {
+    --card-title-height: calc(6 * var(--card-scale));
+}
+
+.card.double.landscape {
+    --card-title-height: calc(5 * var(--card-scale));
+}
+
 #deck.show-quantity .card.collapsible {
     height: 0 !important;
     margin-bottom: 0 !important;
@@ -282,12 +290,12 @@ input[type=checkbox] {
     transition-property: background-color, left;
 }
 
-#deck.show-quantity .card .backdrop {
-    left: -40px;
-}
-
 .card:hover .backdrop {
     background-color: #ffffff3f;
+}
+
+#deck.show-quantity .card .backdrop {
+    left: -48px;
 }
 
 .card .trigger {
@@ -319,7 +327,7 @@ input[type=checkbox] {
 
 .card .count {
     margin-left: -40px;
-    padding: calc(1.5 * var(--card-scale)) 8px 0 0;
+    padding: calc(var(--card-title-height) / 2 - 4px) 8px 0 0;
     min-width: 32px;
     text-align: end;
     transition-property: opacity;

@@ -5,7 +5,7 @@ export class Name extends CardClassifier {
     static name: string = 'Name';
 
     compare(a: DeckCard, b: DeckCard): number {
-        return this.compare_string(a, b, (_, card) => card
+        return this.compare_card_string(a, b, (_, card) => card
             .main_face(true)
             .card_name(true));
     }

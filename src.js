@@ -1502,6 +1502,9 @@ var init_deck_card = __esm({
         }
         return this;
       }
+      set_code() {
+        return API.SETS.normalise(this.set ?? this.card?.set);
+      }
       main_face(display = null) {
         display ??= {
           "double_faced_token": true,
@@ -2075,6 +2078,29 @@ var init_face_selector = __esm({
   }
 });
 
+// card-classifier/group.ts
+var Group;
+var init_group = __esm({
+  "card-classifier/group.ts"() {
+    Group = class {
+      name;
+      value;
+      icon;
+      color;
+      cards;
+      groups;
+      constructor(group) {
+        Object.assign(this, group);
+      }
+      count() {
+        let count = this.cards?.count() ?? 0;
+        this.groups?.forEach((group) => count += group.count());
+        return count;
+      }
+    };
+  }
+});
+
 // card-classifier/card-classifier.ts
 var CardClassifier;
 var init_card_classifier = __esm({
@@ -2083,6 +2109,7 @@ var init_card_classifier = __esm({
     init_card_list();
     init_deck_view();
     init_face_selector();
+    init_group();
     CardClassifier = class _CardClassifier {
       constructor(cards) {
         this.cards = cards;
@@ -2093,9 +2120,9 @@ var init_card_classifier = __esm({
       static ungrouped_name = "Unknown";
       split_by_face = false;
       groups() {
-        return [{
-          cards: this.cards
-        }];
+        return [
+          new Group({ cards: this.cards.copy() })
+        ];
       }
       match_face(face, value) {
         return true;
@@ -2117,14 +2144,15 @@ var init_card_classifier = __esm({
           groups
         );
       }
-      group_by(get, group = (value) => ({ name: String(value), value }), groups = {}) {
+      group_by(get, group = (value) => new Group({ name: String(value), value }), groups = {}) {
         this.cards.map((card) => {
           let values = get(card);
           if (!Array.isArray(values)) values = [values];
           [...new Set(values)].forEach((value) => {
             if (is_nullish(value)) return;
-            groups[value] ??= group(value, card);
-            if (groups[value]) {
+            const g = group(value, card);
+            if (g) {
+              groups[value] ??= new Group(g);
               groups[value].cards ??= new CardList();
               groups[value].cards.push(card);
             }
@@ -2139,30 +2167,36 @@ var init_card_classifier = __esm({
       compare(a, b) {
         return 0;
       }
-      compare_number(a, b, get) {
+      compare_card_number(a, b, get) {
         const value_a = get(DeckView.FACE_SELECTOR.get(a)[0], a);
         const value_b = get(DeckView.FACE_SELECTOR.get(b)[0], b);
         return this.nulls_last(value_a, value_b) || value_a - value_b;
       }
-      compare_string(a, b, get) {
+      compare_card_string(a, b, get) {
         const value_a = get(DeckView.FACE_SELECTOR.get(a)[0], a);
         const value_b = get(DeckView.FACE_SELECTOR.get(b)[0], b);
         return this.nulls_last(value_a, value_b) || _CardClassifier.STRING_COMPARATOR.compare(value_a, value_b);
       }
-      compare_index(a, b, get, ordering) {
+      compare_card_index(a, b, get, ordering) {
         const value_a = get(DeckView.FACE_SELECTOR.get(a)[0], a);
         const value_b = get(DeckView.FACE_SELECTOR.get(b)[0], b);
         return this.nulls_last(value_a, value_b) || ordering.indexOf(value_a) - ordering.indexOf(value_b);
       }
-      nulls_last(a, b) {
-        const null_a = is_nullish(a) ? 1 : 0;
-        const null_b = is_nullish(b) ? 1 : 0;
-        return null_a - null_b;
+      compare_string(a, b) {
+        return _CardClassifier.STRING_COMPARATOR.compare(a, b);
       }
       lands_first(a, b) {
         const land_a = DeckView.FACE_SELECTOR.get(a)[0]?.is_type("Land") ? 1 : 0;
         const land_b = DeckView.FACE_SELECTOR.get(b)[0]?.is_type("Land") ? 1 : 0;
         return land_b - land_a;
+      }
+      nulls_first(a, b) {
+        return this.nulls_last(b, a);
+      }
+      nulls_last(a, b) {
+        const null_a = is_nullish(a) ? 1 : 0;
+        const null_b = is_nullish(b) ? 1 : 0;
+        return null_a - null_b;
       }
     };
   }
@@ -2179,6 +2213,7 @@ var init_deck_view = __esm({
     init_card_view();
     init_card_classifier();
     init_face_selector();
+    init_group();
     DeckView = class {
       static BY_BOARD = true;
       static GROUPING = CardClassifier;
@@ -2218,25 +2253,16 @@ var init_deck_view = __esm({
               class: "groups"
             },
             ...grouping.groups().map((group, j) => this.render_group(group, `${id}-group-${j}`, grouping)),
-            this.render_group({
+            this.render_group(new Group({
               name: this.GROUPING.ungrouped_name,
               cards: cards.filter((card) => !this.rendered_cards.has(card))
-            }, `${id}-ungrouped`)
+            }), `${id}-ungrouped`)
           )
         );
       }
       static render_group(group, id = 0, grouping) {
         if (!group) return null;
-        let cards = null;
-        let groups = null;
-        let count;
-        if ("cards" in group) {
-          cards = group.cards.copy();
-          count = cards.count();
-        } else {
-          groups = group.groups;
-          count = group.count;
-        }
+        const { cards, groups } = group;
         if (!cards?.length && !groups?.length) return null;
         const ordering = new this.ORDERING();
         return HTML.div(
@@ -2260,7 +2286,7 @@ var init_deck_view = __esm({
             HTML.div(
               group.icon && HTML.img({ class: "icon", src: group.icon }),
               HTML.span({ style: { font_weight: "bold" } }, group.name),
-              ` (${count})`
+              ` (${group.count()})`
             )
           ),
           groups && HTML.div(
@@ -2454,6 +2480,7 @@ var init_type = __esm({
   "card-classifier/type.ts"() {
     init_card_classifier();
     init_catalog();
+    init_group();
     Type = class _Type extends CardClassifier {
       static name = "Type";
       static CARD_TYPE_ORDER = [
@@ -2500,11 +2527,11 @@ var init_type = __esm({
           void 0,
           Object.fromEntries(_Type.CARD_TYPE_ORDER.map((type) => [
             type,
-            {
+            new Group({
               name: type,
               value: type,
               ..._Type.TYPE_GROUPS[type] ?? {}
-            }
+            })
           ]))
         );
       }
@@ -2523,6 +2550,7 @@ var init_color2 = __esm({
     init_color();
     init_card_classifier();
     init_type();
+    init_group();
     Color3 = class _Color extends CardClassifier {
       static name = "Color";
       static COLOR_GROUPS = {
@@ -2554,12 +2582,12 @@ var init_color2 = __esm({
           (face) => face.is_type("Land") ? 0 : ColorSet.index(face.colors()) + 1,
           void 0,
           [
-            {
+            new Group({
               name: "Land",
               value: 0,
               ...Type.TYPE_GROUPS["Land"]
-            },
-            ...Object.entries(ColorSet.all()).map(([name, colors], index) => ({
+            }),
+            ...Object.entries(ColorSet.all()).map(([name, colors], index) => new Group({
               name,
               value: index + 1,
               color: gradient(colors),
@@ -2569,7 +2597,7 @@ var init_color2 = __esm({
         );
       }
       compare(a, b) {
-        return this.lands_first(a, b) || this.compare_number(a, b, (face) => ColorSet.index(face.colors()));
+        return this.lands_first(a, b) || this.compare_card_number(a, b, (face) => ColorSet.index(face.colors()));
       }
     };
   }
@@ -2583,13 +2611,14 @@ var init_color_identity = __esm({
     init_color();
     init_card_classifier();
     init_color2();
+    init_group();
     ColorIdentity = class extends CardClassifier {
       static name = "Color Identity";
       groups() {
         return this.group_by(
           (card) => ColorSet.index(card.color_identity()),
           void 0,
-          Object.entries(ColorSet.all()).map(([name, colors], index) => ({
+          Object.entries(ColorSet.all()).map(([name, colors], index) => new Group({
             name,
             value: index,
             color: gradient(colors),
@@ -2598,7 +2627,7 @@ var init_color_identity = __esm({
         );
       }
       compare(a, b) {
-        return this.compare_number(a, b, (card) => ColorSet.index(card.color_identity()));
+        return this.compare_card_number(a, b, (card) => ColorSet.index(card.color_identity()));
       }
     };
   }
@@ -2629,7 +2658,7 @@ var init_mana_value = __esm({
         );
       }
       compare(a, b) {
-        return this.lands_first(a, b) || this.compare_number(a, b, (face) => face.mana_value());
+        return this.lands_first(a, b) || this.compare_card_number(a, b, (face) => face.mana_value());
       }
     };
   }
@@ -2641,46 +2670,46 @@ var init_set_classifier = __esm({
   "card-classifier/set-classifier.ts"() {
     init_card_classifier();
     init_api();
+    init_group();
     SetClassifier = class extends CardClassifier {
       static name = "Set";
       static ungrouped_name = "Unspecified";
-      groups() {
-        if (API.SETS.is_loaded()) {
-          const sets = /* @__PURE__ */ new Set();
-          this.cards.forEach((card) => {
-            let set_code = card.card?.set ?? card.set;
-            while (set_code) {
-              const set = API.SETS.get(set_code);
-              if (!set || sets.has(set)) break;
-              sets.add(set);
-              set_code = set.parent_set_code;
-            }
-          });
-          return this.set_groups(
-            [...sets],
-            (set) => !set.parent_set_code
-          );
-        } else {
-          return this.group_by(
-            (card) => card.card?.set ?? card.set,
-            (code, card) => ({
-              name: card.card?.set_name ?? code.toUpperCase(),
-              value: code
-            })
-          );
+      group_map = {};
+      add_set(top_groups, set_code) {
+        const set = API.SETS.get(set_code);
+        if (!set) return null;
+        if (set.code in this.group_map) {
+          return this.group_map[set.code];
         }
-      }
-      set_groups(sets, filter) {
-        return sets.filter(filter).map((set) => ({
+        const cards = this.cards.filter((card) => card.set_code() === set.code);
+        const group = new Group({
           name: set.name,
           value: set.code,
           icon: set.icon_svg_uri,
-          cards: this.cards.filter((card) => API.SETS.normalise_key(card.card?.set ?? card.set) === set.code),
-          groups: this.set_groups(sets, (set2) => set2.parent_set_code === set2.code)
-        }));
+          groups: [
+            new Group({ cards })
+          ]
+        });
+        this.group_map[set.code] = group;
+        const parent = this.add_set(top_groups, set.parent_set_code);
+        if (parent) {
+          parent.groups.push(group);
+          parent.groups.sort((a, b) => this.nulls_first(a.value, b.value) || this.compare_string(a.value, b.value));
+        } else {
+          top_groups.push(group);
+        }
+        return group;
+      }
+      groups() {
+        const groups = [];
+        this.cards.forEach((card) => {
+          let set_code = card.set_code();
+          this.add_set(groups, set_code);
+        });
+        return groups.sort((a, b) => this.compare_string(a.value, b.value));
       }
       compare(a, b) {
-        return this.compare_string(
+        return this.compare_card_string(
           a,
           b,
           (face) => face.card?.set ? [
@@ -2699,6 +2728,7 @@ var init_rarity = __esm({
   "card-classifier/rarity.ts"() {
     init_color();
     init_card_classifier();
+    init_group();
     RARITIES = {
       common: { name: "Common", color: ["#000000"] },
       uncommon: { name: "Uncommon", color: [MTG_COLORS.silver] },
@@ -2713,11 +2743,11 @@ var init_rarity = __esm({
         return this.group_by(
           (card) => card.card?.rarity,
           void 0,
-          Object.fromEntries(Object.entries(RARITIES).map(([key, group]) => [key, { value: key, ...group }]))
+          Object.fromEntries(Object.entries(RARITIES).map(([key, group]) => [key, new Group({ value: key, ...group })]))
         );
       }
       compare(a, b) {
-        return this.compare_index(a, b, (card) => card.card?.rarity, Object.keys(RARITIES));
+        return this.compare_card_index(a, b, (card) => card.card?.rarity, Object.keys(RARITIES));
       }
     };
   }
@@ -2757,7 +2787,7 @@ var init_name = __esm({
     Name = class extends CardClassifier {
       static name = "Name";
       compare(a, b) {
-        return this.compare_string(a, b, (_, card) => card.main_face(true).card_name(true));
+        return this.compare_card_string(a, b, (_, card) => card.main_face(true).card_name(true));
       }
     };
   }
@@ -2771,19 +2801,19 @@ var init_price = __esm({
     PriceUSD = class extends CardClassifier {
       static name = "Price - USD";
       compare(a, b) {
-        return this.compare_number(a, b, (card) => Number.parseFloat(card.card?.prices?.usd));
+        return this.compare_card_number(a, b, (card) => Number.parseFloat(card.card?.prices?.usd));
       }
     };
     PriceEUR = class extends CardClassifier {
       static name = "Price - EUR";
       compare(a, b) {
-        return this.compare_number(a, b, (card) => Number.parseFloat(card.card?.prices?.eur));
+        return this.compare_card_number(a, b, (card) => Number.parseFloat(card.card?.prices?.eur));
       }
     };
     PriceTIX = class extends CardClassifier {
       static name = "Price - TIX";
       compare(a, b) {
-        return this.compare_number(a, b, (card) => Number.parseFloat(card.card?.prices?.tix));
+        return this.compare_card_number(a, b, (card) => Number.parseFloat(card.card?.prices?.tix));
       }
     };
   }
@@ -2797,13 +2827,13 @@ var init_rank = __esm({
     RankEDHREC = class extends CardClassifier {
       static name = "Rank - EDHREC";
       compare(a, b) {
-        return this.compare_number(a, b, (card) => card.card?.edhrec_rank);
+        return this.compare_card_number(a, b, (card) => card.card?.edhrec_rank);
       }
     };
     RankPenny = class extends CardClassifier {
       static name = "Rank - Penny Dreadful";
       compare(a, b) {
-        return this.compare_number(a, b, (card) => card.card?.penny_rank);
+        return this.compare_card_number(a, b, (card) => card.card?.penny_rank);
       }
     };
   }
@@ -2818,6 +2848,7 @@ var init_subtype = __esm({
     init_type();
     init_color();
     init_deck_view();
+    init_group();
     Subtype = class _Subtype extends CardClassifier {
       static name = "Subtype";
       static SUBTYPE_ORDER = [
@@ -2843,12 +2874,11 @@ var init_subtype = __esm({
           const catalog = Catalog.subtypes[type];
           const cards = this.cards.filter((card) => DeckView.FACE_SELECTOR.get(card).some((face) => face.is_card_type(type)));
           if (cards.length === 0) return null;
-          return {
+          return new Group({
             name: type,
             value: type,
-            count: cards.count(),
             groups: [
-              ...catalog?.all().map((subtype) => ({
+              ...catalog?.all().map((subtype) => new Group({
                 name: subtype,
                 value: `${type} - ${subtype}`,
                 cards: cards.filter((card) => DeckView.FACE_SELECTOR.get(card).some((face) => face.is_specified_type(subtype))),
@@ -2860,18 +2890,18 @@ var init_subtype = __esm({
                 if (index_b === -1) index_b = Infinity;
                 return index_a - index_b;
               }) ?? [],
-              {
+              new Group({
                 name: `All ${type} types`,
                 value: `${type} - *`,
                 cards: cards.filter((card) => DeckView.FACE_SELECTOR.get(card).some((face) => face.is_all_types(type)))
-              },
-              {
+              }),
+              new Group({
                 value: type,
                 cards: cards.filter((card) => !catalog?.all().some((subtype) => DeckView.FACE_SELECTOR.get(card).some((face) => face.is_type(subtype))))
-              }
+              })
             ],
             ...Type.TYPE_GROUPS[type] ?? {}
-          };
+          });
         });
       }
       match_face(face, type_line) {

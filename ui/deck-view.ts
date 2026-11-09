@@ -4,9 +4,10 @@ import {Deck} from "../deck";
 import {blend, contrast} from "../color";
 import {CardView} from "./card-view";
 import {DeckCard} from "../deck-card";
-import {CardClassifier, Group} from "../card-classifier/card-classifier";
+import {CardClassifier} from "../card-classifier/card-classifier";
 import {CardList} from "../card-list";
 import {FaceSelector} from "../card-classifier/face-selector";
+import {Group} from "../card-classifier/group";
 
 export class DeckView {
 
@@ -61,10 +62,10 @@ export class DeckView {
                 },
                 ...grouping.groups()
                     .map((group, j) => this.render_group(group, `${id}-group-${j}`, grouping)),
-                this.render_group({
+                this.render_group(new Group({
                     name: this.GROUPING.ungrouped_name,
                     cards: cards.filter(card => !this.rendered_cards.has(card)),
-                }, `${id}-ungrouped`),
+                }), `${id}-ungrouped`),
             ),
         );
     }
@@ -75,16 +76,7 @@ export class DeckView {
         grouping?: CardClassifier,
     ): HTMLDivElement {
         if (!group) return null;
-        let cards: CardList = null;
-        let groups: Group[] = null;
-        let count: number;
-        if ('cards' in group) {
-            cards = group.cards.copy();
-            count = cards.count();
-        } else {
-            groups = group.groups;
-            count = group.count;
-        }
+        const {cards, groups} = group;
         if (!cards?.length && !groups?.length) return null;
         const ordering = new (this.ORDERING as any)() as CardClassifier;
         return HTML.div(
@@ -111,7 +103,7 @@ export class DeckView {
                 HTML.div(
                     group.icon && HTML.img({class: 'icon', src: group.icon}),
                     HTML.span({style: {font_weight: 'bold'}}, group.name),
-                    ` (${count})`,
+                    ` (${group.count()})`,
                 ),
             ),
             groups && HTML.div(

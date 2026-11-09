@@ -1,7 +1,8 @@
-import {CardClassifier, Group} from "./card-classifier";
+import {CardClassifier} from "./card-classifier";
 import {DeckCard} from "../deck-card";
 import {fraction} from "../text";
 import {Type} from "./type";
+import {Group} from "./group";
 
 export class ManaValue extends CardClassifier<number> {
     static name: string = 'Mana Value';
@@ -9,7 +10,7 @@ export class ManaValue extends CardClassifier<number> {
 
     split_by_face: boolean = true;
 
-    groups(): Group[] {
+    groups(): Group<number>[] {
         return this.group_by_face(
             face => face.is_type('Land') ? -1 : face.mana_value(),
             mv => (mv < 0 ? {
@@ -19,12 +20,12 @@ export class ManaValue extends CardClassifier<number> {
             } : {
                 name: `${fraction(mv)}-drop`,
                 value: mv,
-            }),
+            }) as Group<number>,
         );
     }
 
     compare(a: DeckCard, b: DeckCard): number {
         return this.lands_first(a, b)
-            || this.compare_number(a, b, face => face.mana_value());
+            || this.compare_card_number(a, b, face => face.mana_value());
     }
 }
