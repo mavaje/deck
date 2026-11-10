@@ -403,8 +403,9 @@ input[type=checkbox] {
     --transform-compact: var(--transform-final);
 }
 
-.card:hover .card-faces {
-    box-shadow: 0 0 8px 2px black;
+.card:hover .card-faces,
+.card.focus .card-faces {
+    box-shadow: 0 0 8px 2px #00ffbf;
 }
 
 #deck.compact .card:not(:hover) .card-faces {
@@ -514,10 +515,6 @@ input[type=checkbox] {
     transform: translateZ(-1px) rotateX(180deg);
 }
 
-.card.error .card-face {
-    outline-color: #ff3f00;
-}
-
 .label,
 .card {
     animation: fade-in 0.4s ease;
@@ -554,35 +551,4 @@ input[type=checkbox] {
 
 @keyframes foil-animation {
     100% { background-position: var(--foil-scale) 0 }
-}
-
-.card-face .name-overlay {
-    position: absolute;
-    top: calc(1.5 * var(--card-scale));
-    left: calc(1.5 * var(--card-scale));
-    max-width: calc(var(--card-width) - 3 * var(--card-scale) - 8px);
-    padding: 2px 4px;
-    background-color: #ffffff3f;
-    backdrop-filter: blur(4px);
-    border-radius: 4px;
-    color: black;
-    font-weight: bold;
-    font-size: calc(1.5 * var(--card-scale));
-    transition-property: opacity;
-}
-
-.card-face.back .name-overlay {
-    background-color: #0000003f;
-    color: white;
-}
-
-.card.landscape .card-face .name-overlay,
-.card.landscape-front .card-face.front .name-overlay {
-    transform: rotate(-90deg)
-        translateX(calc(3 * var(--card-scale) - var(--card-width)));
-    transform-origin: 0 0;
-}
-
-.card:not(:hover) .card-face .name-overlay {
-    opacity: 0;
 }

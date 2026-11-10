@@ -1296,6 +1296,7 @@ var init_deck_card = __esm({
         "Summer",
         "Theme"
       ]);
+      id = null;
       raw;
       raw_name = null;
       name = null;
@@ -1403,7 +1404,10 @@ var init_deck_card = __esm({
             }
           }
         }
-        deck?.add(card);
+        if (deck) {
+          card.id = deck.length;
+          deck.push(card);
+        }
         return card;
       }
       static from_card(card, exact = false) {
@@ -1646,6 +1650,17 @@ var init_deck_card = __esm({
           if (this.has_keyword("Choose a background") && second.is_type("Legendary", "Enchantment", "Background")) {
             return true;
           }
+          if (this.has_ability("Legendary partner") && !second.is_type("Legendary") && second.main_face().power() && second.main_face().toughness()) {
+            return true;
+          }
+          const free_match = this.oracle().match(/You may play ~ and any other legend with (?<id>\w+|\d+) color identity or less as your commanders as though they each had partner\./);
+          if (free_match) {
+            const { id } = free_match.groups;
+            const id_count = words_to_number(id) ?? Number.parseInt(id);
+            if (second.is_type("Legendary", "Creature") && second.color_identity().size <= id_count) {
+              return true;
+            }
+          }
         }
         return false;
       }
@@ -1728,20 +1743,6 @@ var init_card_list = __esm({
         } else {
           super(cards);
         }
-      }
-      add(card) {
-        for (const existing_card of this) {
-          if (existing_card.matches(card)) {
-            if (existing_card.quantity + card.quantity > 999) {
-              card.quantity += existing_card.quantity - 999;
-              existing_card.quantity = 999;
-            } else {
-              existing_card.quantity += card.quantity;
-              return;
-            }
-          }
-        }
-        this.push(card);
       }
       count() {
         return this.reduce((count, card) => count + card.quantity, 0);
@@ -1856,7 +1857,8 @@ var init_card_view = __esm({
     init_xml();
     init_card_edit_view();
     init_skeleton();
-    CardView = class {
+    CardView = class _CardView {
+      static renderings = /* @__PURE__ */ new WeakMap();
       static render(card, id, last_in_card = false, last_in_stack = false, face_id = card.display_face_id) {
         const card_class = /* @__PURE__ */ new Set(["card"]);
         if (!last_in_card) card_class.add("collapsible");
@@ -1961,11 +1963,11 @@ var init_card_view = __esm({
             }
           }));
         });
-        let card_view = null;
         let tilt = null;
-        return card_view = HTML.div(
+        const elements = _CardView.renderings.get(card) ?? [];
+        const card_view = HTML.div(
           {
-            id,
+            id: `${id}-${card.id}-${elements.length}`,
             class: [...card_class],
             onpointermove: ({ x, y }) => {
               const { top, left, width, height } = card_view.getBoundingClientRect();
@@ -1977,7 +1979,11 @@ var init_card_view = __esm({
               tilt.style.setProperty("--tilt-angle", `${angle}rad`);
               tilt.style.setProperty("--tilt-azimuth", `${azimuth}deg`);
             },
+            onpointerenter: () => {
+              _CardView.renderings.get(card)?.forEach((element) => element.classList.add("focus"));
+            },
             onpointerleave: () => {
+              _CardView.renderings.get(card)?.forEach((element) => element.classList.remove("focus"));
               tilt.style.setProperty("--tilt-angle", `0`);
               tilt.style.setProperty("--tilt-azimuth", `0`);
             },
@@ -1997,6 +2003,9 @@ var init_card_view = __esm({
             )
           )
         );
+        elements.push(card_view);
+        _CardView.renderings.set(card, elements);
+        return card_view;
       }
     };
   }
@@ -2165,9 +2174,8 @@ var init_deck_view = __esm({
       static GROUPING = CardClassifier;
       static ORDERING = CardClassifier;
       static FACE_SELECTOR = FaceSelector.front;
-      static rendered_cards = /* @__PURE__ */ new WeakMap();
       static render(deck = Deck.current) {
-        this.rendered_cards = /* @__PURE__ */ new WeakMap();
+        CardView.renderings = /* @__PURE__ */ new WeakMap();
         const show_boards = this.BY_BOARD && deck.some((card) => !card.board.is_default());
         return HTML.div(
           { id: "deck" },
@@ -2201,7 +2209,7 @@ var init_deck_view = __esm({
             ...grouping.groups().map((group, j) => this.render_group(group, `${id}-group-${j}`, grouping)),
             this.render_group(new Group({
               name: this.GROUPING.ungrouped_name,
-              cards: cards.filter((card) => !this.rendered_cards.has(card))
+              cards: cards.filter((card) => !CardView.renderings.has(card))
             }), `${id}-ungrouped`)
           )
         );
@@ -2255,15 +2263,12 @@ var init_deck_view = __esm({
                 const last_of_card = j === card.quantity - 1;
                 elements.push(CardView.render(
                   card,
-                  `${id}-card-${i}-${j}`,
+                  `${id}-card-${j}`,
                   last_of_card,
                   last_deck_card && last_of_card,
                   grouping?.face_id(card, group.value)
                 ));
               }
-              const all_elements = this.rendered_cards.get(card) ?? [];
-              all_elements.push(...elements);
-              this.rendered_cards.set(card, all_elements);
               return elements;
             })
           )
@@ -2621,18 +2626,18 @@ var init_color_names = __esm({
     };
     WEDGE = {
       tarkir_clan: {
-        bgw: { name: "Abzan", icon: "public/icon/abzan.webp" },
-        ruw: { name: "Jeskai", icon: "public/icon/jeskai.webp" },
-        bgu: { name: "Sultai", icon: "public/icon/sultai.webp" },
-        brw: { name: "Mardu", icon: "public/icon/mardu.webp" },
-        gru: { name: "Temur", icon: "public/icon/temur.webp" }
+        bgw: { name: "Abzan", icon: "public/icon/abzan.svg" },
+        ruw: { name: "Jeskai", icon: "public/icon/jeskai.svg" },
+        bgu: { name: "Sultai", icon: "public/icon/sultai.svg" },
+        brw: { name: "Mardu", icon: "public/icon/mardu.svg" },
+        gru: { name: "Temur", icon: "public/icon/temur.svg" }
       },
-      ikoria_triome: {
-        bgw: { name: "Indatha" },
-        ruw: { name: "Raugrin" },
-        bgu: { name: "Zagoth" },
-        brw: { name: "Savai" },
-        gru: { name: "Ketria" }
+      apocalypse: {
+        bgw: { name: "Necra" },
+        ruw: { name: "Raka" },
+        bgu: { name: "Ana" },
+        brw: { name: "Dega" },
+        gru: { name: "Ceta" }
       }
     };
     FOUR_COLOR = {

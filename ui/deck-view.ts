@@ -15,10 +15,8 @@ export class DeckView {
     static ORDERING: typeof CardClassifier = CardClassifier;
     static FACE_SELECTOR: FaceSelector = FaceSelector.front;
 
-    static rendered_cards: WeakMap<DeckCard, HTMLDivElement[]> = new WeakMap();
-
     static render(deck: Deck = Deck.current): HTMLDivElement {
-        this.rendered_cards = new WeakMap();
+        CardView.renderings = new WeakMap();
 
         const show_boards = this.BY_BOARD
             && deck.some(card => !card.board.is_default());
@@ -63,7 +61,7 @@ export class DeckView {
                     .map((group, j) => this.render_group(group, `${id}-group-${j}`, grouping)),
                 this.render_group(new Group({
                     name: this.GROUPING.ungrouped_name,
-                    cards: cards.filter(card => !this.rendered_cards.has(card)),
+                    cards: cards.filter(card => !CardView.renderings.has(card)),
                 }), `${id}-ungrouped`),
             ),
         );
@@ -127,16 +125,12 @@ export class DeckView {
                             const last_of_card = j === card.quantity - 1;
                             elements.push(CardView.render(
                                 card,
-                                `${id}-card-${i}-${j}`,
+                                `${id}-card-${j}`,
                                 last_of_card,
                                 last_deck_card && last_of_card,
                                 grouping?.face_id(card, group.value),
                             ));
                         }
-
-                        const all_elements = this.rendered_cards.get(card) ?? [];
-                        all_elements.push(...elements);
-                        this.rendered_cards.set(card, all_elements);
 
                         return elements;
                     }),

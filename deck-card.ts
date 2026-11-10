@@ -27,6 +27,7 @@ export class DeckCard extends Face {
         'Theme',
     ]);
 
+    id?: number = null;
     raw?: string;
 
     raw_name?: string = null;
@@ -166,7 +167,10 @@ export class DeckCard extends Face {
             }
         }
 
-        deck?.add(card);
+        if (deck) {
+            card.id = deck.length;
+            deck.push(card);
+        }
 
         return card;
     }
@@ -497,6 +501,21 @@ export class DeckCard extends Face {
             if (this.has_keyword('Choose a background')
                 && second.is_type('Legendary', 'Enchantment', 'Background')) {
                 return true;
+            }
+
+            if (this.has_ability('Legendary partner')
+                && !second.is_type('Legendary')
+                && second.main_face().power() && second.main_face().toughness()) {
+                return true;
+            }
+
+            const free_match = this.oracle().match(/You may play ~ and any other legend with (?<id>\w+|\d+) color identity or less as your commanders as though they each had partner\./);
+            if (free_match) {
+                const {id} = free_match.groups;
+                const id_count = words_to_number(id) ?? Number.parseInt(id);
+                if (second.is_type('Legendary', 'Creature') && second.color_identity().size <= id_count) {
+                    return true;
+                }
             }
         }
 

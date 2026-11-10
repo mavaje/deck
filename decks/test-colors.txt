@@ -7,26 +7,48 @@ Lightning Bolt
 Grizzly Bears
 
 Azorius Charm
+Fatehold Charm
 Dimir Charm
+Theorix Charm
 Rakdos Charm
+Stingerquill Charm
 Gruul Charm
+Konstrari Charm
 Selesnya Charm
+Vigorbloom Charm
+
 Orzhov Charm
+Silverquill Charm
 Izzet Charm
+Prismari Charm
 Golgari Charm
+Witherbloom Charm
 Boros Charm
+Lorehold Charm
 Simic Charm
+Quandrix Charm
 
 Esper Charm
+Obscura Charm
 Grixis Charm
+Maestros Charm
 Jund Charm
+Riveteers Charm
 Naya Charm
+Cabaretti Charm
 Bant Charm
+Brokers Charm
+
 Abzan Charm
+Necra Disciple
 Jeskai Charm
+Raka Disciple
 Sultai Charm
+Ana Disciple
 Mardu Charm
+Dega Disciple
 Temur Charm
+Ceta Disciple
 
 Yore-Tiller Nephilim
 Glint-Eye Nephilim

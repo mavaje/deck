@@ -5,6 +5,8 @@ import {data_url, skeleton, skeleton_back} from "./skeleton";
 
 export class CardView {
 
+    static renderings = new WeakMap<DeckCard, HTMLDivElement[]>();
+
     static render(
         card: DeckCard,
         id: number | string,
@@ -138,11 +140,11 @@ export class CardView {
             }));
         });
 
-        let card_view: HTMLDivElement = null;
         let tilt: HTMLDivElement = null;
-        return card_view = HTML.div(
+        const elements = CardView.renderings.get(card) ?? [];
+        const card_view = HTML.div(
             {
-                id,
+                id: `${id}-${card.id}-${elements.length}`,
                 class: [...card_class],
                 onpointermove: ({x, y}: MouseEvent) => {
                     const {top, left, width, height} = card_view.getBoundingClientRect();
@@ -156,7 +158,13 @@ export class CardView {
                     tilt.style.setProperty('--tilt-angle', `${angle}rad`);
                     tilt.style.setProperty('--tilt-azimuth', `${azimuth}deg`);
                 },
+                onpointerenter: () => {
+                    CardView.renderings.get(card)
+                        ?.forEach(element => element.classList.add('focus'));
+                },
                 onpointerleave: () => {
+                    CardView.renderings.get(card)
+                        ?.forEach(element => element.classList.remove('focus'));
                     tilt.style.setProperty('--tilt-angle', `0`);
                     tilt.style.setProperty('--tilt-azimuth', `0`);
                 },
@@ -176,5 +184,8 @@ export class CardView {
                 ),
             ),
         );
+        elements.push(card_view);
+        CardView.renderings.set(card, elements);
+        return card_view;
     }
 }

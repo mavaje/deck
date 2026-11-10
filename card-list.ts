@@ -10,22 +10,6 @@ export class CardList extends Array<DeckCard> {
         }
     }
 
-    add(card: DeckCard) {
-        for (const existing_card of this) {
-            if (existing_card.matches(card)) {
-                if (existing_card.quantity + card.quantity > 999) {
-                    card.quantity += existing_card.quantity - 999;
-                    existing_card.quantity = 999;
-                } else {
-                    existing_card.quantity += card.quantity;
-                    return;
-                }
-            }
-        }
-
-        this.push(card);
-    }
-
     count(): number {
         return this.reduce((count, card) => count + card.quantity, 0);
     }

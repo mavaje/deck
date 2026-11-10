@@ -82,18 +82,18 @@ export const SHARD = {
 
 export const WEDGE = {
     tarkir_clan: {
-        bgw: {name: 'Abzan', icon: 'public/icon/abzan.webp'},
-        ruw: {name: 'Jeskai', icon: 'public/icon/jeskai.webp'},
-        bgu: {name: 'Sultai', icon: 'public/icon/sultai.webp'},
-        brw: {name: 'Mardu', icon: 'public/icon/mardu.webp'},
-        gru: {name: 'Temur', icon: 'public/icon/temur.webp'},
+        bgw: {name: 'Abzan', icon: 'public/icon/abzan.svg'},
+        ruw: {name: 'Jeskai', icon: 'public/icon/jeskai.svg'},
+        bgu: {name: 'Sultai', icon: 'public/icon/sultai.svg'},
+        brw: {name: 'Mardu', icon: 'public/icon/mardu.svg'},
+        gru: {name: 'Temur', icon: 'public/icon/temur.svg'},
     },
-    ikoria_triome: {
-        bgw: {name: 'Indatha'},
-        ruw: {name: 'Raugrin'},
-        bgu: {name: 'Zagoth'},
-        brw: {name: 'Savai'},
-        gru: {name: 'Ketria'},
+    apocalypse: {
+        bgw: {name: 'Necra'},
+        ruw: {name: 'Raka'},
+        bgu: {name: 'Ana'},
+        brw: {name: 'Dega'},
+        gru: {name: 'Ceta'},
     },
 };
 
