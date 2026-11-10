@@ -47,7 +47,7 @@ export class Catalog {
         Catalog.INSTANCES.push(this);
     }
 
-    private async load(): Promise<void> {
+    async load(): Promise<void> {
         await this.loader.load(async () => {
             const catalog = await API.catalog(this.type);
             if (catalog) {

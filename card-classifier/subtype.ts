@@ -47,13 +47,7 @@ export class Subtype extends CardClassifier {
                             cards: cards.filter(card => DeckView.FACE_SELECTOR.get(card).some(face => face.is_specified_type(subtype))),
                             ...Subtype.SUBTYPE_GROUPS[subtype] ?? {},
                         }))
-                        .sort((a, b) => {
-                            let index_a = Subtype.SUBTYPE_ORDER.indexOf(a.name);
-                            if (index_a === -1) index_a = Infinity;
-                            let index_b = Subtype.SUBTYPE_ORDER.indexOf(b.name);
-                            if (index_b === -1) index_b = Infinity;
-                            return index_a - index_b;
-                        }) ?? [],
+                        .sort((a, b) => this.compare_index(a.name, b.name, Subtype.SUBTYPE_ORDER)) ?? [],
                     new Group({
                         name: `All ${type} types`,
                         value: `${type} - *`,

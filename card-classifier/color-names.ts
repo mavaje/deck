@@ -31,11 +31,11 @@ export const MONO = {
 
 export const ALLY = {
     ravnica_guild: {
-        uw: {name: 'Azorius', icon: 'public/icon/azorius.webp'},
-        bu: {name: 'Dimir', icon: 'public/icon/dimir.webp'},
-        br: {name: 'Rakdos', icon: 'public/icon/rakdos.webp'},
-        gr: {name: 'Gruul', icon: 'public/icon/gruul.webp'},
-        gw: {name: 'Selesnya', icon: 'public/icon/selesnya.webp'},
+        uw: {name: 'Azorius', icon: 'public/icon/azorius.svg'},
+        bu: {name: 'Dimir', icon: 'public/icon/dimir.svg'},
+        br: {name: 'Rakdos', icon: 'public/icon/rakdos.svg'},
+        gr: {name: 'Gruul', icon: 'public/icon/gruul.svg'},
+        gw: {name: 'Selesnya', icon: 'public/icon/selesnya.svg'},
     },
     hexhaven_college: {
         uw: {name: 'Fatehold'},
@@ -48,11 +48,11 @@ export const ALLY = {
 
 export const ENEMY = {
     ravnica_guild: {
-        bw: {name: 'Orzhov', icon: 'public/icon/orzhov.webp'},
-        ru: {name: 'Izzet', icon: 'public/icon/izzet.webp'},
-        bg: {name: 'Golgari', icon: 'public/icon/golgari.webp'},
-        rw: {name: 'Boros', icon: 'public/icon/boros.webp'},
-        gu: {name: 'Simic', icon: 'public/icon/simic.webp'},
+        bw: {name: 'Orzhov', icon: 'public/icon/orzhov.svg'},
+        ru: {name: 'Izzet', icon: 'public/icon/izzet.svg'},
+        bg: {name: 'Golgari', icon: 'public/icon/golgari.svg'},
+        rw: {name: 'Boros', icon: 'public/icon/boros.svg'},
+        gu: {name: 'Simic', icon: 'public/icon/simic.svg'},
     },
     strixhaven_college: {
         bw: {name: 'Silverquill', icon: 'public/icon/silverquill.svg'},

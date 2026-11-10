@@ -3,6 +3,7 @@
 
 # Conspiracy
 Advantageous Proclamation
+The Champion
 
 # Commander
 1x Tovolar, Dire Overlord // Tovolar, the Midnight Scourge (mid) 311 *F*
@@ -34,7 +35,6 @@ Mountain *DE*
 1x Grist, the Plague Swarm
 1x Spider-Punk
 1x Bow of the Hunter
-1x The Champion
 1x Fallaji Wayfarer
 1x Stonework Packbeast
 1x Walk-In Closet // Forgotton Cellar

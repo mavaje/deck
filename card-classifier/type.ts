@@ -1,5 +1,4 @@
 import {CardClassifier} from "./card-classifier";
-import {Catalog} from "../scryfall/catalog";
 import {Face} from "../face";
 import {Group} from "./group";
 
@@ -11,14 +10,14 @@ export class Type extends CardClassifier {
         'Hero',
         'Conspiracy',
 
-        'Land',
+        'Creature',
+        'Planeswalker',
         'Artifact',
         'Enchantment',
-        'Creature',
         'Battle',
-        'Planeswalker',
         'Instant',
         'Sorcery',
+        'Land',
 
         'Kindred',
         'Stickers',
@@ -43,10 +42,6 @@ export class Type extends CardClassifier {
         'Instant': {icon: 'public/icon/instant.svg'},
         'Sorcery': {icon: 'public/icon/sorcery.svg'},
     };
-
-    static {
-        Catalog.load();
-    }
 
     split_by_face: boolean = true;
 

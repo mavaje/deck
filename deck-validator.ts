@@ -46,7 +46,7 @@ export class DeckValidator {
         const commanders = this.deck.board(Board.commander);
         const commander_count = commanders.count();
 
-        const conspiracies = this.deck.board(Board.conspiracies);
+        const conspiracies = this.deck.board(Board.conspiracy);
 
         this.rulebreaks.push(...commanders.skip_empty().flatMap(card => card.rulebreaks()));
         this.rulebreaks.push(...conspiracies.skip_empty().flatMap(card => card.rulebreaks()));
@@ -234,7 +234,7 @@ export class DeckValidator {
 
             if (board.card_types) {
                 const wrong_type = board_cards
-                    .filter(card => board.card_types.every(type => !card.is_type(type)));
+                    .filter(card => !board.can_include(card));
 
                 if (wrong_type.count() > 0) {
                     errors.push({

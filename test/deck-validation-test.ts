@@ -645,6 +645,24 @@ export class DeckValidationTest extends Test {
                     Naya
                     Agyrem
                     Akoum
+                    Gavony
+                    Chaotic Aether
+                    Black Lotus
+                `,
+                errors: [
+                    {type: 'illegal-card', cards: [{name: 'Black Lotus'}]},
+                ],
+            },
+            {
+                input: `
+                    # Planar deck
+                    Bant
+                    Esper
+                    Grixis
+                    Jund
+                    Naya
+                    Agyrem
+                    Akoum
                     Chaotic Aether
                     Morphic Tide
                 `,

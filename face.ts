@@ -108,6 +108,7 @@ export class Face<T extends Card | CardFace = Card | CardFace> {
     }
 
     card_types(): string[] {
+        Catalog.card_types.load();
         return Catalog.card_types.filter(type => this.is_card_type(type));
     }
 

@@ -92,18 +92,25 @@ export abstract class CardClassifier<T extends string | number = string | number
         const value_a = get(DeckView.FACE_SELECTOR.get(a)[0], a);
         const value_b = get(DeckView.FACE_SELECTOR.get(b)[0], b);
         return this.nulls_last(value_a, value_b)
-            || CardClassifier.STRING_COMPARATOR.compare(value_a, value_b);
+            || this.compare_string(value_a, value_b);
     }
 
     protected compare_card_index<T>(a: DeckCard, b: DeckCard, get: (face: Face, card: DeckCard) => T, ordering: T[]): number {
         const value_a = get(DeckView.FACE_SELECTOR.get(a)[0], a);
         const value_b = get(DeckView.FACE_SELECTOR.get(b)[0], b);
-        return this.nulls_last(value_a, value_b)
-            || ordering.indexOf(value_a) - ordering.indexOf(value_b);
+        return this.compare_index(value_a, value_b, ordering);
     }
 
     protected compare_string(a: string, b: string): number {
         return CardClassifier.STRING_COMPARATOR.compare(a, b);
+    }
+
+    protected compare_index<T>(a: T, b: T, ordering: T[]): number {
+        let index_a = ordering.indexOf(a);
+        if (index_a < 0) index_a = Infinity;
+        let index_b = ordering.indexOf(b);
+        if (index_b < 0) index_a = Infinity;
+        return index_a - index_b || 0;
     }
 
     protected lands_first(a: DeckCard, b: DeckCard): number {

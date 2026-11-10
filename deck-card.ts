@@ -27,7 +27,7 @@ export class DeckCard extends Face {
         'Theme',
     ]);
 
-    id?: number = null;
+    id?: number;
     raw?: string;
 
     raw_name?: string = null;

@@ -26,8 +26,8 @@ Commander
 2x Sensei's Divining Top (ema) 232 *F* [Good Stuff] ^Don't Have,#f47373^
 2x Swamp (gk1) 25 [Land]
 1x Tovolar, Dire Overlord // Tovolar, the Midnight Scourge (mid) 311 [Commander{top}]
-lightning bolt [sb]
 turn // burn
+lightning bolt [sb]
 
 //Sideboard
 lightning bolt
@@ -49,8 +49,9 @@ lightning bolt
                 new DeckCard({quantity: 2, name: 'Sensei\'s Divining Top', set: 'ema', collector_number: '232', finish: Finish.foil, tags: this.tag_set('Good Stuff', 'Don\'t Have')}),
                 new DeckCard({quantity: 2, name: 'Swamp', set: 'gk1', collector_number: '25', tags: this.tag_set('Land')}),
                 new DeckCard({quantity: 1, name: 'Tovolar, Dire Overlord // Tovolar, the Midnight Scourge', set: 'mid', collector_number: '311', board: Board.commander}),
-                new DeckCard({quantity: 2, name: 'lightning bolt', board: Board.sideboard}),
                 new DeckCard({quantity: 1, name: 'turn // burn'}),
+                new DeckCard({quantity: 1, name: 'lightning bolt', board: Board.sideboard}),
+                new DeckCard({quantity: 1, name: 'lightning bolt', board: Board.sideboard}),
             ],
             deck
         );

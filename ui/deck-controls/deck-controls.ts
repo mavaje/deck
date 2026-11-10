@@ -14,14 +14,14 @@ import {CardClassifier} from "../../card-classifier/card-classifier";
 import {Subtype} from "../../card-classifier/subtype";
 import {Keyword} from "../../card-classifier/keyword";
 import {Artist} from "../../card-classifier/artist";
-import {DeckCard} from "../../deck-card";
-import {Face} from "../../face";
+import {TypePrimary} from "../../card-classifier/type-primary";
 
 const CARD_GROUPINGS: (typeof CardClassifier<string | number>)[] = [
     CardClassifier,
     SetClassifier,
     Rarity,
     Type,
+    TypePrimary,
     Subtype,
     Color,
     ColorIdentity,
@@ -36,6 +36,7 @@ const CARD_ORDERINGS: (typeof CardClassifier<string | number>)[] = [
     Name,
     SetClassifier,
     Rarity,
+    TypePrimary,
     Color,
     ColorIdentity,
     PriceUSD,
