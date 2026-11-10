@@ -157,7 +157,7 @@ export class DeckValidator {
         errors.push(...this.deck.board(Board.companion).skip_empty().flatMap(card => this.validate_deck_restrictions(card, format)));
         errors.push(...conspiracies.skip_empty().flatMap(card => this.validate_deck_restrictions(card, format)));
 
-        const color_identity = this.deck.color_identity();
+        let color_identity = this.deck.color_identity();
 
         this.deck
             .board(...Board.STANDARD)
@@ -165,9 +165,10 @@ export class DeckValidator {
             if (color_identity) {
                 const additional_break = this.rulebreaks.find(rulebreak => rulebreak.breaks_color_identity(card));
                 if (additional_break) {
-                    const additional_color = card.color_identity().colors.find(color => !color_identity.includes(color));
+                    const additional_colors = card.color_identity().difference(color_identity);
+                    const additional_color = [...additional_colors][0];
                     if (additional_color) {
-                        color_identity.add(additional_color);
+                        color_identity = color_identity.plus(additional_color);
                         additional_break.use();
                     }
                 }

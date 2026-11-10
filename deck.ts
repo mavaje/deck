@@ -6,6 +6,7 @@ import {Board} from "./designation/board";
 import {CardList} from "./card-list";
 import {Tag} from "./designation/tag";
 import {DeckView} from "./ui/deck-view";
+import {Game} from "./game";
 
 export class Deck extends CardList {
 
@@ -13,7 +14,8 @@ export class Deck extends CardList {
 
     raw?: string;
 
-    format: Format;
+    format: Format = null;
+    game: Game = null;
 
     static parse(input: string) {
         const deck = new Deck();
@@ -129,8 +131,8 @@ export class Deck extends CardList {
 
         if (commanders.count() === 0) return null;
 
-        const color_identity = new ColorSet();
-        commanders.forEach(card => color_identity.add(card.color_identity()));
+        let color_identity = ColorSet.colors.c;
+        commanders.forEach(card => color_identity = color_identity.plus(card.color_identity()));
 
         return color_identity;
     }

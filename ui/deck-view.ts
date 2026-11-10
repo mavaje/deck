@@ -1,7 +1,6 @@
 import {HTML} from "./xml";
 import {Board} from "../designation/board";
 import {Deck} from "../deck";
-import {blend, contrast} from "../color";
 import {CardView} from "./card-view";
 import {DeckCard} from "../deck-card";
 import {CardClassifier} from "../card-classifier/card-classifier";
@@ -92,6 +91,9 @@ export class DeckView {
                         '--gradient': group.color && `linear-gradient(to right in oklab, ${
                             group.color.map((c, i, {length}) => `${c} ${{0: '16px', [length - 1]: 'calc(100% - 16px)'}[i] ?? ''}`).join(',')
                         })`,
+                    },
+                    ontimeout: () => {
+                        console.log(`that's ${id} to add top px`);
                     },
                 },
                 HTML.div(

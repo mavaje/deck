@@ -125,7 +125,7 @@ input[type=checkbox] {
 
 #deck .group:has(.card:hover) {
     transition-timing-function: step-start;
-    z-index: 4;
+    z-index: 2;
 }
 
 #deck > .groups > .group {
@@ -148,7 +148,7 @@ input[type=checkbox] {
     margin-inline: 8px;
     pointer-events: none;
     transition-property: margin;
-    z-index: 5;
+    z-index: 3;
     padding: 8px;
     display: flex;
     justify-content: start;
@@ -172,10 +172,10 @@ input[type=checkbox] {
 #deck .label::before {
     content: "";
     position: absolute;
-    bottom: -32px;
+    bottom: -25px;
     left: -16px;
     right: -16px;
-    height: 64px;
+    height: 48px;
     background: var(--gradient);
     mask-image: linear-gradient(
         to bottom,

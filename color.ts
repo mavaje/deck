@@ -1,13 +1,12 @@
-import {ColorSet} from "./color-set";
 
 export const MTG_COLORS = {
-    blue: '#00b2ff',
-    red: '#ff3000',
-    green: '#63d500',
-    yellow: '#ffd145',
-    silver: '#a4b7c6',
-    purple: '#9300bd',
-    orange: '#ff9200',
+    blue: '#00bfff',
+    red: '#ff2f00',
+    green: '#5fdf00',
+    yellow: '#ffdf3f',
+    silver: '#9fbfdf',
+    purple: '#7f00bf',
+    orange: '#ff9f00',
 };
 
 MTG_COLORS['W'] = MTG_COLORS.yellow;
@@ -40,17 +39,4 @@ export function blend(...hexes: string[]): string {
 export function contrast(hex: string): boolean {
     const [r, g, b] = hex2rgb(hex);
     return r * 0.299 + g * 0.587 + b * 0.114 > 0.5;
-}
-
-export function gradient(identity: ColorSet): string[] {
-    switch (identity.colors.length) {
-        case 0:
-            return [MTG_COLORS.silver];
-        case 1:
-        case 2:
-            // return identity.colors.map(c => MTG_COLORS[c]);
-        default:
-            return identity.colors.map(c => MTG_COLORS[c]);
-            // return [MTG_COLORS.gold];
-    }
 }

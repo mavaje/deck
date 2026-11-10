@@ -73,14 +73,20 @@ function create_element(tag, parameters, namespace) {
       // fallthrough
       default:
         if (key.startsWith("on") && typeof value === "function") {
-          const listeners = EVENT_LISTENERS.get(element) ?? {};
           const event = key.slice(2);
-          if (listeners[event]) {
-            element.removeEventListener(event, listeners[event]);
+          switch (event) {
+            case "timeout":
+              setTimeout(() => value());
+              break;
+            default:
+              const listeners = EVENT_LISTENERS.get(element) ?? {};
+              if (listeners[event]) {
+                element.removeEventListener(event, listeners[event]);
+              }
+              element.addEventListener(event, value);
+              listeners[event] = value;
+              EVENT_LISTENERS.set(element, listeners);
           }
-          element.addEventListener(event, value);
-          listeners[event] = value;
-          EVENT_LISTENERS.set(element, listeners);
         } else {
           element.setAttribute(key, String(value));
         }
@@ -904,71 +910,82 @@ var ColorSet;
 var init_color_set = __esm({
   "color-set.ts"() {
     init_types();
-    ColorSet = class _ColorSet {
-      static colorless = new _ColorSet([], true);
-      static white = new _ColorSet(["W"], true);
-      static blue = new _ColorSet(["U"], true);
-      static black = new _ColorSet(["B"], true);
-      static red = new _ColorSet(["R"], true);
-      static green = new _ColorSet(["G"], true);
-      static azorius = new _ColorSet(["W", "U"], true);
-      static dimir = new _ColorSet(["U", "B"], true);
-      static rakdos = new _ColorSet(["B", "R"], true);
-      static gruul = new _ColorSet(["R", "G"], true);
-      static selesnya = new _ColorSet(["G", "W"], true);
-      static orzhov = new _ColorSet(["W", "B"], true);
-      static izzet = new _ColorSet(["U", "R"], true);
-      static golgari = new _ColorSet(["B", "G"], true);
-      static boros = new _ColorSet(["R", "W"], true);
-      static simic = new _ColorSet(["G", "U"], true);
-      static esper = new _ColorSet(["W", "U", "B"], true);
-      static grixis = new _ColorSet(["U", "B", "R"], true);
-      static jund = new _ColorSet(["B", "R", "G"], true);
-      static naya = new _ColorSet(["R", "G", "W"], true);
-      static bant = new _ColorSet(["G", "W", "U"], true);
-      static abzan = new _ColorSet(["W", "B", "G"], true);
-      static jeskai = new _ColorSet(["U", "R", "W"], true);
-      static sultai = new _ColorSet(["B", "G", "U"], true);
-      static mardu = new _ColorSet(["R", "W", "B"], true);
-      static temur = new _ColorSet(["G", "U", "R"], true);
-      static artifice = new _ColorSet(["W", "U", "B", "R"], true);
-      static chaos = new _ColorSet(["U", "B", "R", "G"], true);
-      static aggression = new _ColorSet(["B", "R", "G", "W"], true);
-      static altruism = new _ColorSet(["R", "G", "W", "U"], true);
-      static growth = new _ColorSet(["G", "W", "U", "B"], true);
-      static rainbow = new _ColorSet(["W", "U", "B", "R", "G"], true);
+    ColorSet = class _ColorSet extends Set {
+      constructor(colors) {
+        super(colors);
+        this.colors = colors;
+      }
       colors;
-      constructor(colors = [], strict = false) {
-        this.colors = strict ? colors : COLORS.filter((color) => colors?.includes(color));
+      static colors = {
+        c: new _ColorSet([]),
+        w: new _ColorSet(["W"]),
+        u: new _ColorSet(["U"]),
+        b: new _ColorSet(["B"]),
+        r: new _ColorSet(["R"]),
+        g: new _ColorSet(["G"]),
+        uw: new _ColorSet(["W", "U"]),
+        bu: new _ColorSet(["U", "B"]),
+        br: new _ColorSet(["B", "R"]),
+        gr: new _ColorSet(["R", "G"]),
+        gw: new _ColorSet(["G", "W"]),
+        bw: new _ColorSet(["W", "B"]),
+        ru: new _ColorSet(["U", "R"]),
+        bg: new _ColorSet(["B", "G"]),
+        rw: new _ColorSet(["R", "W"]),
+        gu: new _ColorSet(["G", "U"]),
+        buw: new _ColorSet(["W", "U", "B"]),
+        bru: new _ColorSet(["U", "B", "R"]),
+        bgr: new _ColorSet(["B", "R", "G"]),
+        grw: new _ColorSet(["R", "G", "W"]),
+        guw: new _ColorSet(["G", "W", "U"]),
+        bgw: new _ColorSet(["W", "B", "G"]),
+        ruw: new _ColorSet(["U", "R", "W"]),
+        bgu: new _ColorSet(["B", "G", "U"]),
+        brw: new _ColorSet(["R", "W", "B"]),
+        gru: new _ColorSet(["G", "U", "R"]),
+        bruw: new _ColorSet(["W", "U", "B", "R"]),
+        bgru: new _ColorSet(["U", "B", "R", "G"]),
+        bgrw: new _ColorSet(["B", "R", "G", "W"]),
+        gruw: new _ColorSet(["R", "G", "W", "U"]),
+        bguw: new _ColorSet(["G", "W", "U", "B"]),
+        bgruw: new _ColorSet(["W", "U", "B", "R", "G"])
+      };
+      static from(colors) {
+        if (typeof colors === "string") {
+          colors = [colors];
+        }
+        if (!(colors instanceof Set)) {
+          colors = new Set(colors);
+        }
+        const key = _ColorSet.code([...colors]);
+        return this.colors[key];
       }
-      count() {
-        return this.colors.length;
+      static code(colors) {
+        return colors.map((c) => c.toLowerCase()).filter((c) => COLORS.includes(c.toUpperCase())).sort().join("") || "c";
       }
-      includes(color) {
-        return this.colors.includes(color);
+      code() {
+        return _ColorSet.code([...this]);
       }
-      add(colors) {
-        if (typeof colors === "string") colors = [colors];
-        this.colors = COLORS.filter((color) => this.colors.includes(color) || colors.includes(color));
+      plus(colors) {
+        if (this.size === 5) return this;
+        return _ColorSet.from(this.union(_ColorSet.from(colors)));
       }
       within(colors) {
-        return this.colors.every((color) => colors.includes(color));
+        if (this.size === 0) return true;
+        colors = _ColorSet.from(colors);
+        return this.size <= colors.size && this.size === this.intersection(colors).size;
       }
       contains(colors) {
-        return new _ColorSet(colors).within(this);
+        if (this.size === 5) return true;
+        colors = _ColorSet.from(colors);
+        return this.size >= colors.size && this.size === this.union(colors).size;
       }
       equals(colors) {
-        if (!colors) return false;
-        colors = new _ColorSet(colors);
-        return colors.within(this) && this.within(colors);
-      }
-      static all() {
-        return Object.fromEntries(
-          Object.entries(this).filter(([_, value]) => value instanceof this)
-        );
+        return this === _ColorSet.from(colors);
       }
       static index(colors) {
-        const index = Object.values(_ColorSet.all()).findIndex((identity) => identity.equals(colors));
+        const code = _ColorSet.from(colors).code();
+        const index = Object.keys(_ColorSet.colors).indexOf(code);
         return index === -1 ? null : index;
       }
     };
@@ -1034,20 +1051,20 @@ var init_face = __esm({
       }
       colors() {
         const colors = this.face?.colors;
-        return colors ? new ColorSet(colors) : this.infer_colors();
+        return colors ? ColorSet.from(colors) : this.infer_colors();
       }
       color_identity() {
-        return this.card ? new ColorSet(this.card.color_identity) : null;
+        return this.card ? ColorSet.from(this.card.color_identity) : null;
       }
       colors_produced() {
-        return this.card ? new ColorSet(this.card.produced_mana) : null;
+        return this.card ? ColorSet.from(this.card.produced_mana) : null;
       }
       infer_colors() {
-        const colors = new ColorSet();
+        let colors = ColorSet.colors.c;
         if (this.face?.mana_cost) {
           COLORS.forEach((color) => {
             if (this.face.mana_cost.includes(color)) {
-              colors.add(color);
+              colors = colors.plus(color);
             }
           });
         }
@@ -2205,6 +2222,9 @@ var init_deck_view = __esm({
               class: "label",
               style: {
                 "--gradient": group.color && `linear-gradient(to right in oklab, ${group.color.map((c, i, { length }) => `${c} ${{ 0: "16px", [length - 1]: "calc(100% - 16px)" }[i] ?? ""}`).join(",")})`
+              },
+              ontimeout: () => {
+                console.log(`that's ${id} to add top px`);
               }
             },
             HTML.div(
@@ -2277,7 +2297,8 @@ var init_deck = __esm({
     Deck = class _Deck extends CardList {
       static current = new _Deck();
       raw;
-      format;
+      format = null;
+      game = null;
       static parse(input) {
         const deck = new _Deck();
         deck.raw = input;
@@ -2364,8 +2385,8 @@ var init_deck = __esm({
       color_identity() {
         const commanders = this.board(Board.commander).skip_empty();
         if (commanders.count() === 0) return null;
-        const color_identity = new ColorSet();
-        commanders.forEach((card) => color_identity.add(card.color_identity()));
+        let color_identity = ColorSet.colors.c;
+        commanders.forEach((card) => color_identity = color_identity.plus(card.color_identity()));
         return color_identity;
       }
       to_string(card_format) {
@@ -2473,28 +2494,17 @@ var init_type = __esm({
 });
 
 // color.ts
-function gradient(identity) {
-  switch (identity.colors.length) {
-    case 0:
-      return [MTG_COLORS.silver];
-    case 1:
-    case 2:
-    // return identity.colors.map(c => MTG_COLORS[c]);
-    default:
-      return identity.colors.map((c) => MTG_COLORS[c]);
-  }
-}
 var MTG_COLORS;
 var init_color = __esm({
   "color.ts"() {
     MTG_COLORS = {
-      blue: "#00b2ff",
-      red: "#ff3000",
-      green: "#63d500",
-      yellow: "#ffd145",
-      silver: "#a4b7c6",
-      purple: "#9300bd",
-      orange: "#ff9200"
+      blue: "#00bfff",
+      red: "#ff2f00",
+      green: "#5fdf00",
+      yellow: "#ffdf3f",
+      silver: "#9fbfdf",
+      purple: "#7f00bf",
+      orange: "#ff9f00"
     };
     MTG_COLORS["W"] = MTG_COLORS.yellow;
     MTG_COLORS["U"] = MTG_COLORS.blue;
@@ -2504,40 +2514,159 @@ var init_color = __esm({
   }
 });
 
+// card-classifier/color-names.ts
+function color_group(colors) {
+  const code = colors.code();
+  let base_group = BASE[code] ?? {};
+  let named_group = {
+    ...COLORLESS.name,
+    ...MONO.name,
+    ...ALLY.hexhaven_college,
+    ...ENEMY.strixhaven_college,
+    ...SHARD.new_capenna_crime_family,
+    ...WEDGE.ikoria_triome,
+    ...FOUR_COLOR.nephilim,
+    ...FIVE_COLOR.rainbow
+  }[code] ?? {};
+  return {
+    ...base_group,
+    name: colors.colors.join("") || "C",
+    color: gradient(colors),
+    ...named_group
+  };
+}
+function gradient(colors) {
+  if (colors.size === 0) {
+    return [MTG_COLORS.silver];
+  } else {
+    return colors.colors.map((c) => MTG_COLORS[c]);
+  }
+}
+var BASE, COLORLESS, MONO, ALLY, ENEMY, SHARD, WEDGE, FOUR_COLOR, FIVE_COLOR;
+var init_color_names = __esm({
+  "card-classifier/color-names.ts"() {
+    init_color();
+    BASE = {
+      c: { icon: "public/icon/colorless.svg" },
+      w: { icon: "public/icon/white.svg" },
+      u: { icon: "public/icon/blue.svg" },
+      b: { icon: "public/icon/black.svg" },
+      r: { icon: "public/icon/red.svg" },
+      g: { icon: "public/icon/green.svg" }
+    };
+    COLORLESS = {
+      name: {
+        c: { name: "Colorless" }
+      }
+    };
+    MONO = {
+      name: {
+        w: { name: "White" },
+        u: { name: "Blue" },
+        b: { name: "Black" },
+        r: { name: "Red" },
+        g: { name: "Green" }
+      }
+    };
+    ALLY = {
+      ravnica_guild: {
+        uw: { name: "Azorius", icon: "public/icon/azorius.webp" },
+        bu: { name: "Dimir", icon: "public/icon/dimir.webp" },
+        br: { name: "Rakdos", icon: "public/icon/rakdos.webp" },
+        gr: { name: "Gruul", icon: "public/icon/gruul.webp" },
+        gw: { name: "Selesnya", icon: "public/icon/selesnya.webp" }
+      },
+      hexhaven_college: {
+        uw: { name: "Fatehold" },
+        bu: { name: "Theorix" },
+        br: { name: "Stingerquill" },
+        gr: { name: "Konstrari" },
+        gw: { name: "Vigorbloom" }
+      }
+    };
+    ENEMY = {
+      ravnica_guild: {
+        bw: { name: "Orzhov", icon: "public/icon/orzhov.webp" },
+        ru: { name: "Izzet", icon: "public/icon/izzet.webp" },
+        bg: { name: "Golgari", icon: "public/icon/golgari.webp" },
+        rw: { name: "Boros", icon: "public/icon/boros.webp" },
+        gu: { name: "Simic", icon: "public/icon/simic.webp" }
+      },
+      strixhaven_college: {
+        bw: { name: "Silverquill", icon: "public/icon/silverquill.svg" },
+        ru: { name: "Prismari", icon: "public/icon/prismari.svg" },
+        bg: { name: "Witherbloom", icon: "public/icon/witherbloom.svg" },
+        rw: { name: "Lorehold", icon: "public/icon/lorehold.svg" },
+        gu: { name: "Quandrix", icon: "public/icon/quandrix.svg" }
+      }
+    };
+    SHARD = {
+      alara: {
+        buw: { name: "Esper" },
+        bru: { name: "Grixis" },
+        bgr: { name: "Jund" },
+        grw: { name: "Naya" },
+        guw: { name: "Bant" }
+      },
+      new_capenna_crime_family: {
+        buw: { name: "Obscura", icon: "public/icon/obscura.svg" },
+        bru: { name: "Maestros", icon: "public/icon/maestros.svg" },
+        bgr: { name: "Riveteers", icon: "public/icon/riveteers.svg" },
+        grw: { name: "Cabaretti", icon: "public/icon/cabaretti.svg" },
+        guw: { name: "Brokers", icon: "public/icon/brokers.svg" }
+      }
+    };
+    WEDGE = {
+      tarkir_clan: {
+        bgw: { name: "Abzan", icon: "public/icon/abzan.webp" },
+        ruw: { name: "Jeskai", icon: "public/icon/jeskai.webp" },
+        bgu: { name: "Sultai", icon: "public/icon/sultai.webp" },
+        brw: { name: "Mardu", icon: "public/icon/mardu.webp" },
+        gru: { name: "Temur", icon: "public/icon/temur.webp" }
+      },
+      ikoria_triome: {
+        bgw: { name: "Indatha" },
+        ruw: { name: "Raugrin" },
+        bgu: { name: "Zagoth" },
+        brw: { name: "Savai" },
+        gru: { name: "Ketria" }
+      }
+    };
+    FOUR_COLOR = {
+      name: {
+        bruw: { name: "Artifice" },
+        bgru: { name: "Aggression" },
+        bgrw: { name: "Chaos" },
+        gruw: { name: "Altruism" },
+        bguw: { name: "Growth" }
+      },
+      nephilim: {
+        bruw: { name: "Yore-Tiller" },
+        bgru: { name: "Glint-Eye" },
+        bgrw: { name: "Dune-Brood" },
+        gruw: { name: "Ink-Treader" },
+        bguw: { name: "Witch-Maw" }
+      }
+    };
+    FIVE_COLOR = {
+      rainbow: {
+        bgruw: { name: "Rainbow" }
+      }
+    };
+  }
+});
+
 // card-classifier/color.ts
 var Color3;
 var init_color2 = __esm({
   "card-classifier/color.ts"() {
     init_color_set();
-    init_color();
     init_card_classifier();
     init_type();
     init_group();
-    Color3 = class _Color extends CardClassifier {
+    init_color_names();
+    Color3 = class extends CardClassifier {
       static name = "Color";
-      static COLOR_GROUPS = {
-        "colorless": { icon: "public/icon/colorless.svg" },
-        "white": { icon: "public/icon/white.svg" },
-        "blue": { icon: "public/icon/blue.svg" },
-        "black": { icon: "public/icon/black.svg" },
-        "red": { icon: "public/icon/red.svg" },
-        "green": { icon: "public/icon/green.svg" },
-        "azorius": { icon: "public/icon/azorius.webp" },
-        "dimir": { icon: "public/icon/dimir.webp" },
-        "rakdos": { icon: "public/icon/rakdos.webp" },
-        "gruul": { icon: "public/icon/gruul.webp" },
-        "selesnya": { icon: "public/icon/selesnya.webp" },
-        "orzhov": { icon: "public/icon/orzhov.webp" },
-        "izzet": { icon: "public/icon/izzet.webp" },
-        "golgari": { icon: "public/icon/golgari.webp" },
-        "boros": { icon: "public/icon/boros.webp" },
-        "simic": { icon: "public/icon/simic.webp" },
-        "abzan": { icon: "public/icon/abzan.webp" },
-        "jeskai": { icon: "public/icon/jeskai.webp" },
-        "sultai": { icon: "public/icon/sultai.webp" },
-        "mardu": { icon: "public/icon/mardu.webp" },
-        "temur": { icon: "public/icon/temur.webp" }
-      };
       split_by_face = true;
       groups() {
         return this.group_by_face(
@@ -2549,11 +2678,9 @@ var init_color2 = __esm({
               value: 0,
               ...Type.TYPE_GROUPS["Land"]
             }),
-            ...Object.entries(ColorSet.all()).map(([name, colors], index) => new Group({
-              name,
-              value: index + 1,
-              color: gradient(colors),
-              ..._Color.COLOR_GROUPS[name] ?? {}
+            ...Object.entries(ColorSet.colors).map(([code, colors], index) => new Group({
+              ...color_group(colors),
+              value: index + 1
             }))
           ]
         );
@@ -2570,21 +2697,18 @@ var ColorIdentity;
 var init_color_identity = __esm({
   "card-classifier/color-identity.ts"() {
     init_color_set();
-    init_color();
     init_card_classifier();
-    init_color2();
     init_group();
+    init_color_names();
     ColorIdentity = class extends CardClassifier {
       static name = "Color Identity";
       groups() {
         return this.group_by(
           (card) => ColorSet.index(card.color_identity()),
           void 0,
-          Object.entries(ColorSet.all()).map(([name, colors], index) => new Group({
-            name,
-            value: index,
-            color: gradient(colors),
-            ...Color3.COLOR_GROUPS[name] ?? {}
+          Object.entries(ColorSet.colors).map(([code, colors], index) => new Group({
+            ...color_group(colors),
+            value: index
           }))
         );
       }

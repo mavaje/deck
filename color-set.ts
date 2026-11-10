@@ -1,89 +1,96 @@
 import {Color, COLORS} from "./scryfall/types";
 
-export class ColorSet {
-    static colorless = new ColorSet([], true);
-    static white = new ColorSet(['W'], true);
-    static blue = new ColorSet(['U'], true);
-    static black = new ColorSet(['B'], true);
-    static red = new ColorSet(['R'], true);
-    static green = new ColorSet(['G'], true);
-    static azorius = new ColorSet(['W', 'U'], true);
-    static dimir = new ColorSet(['U', 'B'], true);
-    static rakdos = new ColorSet(['B', 'R'], true);
-    static gruul = new ColorSet(['R', 'G'], true);
-    static selesnya = new ColorSet(['G', 'W'], true);
-    static orzhov = new ColorSet(['W', 'B'], true);
-    static izzet = new ColorSet(['U', 'R'], true);
-    static golgari = new ColorSet(['B', 'G'], true);
-    static boros = new ColorSet(['R', 'W'], true);
-    static simic = new ColorSet(['G', 'U'], true);
-    static esper = new ColorSet(['W', 'U', 'B'], true);
-    static grixis = new ColorSet(['U', 'B', 'R'], true);
-    static jund = new ColorSet(['B', 'R', 'G'], true);
-    static naya = new ColorSet(['R', 'G', 'W'], true);
-    static bant = new ColorSet(['G', 'W', 'U'], true);
-    static abzan = new ColorSet(['W', 'B', 'G'], true);
-    static jeskai = new ColorSet(['U', 'R', 'W'], true);
-    static sultai = new ColorSet(['B', 'G', 'U'], true);
-    static mardu = new ColorSet(['R', 'W', 'B'], true);
-    static temur = new ColorSet(['G', 'U', 'R'], true);
-    static artifice = new ColorSet(['W', 'U', 'B', 'R'], true);
-    static chaos = new ColorSet(['U', 'B', 'R', 'G'], true);
-    static aggression = new ColorSet(['B', 'R', 'G', 'W'], true);
-    static altruism = new ColorSet(['R', 'G', 'W', 'U'], true);
-    static growth = new ColorSet(['G', 'W', 'U', 'B'], true);
-    static rainbow = new ColorSet(['W', 'U', 'B', 'R', 'G'], true);
+export type ColorCode = keyof (typeof ColorSet)['colors'];
 
-    public colors: Color[];
+export class ColorSet extends Set<Color> {
+    static colors = {
+        c: new ColorSet([]),
+        w: new ColorSet(['W']),
+        u: new ColorSet(['U']),
+        b: new ColorSet(['B']),
+        r: new ColorSet(['R']),
+        g: new ColorSet(['G']),
+        uw: new ColorSet(['W', 'U']),
+        bu: new ColorSet(['U', 'B']),
+        br: new ColorSet(['B', 'R']),
+        gr: new ColorSet(['R', 'G']),
+        gw: new ColorSet(['G', 'W']),
+        bw: new ColorSet(['W', 'B']),
+        ru: new ColorSet(['U', 'R']),
+        bg: new ColorSet(['B', 'G']),
+        rw: new ColorSet(['R', 'W']),
+        gu: new ColorSet(['G', 'U']),
+        buw: new ColorSet(['W', 'U', 'B']),
+        bru: new ColorSet(['U', 'B', 'R']),
+        bgr: new ColorSet(['B', 'R', 'G']),
+        grw: new ColorSet(['R', 'G', 'W']),
+        guw: new ColorSet(['G', 'W', 'U']),
+        bgw: new ColorSet(['W', 'B', 'G']),
+        ruw: new ColorSet(['U', 'R', 'W']),
+        bgu: new ColorSet(['B', 'G', 'U']),
+        brw: new ColorSet(['R', 'W', 'B']),
+        gru: new ColorSet(['G', 'U', 'R']),
+        bruw: new ColorSet(['W', 'U', 'B', 'R']),
+        bgru: new ColorSet(['U', 'B', 'R', 'G']),
+        bgrw: new ColorSet(['B', 'R', 'G', 'W']),
+        gruw: new ColorSet(['R', 'G', 'W', 'U']),
+        bguw: new ColorSet(['G', 'W', 'U', 'B']),
+        bgruw: new ColorSet(['W', 'U', 'B', 'R', 'G']),
+    };
 
-    constructor(colors?: Color[] | ColorSet, strict?: false);
-    constructor(colors: Color[], strict: true);
-    constructor(colors: Color[] | ColorSet = [], strict: boolean = false) {
-        this.colors = strict
-            ? colors as Color[]
-            : COLORS.filter(color => colors?.includes(color));
+    private constructor(public colors: Color[]) {
+        super(colors);
     }
 
-    count(): number {
-        return this.colors.length;
+    static from(colors: Color | Color[] | Set<Color>): ColorSet {
+        if (typeof colors === 'string') {
+            colors = [colors];
+        }
+        if (!(colors instanceof Set)) {
+            colors = new Set(colors);
+        }
+        const key = ColorSet.code([...colors]);
+        return this.colors[key];
     }
 
-    includes(color: Color): boolean {
-        return this.colors.includes(color);
+    private static code(colors: Color[]): ColorCode {
+        return (colors
+            .map(c => c.toLowerCase())
+            .filter(c => COLORS.includes(c.toUpperCase() as Color))
+            .sort()
+            .join('') || 'c') as ColorCode;
     }
 
-    add(color: Color): void;
-    add(colors: Color[] | ColorSet): void;
-    add(colors: Color | Color[] | ColorSet): void {
-        if (typeof colors === 'string') colors = [colors];
-        this.colors = COLORS
-            .filter(color => this.colors.includes(color) || colors.includes(color));
+    code(): ColorCode {
+        return ColorSet.code([...this]);
     }
 
-    within(colors: Color[] | ColorSet): boolean {
-        return this.colors.every(color => colors.includes(color));
+    plus(colors: Color | Color[] | Set<Color>): ColorSet {
+        if (this.size === 5) return this;
+        return ColorSet.from(this.union(ColorSet.from(colors)));
     }
 
-    contains(colors: Color[] | ColorSet): boolean {
-        return new ColorSet(colors).within(this);
+    within(colors: Color | Color[] | Set<Color>): boolean {
+        if (this.size === 0) return true;
+        colors = ColorSet.from(colors);
+        return this.size <= colors.size
+            && this.size === this.intersection(colors).size;
     }
 
-    equals(colors: Color[] | ColorSet): boolean {
-        if (!colors) return false;
-        colors = new ColorSet(colors);
-        return colors.within(this) && this.within(colors);
+    contains(colors: Color | Color[] | Set<Color>): boolean {
+        if (this.size === 5) return true;
+        colors = ColorSet.from(colors);
+        return this.size >= colors.size
+            && this.size === this.union(colors).size;
     }
 
-    static all(): Record<string, ColorSet> {
-        return Object.fromEntries(
-            Object.entries(this)
-                .filter(([_, value]) => value instanceof this)
-        );
+    equals(colors: Color | Color[] | Set<Color>): boolean {
+        return this === ColorSet.from(colors);
     }
 
-    static index(colors: Color[] | ColorSet): number {
-        const index = Object.values(ColorSet.all())
-            .findIndex(identity => identity.equals(colors));
+    static index(colors: Color | Color[] | Set<Color>): number {
+        const code = ColorSet.from(colors).code();
+        const index = Object.keys(ColorSet.colors).indexOf(code);
         return index === -1 ? null : index;
     }
 }

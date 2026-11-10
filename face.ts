@@ -73,28 +73,28 @@ export class Face<T extends Card | CardFace = Card | CardFace> {
     colors(): ColorSet {
         const colors = this.face?.colors;
         return colors
-            ? new ColorSet(colors)
+            ? ColorSet.from(colors)
             : this.infer_colors();
     }
 
     color_identity(): ColorSet {
         return this.card
-            ? new ColorSet(this.card.color_identity)
+            ? ColorSet.from(this.card.color_identity)
             : null;
     }
 
     colors_produced(): ColorSet {
         return this.card
-            ? new ColorSet(this.card.produced_mana as Color[])
+            ? ColorSet.from(this.card.produced_mana as Color[])
             : null;
     }
 
     infer_colors(): ColorSet {
-        const colors = new ColorSet();
+        let colors = ColorSet.colors.c;
         if (this.face?.mana_cost) {
             COLORS.forEach(color => {
                 if (this.face.mana_cost.includes(color)) {
-                    colors.add(color);
+                    colors = colors.plus(color);
                 }
             });
         }

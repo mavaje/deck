@@ -1,38 +1,12 @@
 import {ColorSet} from "../color-set";
-import {gradient} from "../color";
 import {CardClassifier} from "./card-classifier";
 import {DeckCard} from "../deck-card";
 import {Type} from "./type";
 import {Group} from "./group";
+import {color_group} from "./color-names";
 
 export class Color extends CardClassifier<number> {
     static name: string = 'Color';
-
-    static COLOR_GROUPS: Record<string, Partial<Group>> = {
-        'colorless': {icon: 'public/icon/colorless.svg'},
-        'white': {icon: 'public/icon/white.svg'},
-        'blue': {icon: 'public/icon/blue.svg'},
-        'black': {icon: 'public/icon/black.svg'},
-        'red': {icon: 'public/icon/red.svg'},
-        'green': {icon: 'public/icon/green.svg'},
-
-        'azorius': {icon: 'public/icon/azorius.webp'},
-        'dimir': {icon: 'public/icon/dimir.webp'},
-        'rakdos': {icon: 'public/icon/rakdos.webp'},
-        'gruul': {icon: 'public/icon/gruul.webp'},
-        'selesnya': {icon: 'public/icon/selesnya.webp'},
-        'orzhov': {icon: 'public/icon/orzhov.webp'},
-        'izzet': {icon: 'public/icon/izzet.webp'},
-        'golgari': {icon: 'public/icon/golgari.webp'},
-        'boros': {icon: 'public/icon/boros.webp'},
-        'simic': {icon: 'public/icon/simic.webp'},
-
-        'abzan': {icon: 'public/icon/abzan.webp'},
-        'jeskai': {icon: 'public/icon/jeskai.webp'},
-        'sultai': {icon: 'public/icon/sultai.webp'},
-        'mardu': {icon: 'public/icon/mardu.webp'},
-        'temur': {icon: 'public/icon/temur.webp'},
-    };
 
     split_by_face: boolean = true;
 
@@ -48,11 +22,9 @@ export class Color extends CardClassifier<number> {
                     value: 0,
                     ...Type.TYPE_GROUPS['Land'],
                 }),
-                ...Object.entries(ColorSet.all()).map(([name, colors], index) => new Group({
-                    name,
+                ...Object.entries(ColorSet.colors).map(([code, colors], index) => new Group({
+                    ...color_group(colors),
                     value: index + 1,
-                    color: gradient(colors),
-                    ...Color.COLOR_GROUPS[name] ?? {},
                 })),
             ],
         );

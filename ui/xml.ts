@@ -75,14 +75,22 @@ function create_element<T extends string>(
             // fallthrough
             default:
                 if (key.startsWith('on') && typeof value === 'function') {
-                    const listeners = EVENT_LISTENERS.get(element) ?? {};
                     const event = key.slice(2);
-                    if (listeners[event]) {
-                        element.removeEventListener(event, listeners[event]);
+
+                    switch (event) {
+                        case 'timeout':
+                            setTimeout(() => value());
+                            break;
+
+                        default:
+                            const listeners = EVENT_LISTENERS.get(element) ?? {};
+                            if (listeners[event]) {
+                                element.removeEventListener(event, listeners[event]);
+                            }
+                            element.addEventListener(event, value);
+                            listeners[event] = value;
+                            EVENT_LISTENERS.set(element, listeners);
                     }
-                    element.addEventListener(event, value);
-                    listeners[event] = value;
-                    EVENT_LISTENERS.set(element, listeners);
                 } else {
                     element.setAttribute(key, String(value));
                 }
