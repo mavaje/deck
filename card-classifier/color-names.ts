@@ -64,7 +64,7 @@ export const ENEMY = {
 };
 
 export const SHARD = {
-    alara: {
+    alara_shard: {
         buw: {name: 'Esper'},
         bru: {name: 'Grixis'},
         bgr: {name: 'Jund'},
@@ -98,7 +98,7 @@ export const WEDGE = {
 };
 
 export const FOUR_COLOR = {
-    name: {
+    theme: {
         bruw: {name: 'Artifice'},
         bgru: {name: 'Aggression'},
         bgrw: {name: 'Chaos'},
@@ -128,11 +128,11 @@ export function color_group(colors: ColorSet): Partial<Group> {
     let named_group: Partial<Group> = {
         ...COLORLESS.name,
         ...MONO.name,
-        ...ALLY.hexhaven_college,
-        ...ENEMY.strixhaven_college,
-        ...SHARD.new_capenna_crime_family,
-        ...WEDGE.ikoria_triome,
-        ...FOUR_COLOR.nephilim,
+        ...ALLY.ravnica_guild,
+        ...ENEMY.ravnica_guild,
+        ...SHARD.alara_shard,
+        ...WEDGE.tarkir_clan,
+        ...FOUR_COLOR.theme,
         ...FIVE_COLOR.rainbow,
     }[code] ?? {};
     

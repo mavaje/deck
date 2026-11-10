@@ -76,7 +76,7 @@ function create_element(tag, parameters, namespace) {
           const event = key.slice(2);
           switch (event) {
             case "timeout":
-              setTimeout(() => value());
+              setTimeout(() => value(element));
               break;
             default:
               const listeners = EVENT_LISTENERS.get(element) ?? {};
@@ -2223,8 +2223,11 @@ var init_deck_view = __esm({
               style: {
                 "--gradient": group.color && `linear-gradient(to right in oklab, ${group.color.map((c, i, { length }) => `${c} ${{ 0: "16px", [length - 1]: "calc(100% - 16px)" }[i] ?? ""}`).join(",")})`
               },
-              ontimeout: () => {
-                console.log(`that's ${id} to add top px`);
+              ontimeout: (element) => {
+                const top = element.getBoundingClientRect().top;
+                const scroll = document.getElementById("deck").scrollTop;
+                const controls = document.getElementById("controls").clientHeight;
+                element.style.top = `${top + scroll - controls}px`;
               }
             },
             HTML.div(
@@ -2521,11 +2524,11 @@ function color_group(colors) {
   let named_group = {
     ...COLORLESS.name,
     ...MONO.name,
-    ...ALLY.hexhaven_college,
-    ...ENEMY.strixhaven_college,
-    ...SHARD.new_capenna_crime_family,
-    ...WEDGE.ikoria_triome,
-    ...FOUR_COLOR.nephilim,
+    ...ALLY.ravnica_guild,
+    ...ENEMY.ravnica_guild,
+    ...SHARD.alara_shard,
+    ...WEDGE.tarkir_clan,
+    ...FOUR_COLOR.theme,
     ...FIVE_COLOR.rainbow
   }[code] ?? {};
   return {
@@ -2601,7 +2604,7 @@ var init_color_names = __esm({
       }
     };
     SHARD = {
-      alara: {
+      alara_shard: {
         buw: { name: "Esper" },
         bru: { name: "Grixis" },
         bgr: { name: "Jund" },
@@ -2633,7 +2636,7 @@ var init_color_names = __esm({
       }
     };
     FOUR_COLOR = {
-      name: {
+      theme: {
         bruw: { name: "Artifice" },
         bgru: { name: "Aggression" },
         bgrw: { name: "Chaos" },

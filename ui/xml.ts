@@ -79,7 +79,7 @@ function create_element<T extends string>(
 
                     switch (event) {
                         case 'timeout':
-                            setTimeout(() => value());
+                            setTimeout(() => value(element));
                             break;
 
                         default:

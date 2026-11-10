@@ -92,8 +92,11 @@ export class DeckView {
                             group.color.map((c, i, {length}) => `${c} ${{0: '16px', [length - 1]: 'calc(100% - 16px)'}[i] ?? ''}`).join(',')
                         })`,
                     },
-                    ontimeout: () => {
-                        console.log(`that's ${id} to add top px`);
+                    ontimeout: (element: HTMLDivElement) => {
+                        const top = element.getBoundingClientRect().top;
+                        const scroll = document.getElementById('deck').scrollTop;
+                        const controls = document.getElementById('controls').clientHeight;
+                        element.style.top = `${top + scroll - controls}px`;
                     },
                 },
                 HTML.div(
