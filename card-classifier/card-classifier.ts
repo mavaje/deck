@@ -109,7 +109,7 @@ export abstract class CardClassifier<T extends string | number = string | number
         let index_a = ordering.indexOf(a);
         if (index_a < 0) index_a = Infinity;
         let index_b = ordering.indexOf(b);
-        if (index_b < 0) index_a = Infinity;
+        if (index_b < 0) index_b = Infinity;
         return index_a - index_b || 0;
     }
 

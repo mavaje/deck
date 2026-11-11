@@ -15,6 +15,8 @@ export class DeckView {
     static ORDERING: typeof CardClassifier = CardClassifier;
     static FACE_SELECTOR: FaceSelector = FaceSelector.front;
 
+    static DECK_ELEMENT = HTML.div({id: 'deck'});
+
     static render(deck: Deck = Deck.current): HTMLDivElement {
         CardView.renderings = new WeakMap();
 
@@ -23,6 +25,7 @@ export class DeckView {
 
         return HTML.div(
             {id: 'deck'},
+            HTML.div({id: 'deck-controls'}),
             HTML.div(
                 {id: 'deck-groups', class: 'groups'},
                 show_boards
@@ -92,9 +95,8 @@ export class DeckView {
                     },
                     ontimeout: element => {
                         const top = element.getBoundingClientRect().top;
-                        const scroll = document.getElementById('deck').scrollTop;
-                        const controls = document.getElementById('controls').clientHeight;
-                        element.style.top = `${top + scroll - controls}px`;
+                        const {offsetTop, scrollTop} = this.DECK_ELEMENT;
+                        element.style.top = `${top + scrollTop - offsetTop}px`;
                     },
                 },
                 HTML.div(
@@ -143,8 +145,8 @@ export class DeckView {
         const url = card.main_face().face?.image_uris.art;
         if (url) {
             HTML.div({
-                id: 'card-image', style: {
-                    background_image: `url(${url})`,
+                id: 'background', style: {
+                    '--card-image-url': `url(${url})`,
                 }
             });
             return true;

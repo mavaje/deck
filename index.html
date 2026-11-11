@@ -10,29 +10,37 @@
 </head>
 <body>
 <div id="background">
-    <div id="card-image"></div>
-    <div id="blur"></div>
-</div>
-<div id="foreground">
-    <div id="controls">
-        <div>
-            <label for="group-by">Group by</label>
-            <select id="group-by"></select>
-
-            <input id="by-board" type="checkbox" checked>
-            <label for="by-board">By Board</label>
-
-            <label for="order-by">Order by</label>
-            <select id="order-by"></select>
+    <div id="search">
+        <div id="search-controls">
+            <input id="search-query" type="text">
+            <button id="search-button">Search</button>
         </div>
-        <div>
-            <input id="deck-file-input" type="file">
-            <button id="deck-upload-button" class="button">Import</button>
-
-            <button id="deck-download-button" class="button">Export</button>
+        <div id="search-results">
         </div>
     </div>
-    <div id="deck" class="compact show-quantity"></div>
+    <div id="divider" class="neon"></div>
+    <div id="deck" class="compact show-quantity">
+        <div id="deck-controls">
+            <div>
+                <input id="deck-file-input" type="file">
+                <button id="deck-upload-button">Import</button>
+
+                <button id="deck-download-button">Export</button>
+            </div>
+            <div>
+                <input id="by-board" type="checkbox" checked>
+                <label for="by-board">By Board</label>
+            </div>
+            <div>
+                <label for="group-by">Group by</label>
+                <select id="group-by"></select>
+            </div>
+            <div>
+                <label for="order-by">Order by</label>
+                <select id="order-by"></select>
+            </div>
+        </div>
+    </div>
 </div>
 <div id="modals">
     <div id="card-edit-modal" class="modal"></div>

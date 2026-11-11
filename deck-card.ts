@@ -242,8 +242,6 @@ export class DeckCard extends Face {
     }
 
     async load(): Promise<this> {
-        if (this.card) return;
-
         this.load_from_cache();
 
         const {name, set, collector_number, language} = this;

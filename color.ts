@@ -1,8 +1,8 @@
 
 export const MTG_COLORS = {
-    blue: '#00bfff',
+    blue: '#009fff',
     red: '#ff2f00',
-    green: '#5fdf00',
+    green: '#2fdf00',
     yellow: '#ffdf3f',
     silver: '#9fbfdf',
     purple: '#7f00bf',

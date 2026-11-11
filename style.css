@@ -1,4 +1,7 @@
 * {
+    --theme-rgb: 0 255 191;
+    --theme: rgb(var(--theme-rgb));
+
     transition-timing-function: ease;
     transition-property: none;
     transition-duration: 0.2s;
@@ -13,53 +16,13 @@ html {
 body {
     --card-scale: 8px;
 
-    background-color: #2c1010;
+    background-color: #3f001f;
     color: #ffffff;
     margin: 0;
     height: 100%;
     overflow: hidden;
     display: flex;
     flex-direction: column;
-}
-
-#background,
-#background > *,
-#foreground,
-#modals {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-}
-
-#card-image {
-    background-size: cover;
-}
-
-#blur {
-    background-image: radial-gradient(#0000003f, #000000bf);
-    backdrop-filter: blur(8px);
-}
-
-#controls {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: stretch;
-    padding: 4px;
-    z-index: 5;
-    background-color: #0000007f;
-    backdrop-filter: blur(4px);
-}
-
-#controls > div {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
 }
 
 label {
@@ -70,7 +33,7 @@ input[type=file] {
     display: none;
 }
 
-.button,
+button,
 input,
 select {
     margin: 4px;
@@ -82,17 +45,18 @@ select {
     border: 2px solid #ffffff7f;
     outline: none;
     cursor: pointer;
-    transition-property: background-color, border-color;
+    transition-property: background-color, border-color, box-shadow;
 }
 
-.button:hover,
+button:hover,
 input:hover,
 select:hover,
-.button:focus-visible,
+button:focus-visible,
 input:focus-visible,
 select:focus-visible {
     border-color: white;
-    background-color: #ffffff3f;
+    background-color: rgba(var(--theme-rgb) / 25%);
+    box-shadow: 0 0 4px 1px var(--theme), inset 0 0 4px 1px var(--theme);
 }
 
 select {
@@ -100,7 +64,7 @@ select {
 }
 
 input[type=checkbox] {
-    accent-color: #007f5f;
+    accent-color: var(--theme);
     margin: 4px;
 }
 
@@ -115,20 +79,84 @@ input[type=checkbox] {
     color: #ffffff7f;
 }
 
-#deck {
-    position: absolute;
+#background {
+    --card-image-url: none;
     width: 100%;
-    height: calc(100% - 48px);
-    overflow: auto;
-    padding-top: 45px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
-#deck .groups {
+#background::before {
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-image: radial-gradient(#0000003f, #000000bf), var(--card-image-url);
+    filter: blur(8px);
+}
+
+#search {
+    display: flex;
+    flex-direction: column;
+}
+
+#search-controls {
+    display: flex;
+    padding: 4px;
+    background-color: #0000007f;
+    backdrop-filter: blur(4px);
+}
+
+#divider {
+    flex: 0 0 2px;
+    align-self: stretch;
+    background-color: white;
+    box-shadow: 0 0 8px 2px var(--theme);
+    z-index: 7;
+}
+
+#deck {
+    flex: 1;
+    display: flex;
+    overflow: auto;
+    overscroll-behavior: none;
+}
+
+#deck-controls {
+    position: sticky;
+    top: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: start;
+    align-items: start;
+    padding: 4px;
+    z-index: 5;
+    background-color: #0000007f;
+    backdrop-filter: blur(4px);
+    margin-right: 4px;
+}
+
+#deck-controls > div {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#deck-groups {
+    padding-right: 4px;
+}
+
+.groups {
+    flex: 1;
     display: flex;
     flex-direction: row;
 }
 
-#deck .group {
+.group {
     display: flex;
     flex-direction: column;
     transition-property: z-index;
@@ -137,24 +165,12 @@ input[type=checkbox] {
     position: relative;
 }
 
-#deck .group:has(.card:hover) {
+.group:has(.card:hover) {
     transition-timing-function: step-start;
     z-index: 2;
 }
 
-#deck > .groups > .group {
-    padding-bottom: 8px;
-}
-
-#deck > .groups > .group:first-child {
-    padding-left: 8px;
-}
-
-#deck > .groups > .group:last-child {
-    padding-right: 8px;
-}
-
-#deck .label {
+.label {
     --gradient: transparent;
 
     position: sticky;
@@ -175,59 +191,29 @@ input[type=checkbox] {
     backdrop-filter: blur(4px);
 }
 
-#deck .label:has(.icon) {
+.label:has(.icon) {
     padding-inline-start: 4px;
 }
 
-#deck.show-quantity .label {
+.show-quantity .label {
     margin-left: 40px;
 }
 
-#deck .label::before {
+.label::before {
     content: "";
     position: absolute;
-    bottom: -25px;
-    left: -16px;
-    right: -16px;
-    height: 48px;
+    bottom: -6px;
+    left: -4px;
+    right: -4px;
+    height: 10px;
     background: var(--gradient);
-    mask-image: linear-gradient(
-        to bottom,
-        #00000000,
-        #0000000f,
-        #0000001f,
-        #0000003f,
-        #0000007f,
-        #000000ff,
-        #0000007f,
-        #0000003f,
-        #0000001f,
-        #0000000f,
-        #00000000
-    ), linear-gradient(
-        to right,
-        #00000000,
-        #0000000f,
-        #0000001f,
-        #0000003f,
-        #0000007f,
-        #000000bf 16px,
-        #000000ff 32px,
-        #000000ff calc(100% - 32px),
-        #000000bf calc(100% - 16px),
-        #0000007f,
-        #0000003f,
-        #0000001f,
-        #0000000f,
-        #00000000
-    );
-    mask-composite: intersect;
+    filter: blur(4px);
     mix-blend-mode: lighten;
 }
 
 .label div {
     position: sticky;
-    left: 8px;
+    left: calc(264px + 8px);
     right: 8px;
     display: flex;
     flex-direction: row;
@@ -276,7 +262,7 @@ input[type=checkbox] {
     --card-title-height: calc(5 * var(--card-scale));
 }
 
-#deck.show-quantity .card.collapsible {
+.show-quantity .card.collapsible {
     height: 0 !important;
     margin-bottom: 0 !important;
     opacity: 0;
@@ -284,14 +270,14 @@ input[type=checkbox] {
 
 #deck:not(.compact) .card.aftermath.invert,
 .card.landscape-front.invert,
-#deck.compact .card.landscape:not(.double),
-#deck.compact .card.landscape-front:not(.double) {
+.compact .card.landscape:not(.double),
+.compact .card.landscape-front:not(.double) {
     width: var(--card-height);
     height: var(--card-width);
     margin-bottom: calc(var(--card-title-height) - var(--card-width));
 }
 
-#deck.show-quantity .group .card {
+.show-quantity .group .card {
     margin-left: 40px;
 }
 
@@ -339,7 +325,7 @@ input[type=checkbox] {
     background-color: #ffffff3f;
 }
 
-#deck.show-quantity .card .backdrop {
+.show-quantity .card .backdrop {
     left: -48px;
 }
 
@@ -376,10 +362,11 @@ input[type=checkbox] {
     min-width: 32px;
     text-align: end;
     transition-property: opacity;
+    opacity: 0;
 }
 
-#deck:not(.show-quantity) .card .count {
-    opacity: 0;
+.show-quantity .card .count {
+    opacity: 100%;
 }
 
 .card-tilt {
@@ -417,7 +404,7 @@ input[type=checkbox] {
     --transform-compact: var(--transform-final);
 }
 
-#deck.compact .card:not(:hover) .card-faces {
+.compact .card:not(:hover) .card-faces {
     transform: var(--transform-compact);
 }
 
@@ -513,7 +500,7 @@ input[type=checkbox] {
     border-radius: var(--card-radius);
     transform: translateZ(1px);
     filter: contrast(100%);
-    transition-property: filter;
+    transition-property: filter, opacity;
 }
 
 .card-face.back {
@@ -576,10 +563,13 @@ input[type=checkbox] {
 
 .card:hover .card-faces,
 .card.focus .card-faces {
-    box-shadow: 0 0 8px 2px #00ffbf;
+    box-shadow: 0 0 2px 1px white, 0 0 8px 2px var(--theme);
 }
 
 #modals {
+    position: absolute;
+    width: 100%;
+    height: 100%;
     pointer-events: none;
     display: flex;
     justify-content: center;

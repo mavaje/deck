@@ -1486,7 +1486,6 @@ var init_deck_card = __esm({
         }
       }
       async load() {
-        if (this.card) return;
         this.load_from_cache();
         const { name, set, collector_number, language } = this;
         const is_alchemy_set = /^y\d\d$/i.test(set);
@@ -2268,7 +2267,7 @@ var init_card_classifier = __esm({
         let index_a = ordering.indexOf(a);
         if (index_a < 0) index_a = Infinity;
         let index_b = ordering.indexOf(b);
-        if (index_b < 0) index_a = Infinity;
+        if (index_b < 0) index_b = Infinity;
         return index_a - index_b || 0;
       }
       lands_first(a, b) {
@@ -2304,11 +2303,13 @@ var init_deck_view = __esm({
       static GROUPING = CardClassifier;
       static ORDERING = CardClassifier;
       static FACE_SELECTOR = FaceSelector.front;
+      static DECK_ELEMENT = HTML.div({ id: "deck" });
       static render(deck = Deck.current) {
         CardView.renderings = /* @__PURE__ */ new WeakMap();
         const show_boards = this.BY_BOARD && deck.some((card) => !card.board.is_default());
         return HTML.div(
           { id: "deck" },
+          HTML.div({ id: "deck-controls" }),
           HTML.div(
             { id: "deck-groups", class: "groups" },
             show_boards ? Board.all().map((board) => this.render_board(deck.board(board), board)) : [this.render_board(deck.copy())]
@@ -2363,9 +2364,8 @@ var init_deck_view = __esm({
               },
               ontimeout: (element) => {
                 const top = element.getBoundingClientRect().top;
-                const scroll = document.getElementById("deck").scrollTop;
-                const controls = document.getElementById("controls").clientHeight;
-                element.style.top = `${top + scroll - controls}px`;
+                const { offsetTop, scrollTop } = this.DECK_ELEMENT;
+                element.style.top = `${top + scrollTop - offsetTop}px`;
               }
             },
             HTML.div(
@@ -2409,9 +2409,9 @@ var init_deck_view = __esm({
         const url = card.main_face().face?.image_uris.art;
         if (url) {
           HTML.div({
-            id: "card-image",
+            id: "background",
             style: {
-              background_image: `url(${url})`
+              "--card-image-url": `url(${url})`
             }
           });
           return true;
@@ -2637,9 +2637,9 @@ var MTG_COLORS;
 var init_color = __esm({
   "color.ts"() {
     MTG_COLORS = {
-      blue: "#00bfff",
+      blue: "#009fff",
       red: "#ff2f00",
-      green: "#5fdf00",
+      green: "#2fdf00",
       yellow: "#ffdf3f",
       silver: "#9fbfdf",
       purple: "#7f00bf",
