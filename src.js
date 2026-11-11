@@ -1972,7 +1972,7 @@ var init_card_view = __esm({
     init_card_edit_modal();
     CardView = class _CardView {
       static renderings = /* @__PURE__ */ new WeakMap();
-      static render(card, id, last_in_card = false, last_in_stack = false, face_id = card.display_face_id) {
+      static render(card, face_id = card.display_face_id, id = null, last_in_card = true, last_in_stack = true) {
         const card_class = /* @__PURE__ */ new Set(["card"]);
         if (!last_in_card) card_class.add("collapsible");
         if (card.quantity < 1) card_class.add("ghost");
@@ -2108,17 +2108,17 @@ var init_card_view = __esm({
           HTML.div({ class: "trigger" }),
           HTML.div(
             {
-              id: `${id}-shift`,
+              id: id && `${id}-shift`,
               class: "card-shift"
             },
             last_in_card && HTML.div({ class: "count" }, `${card.quantity}\xD7`),
             tilt = HTML.div(
               {
-                id: `${id}-tilt`,
+                id: id && `${id}-tilt`,
                 class: "card-tilt"
               },
               HTML.div({
-                id: `${id}-faces`,
+                id: id && `${id}-faces`,
                 class: "card-faces",
                 style: faces_style
               }, faces)
@@ -2308,12 +2308,8 @@ var init_deck_view = __esm({
         CardView.renderings = /* @__PURE__ */ new WeakMap();
         const show_boards = this.BY_BOARD && deck.some((card) => !card.board.is_default());
         return HTML.div(
-          { id: "deck" },
-          HTML.div({ id: "deck-controls" }),
-          HTML.div(
-            { id: "deck-groups", class: "groups" },
-            show_boards ? Board.all().map((board) => this.render_board(deck.board(board), board)) : [this.render_board(deck.copy())]
-          )
+          { id: "deck-cards", class: "groups" },
+          show_boards ? Board.all().map((board) => this.render_board(deck.board(board), board)) : [this.render_board(deck.copy())]
         );
       }
       static render_board(cards, board) {
@@ -2353,14 +2349,14 @@ var init_deck_view = __esm({
         return HTML.div(
           {
             id,
-            class: ["group"]
+            class: "group"
           },
           group.name && HTML.div(
             {
               id: `${id}-label`,
               class: "label",
               style: {
-                "--gradient": group.color && `linear-gradient(to right in oklab, ${group.color.map((c, i, { length }) => `${c} ${{ 0: "16px", [length - 1]: "calc(100% - 16px)" }[i] ?? ""}`).join(",")})`
+                "--gradient": group.color && `linear-gradient(to right in oklab, ${group.color.map((c, i, { length }) => `${c} ${{ 0: "4px", [length - 1]: "calc(100% - 4px)" }[i] ?? ""}`).join(",")})`
               },
               ontimeout: (element) => {
                 const top = element.getBoundingClientRect().top;
@@ -2394,10 +2390,10 @@ var init_deck_view = __esm({
                 const last_of_card = j === quantity - 1;
                 elements.push(CardView.render(
                   card,
+                  grouping?.face_id(card, group.value),
                   `${id}-card-${card.id}-${quantity - 1 - j}`,
                   last_of_card,
-                  last_deck_card && last_of_card,
-                  grouping?.face_id(card, group.value)
+                  last_deck_card && last_of_card
                 ));
               }
               return elements;
@@ -2543,7 +2539,7 @@ var init_deck = __esm({
   }
 });
 
-// ui/deck-controls/deck-upload.ts
+// ui/deck/deck-upload.ts
 function initialise_deck_upload() {
   HTML.button({
     id: "deck-upload-button",
@@ -2561,7 +2557,7 @@ function initialise_deck_upload() {
   });
 }
 var init_deck_upload = __esm({
-  "ui/deck-controls/deck-upload.ts"() {
+  "ui/deck/deck-upload.ts"() {
     init_xml();
     init_deck();
     init_deck_card();
@@ -3237,7 +3233,7 @@ var init_type_primary = __esm({
   }
 });
 
-// ui/deck-controls/deck-controls.ts
+// ui/deck/deck-controls.ts
 function initialise_deck_controls() {
   const group_select = HTML.select({
     id: "group-by",
@@ -3263,7 +3259,7 @@ function initialise_deck_controls() {
 }
 var CARD_GROUPINGS, CARD_ORDERINGS;
 var init_deck_controls = __esm({
-  "ui/deck-controls/deck-controls.ts"() {
+  "ui/deck/deck-controls.ts"() {
     init_xml();
     init_deck_view();
     init_type();
@@ -3313,19 +3309,57 @@ var init_deck_controls = __esm({
   }
 });
 
-// ui/deck-controls/initialise-controls.ts
-var initialise_controls_exports = {};
-__export(initialise_controls_exports, {
-  initialise_controls: () => initialise_controls
+// ui/search/search.ts
+function initialise_search() {
+  SEARCH_INPUT.addEventListener("keypress", ({ key }) => {
+    if (key === "Enter") search();
+  });
+  HTML.input({
+    id: "search-button",
+    onclick: () => search()
+  });
+}
+async function search(query = SEARCH_INPUT.value) {
+  SEARCH_INPUT.value = query;
+  if (!query) return;
+  SEARCH_RESULTS.classList.remove("collapsed");
+  SEARCH_RESULTS.classList.add("loading");
+  const card_list = await API.card_search(query);
+  SEARCH_RESULTS.classList.remove("loading");
+  HTML.input({
+    id: "search-results",
+    class: "groups"
+  }, card_list.data.map((card) => DeckCard.from_card(card, true)).map((card) => HTML.div({
+    class: "stack"
+  }, CardView.render(card))));
+}
+var SEARCH_INPUT, SEARCH_RESULTS;
+var init_search = __esm({
+  "ui/search/search.ts"() {
+    init_xml();
+    init_api();
+    init_deck_card();
+    init_card_view();
+    SEARCH_INPUT = HTML.input({ id: "search-query" });
+    SEARCH_RESULTS = HTML.input({ id: "search-results" });
+  }
 });
-function initialise_controls() {
+
+// ui/initialise-ui.ts
+var initialise_ui_exports = {};
+__export(initialise_ui_exports, {
+  initialise_ui: () => initialise_ui
+});
+function initialise_ui() {
+  initialise_search();
   initialise_deck_controls();
   initialise_deck_upload();
 }
-var init_initialise_controls = __esm({
-  "ui/deck-controls/initialise-controls.ts"() {
+var init_initialise_ui = __esm({
+  "ui/initialise-ui.ts"() {
     init_deck_upload();
     init_deck_controls();
+    init_search();
   }
 });
 
@@ -3333,13 +3367,13 @@ var init_initialise_controls = __esm({
 var require_main = __commonJS({
   "main.js"(exports) {
     Object.defineProperty(exports, "__esModule", { value: true });
-    var initialise_controls_1 = (init_initialise_controls(), __toCommonJS(initialise_controls_exports));
+    var initialise_ui_1 = (init_initialise_ui(), __toCommonJS(initialise_ui_exports));
     var deck_1 = (init_deck(), __toCommonJS(deck_exports));
-    (0, initialise_controls_1.initialise_controls)();
+    (0, initialise_ui_1.initialise_ui)();
     deck_1.Deck.load_current(`
 Lightning Bolt
 Grizzly Bears
-Etali, Primal Conqueror    
+Etali, Primal Conqueror
 `);
   }
 });

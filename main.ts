@@ -1,13 +1,13 @@
 import {run_tests} from "./test/test-runner";
-import {initialise_controls} from "./ui/deck-controls/initialise-controls";
+import {initialise_ui} from "./ui/initialise-ui";
 import {Deck} from "./deck";
 
 // run_tests();
 
-initialise_controls();
+initialise_ui();
 
 Deck.load_current(`
 Lightning Bolt
 Grizzly Bears
-Etali, Primal Conqueror    
-`)
+Etali, Primal Conqueror
+`);

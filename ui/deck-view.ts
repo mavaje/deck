@@ -24,15 +24,11 @@ export class DeckView {
             && deck.some(card => !card.board.is_default());
 
         return HTML.div(
-            {id: 'deck'},
-            HTML.div({id: 'deck-controls'}),
-            HTML.div(
-                {id: 'deck-groups', class: 'groups'},
-                show_boards
-                    ? Board.all()
-                        .map(board => this.render_board(deck.board(board), board))
-                    : [this.render_board(deck.copy())],
-            ),
+            {id: 'deck-cards', class: 'groups'},
+            show_boards
+                ? Board.all()
+                    .map(board => this.render_board(deck.board(board), board))
+                : [this.render_board(deck.copy())],
         );
     }
 
@@ -82,7 +78,7 @@ export class DeckView {
         return HTML.div(
             {
                 id,
-                class: ['group'],
+                class: 'group',
             },
             group.name && HTML.div(
                 {
@@ -90,7 +86,7 @@ export class DeckView {
                     class: 'label',
                     style: {
                         '--gradient': group.color && `linear-gradient(to right in oklab, ${
-                            group.color.map((c, i, {length}) => `${c} ${{0: '16px', [length - 1]: 'calc(100% - 16px)'}[i] ?? ''}`).join(',')
+                            group.color.map((c, i, {length}) => `${c} ${{0: '4px', [length - 1]: 'calc(100% - 4px)'}[i] ?? ''}`).join(',')
                         })`,
                     },
                     ontimeout: element => {
@@ -128,10 +124,10 @@ export class DeckView {
                             const last_of_card = j === quantity - 1;
                             elements.push(CardView.render(
                                 card,
+                                grouping?.face_id(card, group.value),
                                 `${id}-card-${card.id}-${quantity - 1 - j}`,
                                 last_of_card,
                                 last_deck_card && last_of_card,
-                                grouping?.face_id(card, group.value),
                             ));
                         }
 

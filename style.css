@@ -109,6 +109,18 @@ input[type=checkbox] {
     backdrop-filter: blur(4px);
 }
 
+#search-results {
+    display: flex;
+    padding-bottom: 4px;
+    overflow-x: auto;
+    min-height: calc(35 * var(--card-scale));
+    transition-property: min-height;
+}
+
+#search-results.collapsed {
+    min-height: 0;
+}
+
 #divider {
     flex: 0 0 2px;
     align-self: stretch;
@@ -146,7 +158,7 @@ input[type=checkbox] {
     align-items: center;
 }
 
-#deck-groups {
+#deck-cards {
     padding-right: 4px;
 }
 

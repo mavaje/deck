@@ -9,10 +9,10 @@ export class CardView {
 
     static render(
         card: DeckCard,
-        id: number | string,
-        last_in_card: boolean = false,
-        last_in_stack: boolean = false,
         face_id: number = card.display_face_id,
+        id: number | string = null,
+        last_in_card: boolean = true,
+        last_in_stack: boolean = true,
     ): HTMLDivElement {
         const card_class: Set<string> = new Set(['card']);
         if (!last_in_card) card_class.add('collapsible');
@@ -177,17 +177,17 @@ export class CardView {
             HTML.div({class: 'trigger'}),
             HTML.div(
                 {
-                    id: `${id}-shift`,
+                    id: id && `${id}-shift`,
                     class: 'card-shift',
                 },
                 last_in_card && HTML.div({class: 'count'}, `${card.quantity}×`),
                 tilt = HTML.div(
                     {
-                        id: `${id}-tilt`,
+                        id: id && `${id}-tilt`,
                         class: 'card-tilt',
                     },
                     HTML.div({
-                        id: `${id}-faces`,
+                        id: id && `${id}-faces`,
                         class: 'card-faces',
                         style: faces_style,
                     }, faces),
