@@ -24,12 +24,18 @@ export async function search(query: string = SEARCH_INPUT.value): Promise<void> 
     SEARCH_RESULTS.classList.add('loading');
     const card_list = await API.card_search(query);
     SEARCH_RESULTS.classList.remove('loading');
-    HTML.input({
-        id: 'search-results',
-        class: 'groups',
-    }, card_list.data
-        .map(card => DeckCard.from_card(card, true))
-        .map(card => HTML.div({
-            class: 'stack',
-        }, CardView.render(card))));
+    if (card_list.data) {
+        HTML.input({
+            id: 'search-results',
+            class: 'groups',
+        }, card_list.data
+            .map(card => DeckCard.from_card(card, true))
+            .map(card => HTML.div(
+                {class: 'group'},
+                HTML.div(
+                    {class: 'stack'},
+                    CardView.render(card),
+                ),
+            )));
+    }
 }

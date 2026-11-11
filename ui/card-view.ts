@@ -11,11 +11,11 @@ export class CardView {
         card: DeckCard,
         face_id: number = card.display_face_id,
         id: number | string = null,
-        last_in_card: boolean = true,
+        is_duplicate: boolean = false,
         last_in_stack: boolean = true,
     ): HTMLDivElement {
         const card_class: Set<string> = new Set(['card']);
-        if (!last_in_card) card_class.add('collapsible');
+        if (is_duplicate) card_class.add('duplicate');
         if (card.quantity < 1) card_class.add('ghost');
 
         const faces: HTMLDivElement[] = [];
@@ -133,7 +133,7 @@ export class CardView {
                 class: [
                     'card-face',
                     ['front', 'back'][face_id],
-                    !card.finish.is_default() && 'foil',
+                    !card.finish.is_default() && card.finish.name.toLowerCase(),
                 ],
                 style: {
                     background_image: urls
@@ -173,14 +173,14 @@ export class CardView {
                 },
                 onclick: () => edit_card_modal(card),
             },
-            HTML.div({class: 'backdrop'}),
+            // HTML.div({class: 'backdrop'}),
             HTML.div({class: 'trigger'}),
             HTML.div(
                 {
                     id: id && `${id}-shift`,
                     class: 'card-shift',
                 },
-                last_in_card && HTML.div({class: 'count'}, `${card.quantity}×`),
+                !is_duplicate && HTML.div({class: 'count'}, `${card.quantity}×`),
                 tilt = HTML.div(
                     {
                         id: id && `${id}-tilt`,

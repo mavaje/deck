@@ -1,5 +1,5 @@
 * {
-    --theme-rgb: 0 255 191;
+    --theme-rgb: 0 255 223;
     --theme: rgb(var(--theme-rgb));
 
     transition-timing-function: ease;
@@ -90,8 +90,7 @@ input[type=checkbox] {
 #background::before {
     content: "";
     position: absolute;
-    width: 100%;
-    height: 100%;
+    inset: -16px;
     background-size: cover;
     background-image: radial-gradient(#0000003f, #000000bf), var(--card-image-url);
     filter: blur(8px);
@@ -111,8 +110,11 @@ input[type=checkbox] {
 
 #search-results {
     display: flex;
-    padding-bottom: 4px;
+    padding-inline: 8px;
+    padding-bottom: 8px;
     overflow-x: auto;
+    overflow-y: visible;
+    width: 100%;
     min-height: calc(35 * var(--card-scale));
     transition-property: min-height;
 }
@@ -274,7 +276,7 @@ input[type=checkbox] {
     --card-title-height: calc(5 * var(--card-scale));
 }
 
-.show-quantity .card.collapsible {
+.show-quantity .card.duplicate {
     height: 0 !important;
     margin-bottom: 0 !important;
     opacity: 0;
@@ -321,24 +323,6 @@ input[type=checkbox] {
 
 .card.flip.invert > .card-shift > .card-tilt {
     margin-top: calc(-1.5 * var(--card-scale));
-}
-
-.card .backdrop {
-    position: absolute;
-    top: 0;
-    height: var(--card-title-height);
-    left: 0;
-    right: 0;
-    border-radius: 4px;
-    transition-property: background-color, left;
-}
-
-.card:hover .backdrop {
-    background-color: #ffffff3f;
-}
-
-.show-quantity .card .backdrop {
-    left: -48px;
 }
 
 .card .trigger {
@@ -537,7 +521,8 @@ input[type=checkbox] {
     }
 }
 
-.card-face.foil:after {
+.card-face.foil:after,
+.card-face.etched:after {
     --foil-scale: calc(35 * var(--card-scale));
 
     content: '';
@@ -553,7 +538,9 @@ input[type=checkbox] {
 }
 
 .card.landscape .card-face.foil:after,
-.card.landscape-front .card-face.foil:not(.back):after {
+.card.landscape .card-face.etched:after,
+.card.landscape-front .card-face.foil:not(.back):after,
+.card.landscape-front .card-face.etched:not(.back):after {
     background-image: linear-gradient(45deg in hsl increasing hue, #f00, #0ff, #f00, #0ff, #f00);
 }
 

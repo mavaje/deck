@@ -126,7 +126,7 @@ export class DeckView {
                                 card,
                                 grouping?.face_id(card, group.value),
                                 `${id}-card-${card.id}-${quantity - 1 - j}`,
-                                last_of_card,
+                                !last_of_card,
                                 last_deck_card && last_of_card,
                             ));
                         }

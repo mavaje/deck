@@ -1437,7 +1437,7 @@ var init_deck_card = __esm({
       static from_card(card, exact = false) {
         const deck_card = new _DeckCard({
           card,
-          finish: Object.entries(Finish.map()).find(([finish]) => card.finishes.includes(finish))[1]
+          finish: Object.entries(Finish.map()).find(([finish]) => card.finishes.includes(finish))?.[1] ?? Finish.DEFAULT
         });
         deck_card.hydrate(card);
         if (exact) {
@@ -1972,9 +1972,9 @@ var init_card_view = __esm({
     init_card_edit_modal();
     CardView = class _CardView {
       static renderings = /* @__PURE__ */ new WeakMap();
-      static render(card, face_id = card.display_face_id, id = null, last_in_card = true, last_in_stack = true) {
+      static render(card, face_id = card.display_face_id, id = null, is_duplicate = false, last_in_stack = true) {
         const card_class = /* @__PURE__ */ new Set(["card"]);
-        if (!last_in_card) card_class.add("collapsible");
+        if (is_duplicate) card_class.add("duplicate");
         if (card.quantity < 1) card_class.add("ghost");
         const faces = [];
         switch (card.layout()) {
@@ -2071,7 +2071,7 @@ var init_card_view = __esm({
             class: [
               "card-face",
               ["front", "back"][face_id2],
-              !card.finish.is_default() && "foil"
+              !card.finish.is_default() && card.finish.name.toLowerCase()
             ],
             style: {
               background_image: urls.map((url) => `url(${url})`).join(", ")
@@ -2104,14 +2104,14 @@ var init_card_view = __esm({
             },
             onclick: () => edit_card_modal(card)
           },
-          HTML.div({ class: "backdrop" }),
+          // HTML.div({class: 'backdrop'}),
           HTML.div({ class: "trigger" }),
           HTML.div(
             {
               id: id && `${id}-shift`,
               class: "card-shift"
             },
-            last_in_card && HTML.div({ class: "count" }, `${card.quantity}\xD7`),
+            !is_duplicate && HTML.div({ class: "count" }, `${card.quantity}\xD7`),
             tilt = HTML.div(
               {
                 id: id && `${id}-tilt`,
@@ -2392,7 +2392,7 @@ var init_deck_view = __esm({
                   card,
                   grouping?.face_id(card, group.value),
                   `${id}-card-${card.id}-${quantity - 1 - j}`,
-                  last_of_card,
+                  !last_of_card,
                   last_deck_card && last_of_card
                 ));
               }
@@ -3326,12 +3326,18 @@ async function search(query = SEARCH_INPUT.value) {
   SEARCH_RESULTS.classList.add("loading");
   const card_list = await API.card_search(query);
   SEARCH_RESULTS.classList.remove("loading");
-  HTML.input({
-    id: "search-results",
-    class: "groups"
-  }, card_list.data.map((card) => DeckCard.from_card(card, true)).map((card) => HTML.div({
-    class: "stack"
-  }, CardView.render(card))));
+  if (card_list.data) {
+    HTML.input({
+      id: "search-results",
+      class: "groups"
+    }, card_list.data.map((card) => DeckCard.from_card(card, true)).map((card) => HTML.div(
+      { class: "group" },
+      HTML.div(
+        { class: "stack" },
+        CardView.render(card)
+      )
+    )));
+  }
 }
 var SEARCH_INPUT, SEARCH_RESULTS;
 var init_search = __esm({
@@ -3372,8 +3378,8 @@ var require_main = __commonJS({
     (0, initialise_ui_1.initialise_ui)();
     deck_1.Deck.load_current(`
 Lightning Bolt
-Grizzly Bears
-Etali, Primal Conqueror
+Grizzly Bears *F*
+Etali, Primal Conqueror *ET*
 `);
   }
 });

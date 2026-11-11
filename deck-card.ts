@@ -179,7 +179,8 @@ export class DeckCard extends Face {
         const deck_card = new DeckCard({
             card,
             finish: Object.entries(Finish.map())
-                .find(([finish]) => card.finishes.includes(finish as any))[1]
+                .find(([finish]) => card.finishes.includes(finish as any))?.[1]
+                    ?? Finish.DEFAULT,
         });
 
         deck_card.hydrate(card);

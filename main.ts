@@ -8,6 +8,6 @@ initialise_ui();
 
 Deck.load_current(`
 Lightning Bolt
-Grizzly Bears
-Etali, Primal Conqueror
+Grizzly Bears *F*
+Etali, Primal Conqueror *ET*
 `);
