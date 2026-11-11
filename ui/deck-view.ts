@@ -90,7 +90,7 @@ export class DeckView {
                             group.color.map((c, i, {length}) => `${c} ${{0: '16px', [length - 1]: 'calc(100% - 16px)'}[i] ?? ''}`).join(',')
                         })`,
                     },
-                    ontimeout: (element: HTMLDivElement) => {
+                    ontimeout: element => {
                         const top = element.getBoundingClientRect().top;
                         const scroll = document.getElementById('deck').scrollTop;
                         const controls = document.getElementById('controls').clientHeight;
@@ -121,11 +121,12 @@ export class DeckView {
                         const last_deck_card = i === cards.length - 1;
                         const elements: HTMLDivElement[] = [];
 
-                        for (let j = 0; j < card.quantity; j++) {
-                            const last_of_card = j === card.quantity - 1;
+                        const quantity = Math.max(1, card.quantity);
+                        for (let j = 0; j < quantity; j++) {
+                            const last_of_card = j === quantity - 1;
                             elements.push(CardView.render(
                                 card,
-                                `${id}-card-${j}`,
+                                `${id}-card-${card.id}-${quantity - 1 - j}`,
                                 last_of_card,
                                 last_deck_card && last_of_card,
                                 grouping?.face_id(card, group.value),

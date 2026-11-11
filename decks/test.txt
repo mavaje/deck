@@ -72,8 +72,8 @@ Byode, Inverse Sun
 Garruk the Slayer
 Ghave, Guru of Spores (OCMD)
 Nearby Planet
-BFM (UGL:28)
-BFM (UGL:29)
+(UGL:28)
+(UGL:29)
 Essence of Ajani
 Old Fogey
 Viscera Seer (SLD:VS)

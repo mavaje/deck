@@ -59,6 +59,9 @@ function create_element(tag, parameters, namespace) {
         element.className = "";
         element.classList.add(...value.filter(Boolean));
         return;
+      case "value":
+        element.value = value;
+        return;
       case "style":
         element.removeAttribute("style");
         if (typeof value === "object" && "style" in element) {
@@ -83,8 +86,9 @@ function create_element(tag, parameters, namespace) {
               if (listeners[event]) {
                 element.removeEventListener(event, listeners[event]);
               }
-              element.addEventListener(event, value);
-              listeners[event] = value;
+              const listener = (event2) => value(element, event2);
+              element.addEventListener(event, listener);
+              listeners[event] = listener;
               EVENT_LISTENERS.set(element, listeners);
           }
         } else {
@@ -1053,6 +1057,18 @@ var init_face = __esm({
       layout() {
         return this.card?.layout ?? "normal";
       }
+      is_double_faced() {
+        switch (this.layout()) {
+          case "transform":
+          case "modal_dfc":
+          case "double_faced_token":
+          case "reversible_card":
+          case "art_series":
+            return true;
+          default:
+            return false;
+        }
+      }
       is_layout(...layouts) {
         return layouts.some((layout) => this.card?.layout === layout);
       }
@@ -1508,6 +1524,9 @@ var init_deck_card = __esm({
           if (this.collector_number !== card.collector_number) {
             this.collector_number = null;
           }
+          if (this.language.code() !== card.lang && this.language.is_default()) {
+            this.language = Language.match(card.lang);
+          }
           if (this.name && card.card_faces) {
             const normal_name = normalise(this.name);
             let max_similarity = Math.max(...[
@@ -1552,18 +1571,6 @@ var init_deck_card = __esm({
       }
       back_face() {
         return this.faces()[1];
-      }
-      is_double_faced() {
-        switch (this.layout()) {
-          case "transform":
-          case "modal_dfc":
-          case "double_faced_token":
-          case "reversible_card":
-          case "art_series":
-            return true;
-          default:
-            return false;
-        }
       }
       all_faces() {
         return [
@@ -1784,22 +1791,6 @@ var init_card_list = __esm({
   }
 });
 
-// ui/card-edit-view.ts
-var CardEditView;
-var init_card_edit_view = __esm({
-  "ui/card-edit-view.ts"() {
-    init_xml();
-    CardEditView = class {
-      static show(card) {
-        return HTML.div({
-          id: "card-edit-modal",
-          class: "modal"
-        });
-      }
-    };
-  }
-});
-
 // ui/skeleton.ts
 function skeleton(name) {
   return SVG.svg({
@@ -1813,17 +1804,17 @@ function skeleton(name) {
       SVG.rect({ x: 0.5, y: 19.5, width: 24, height: 3, rx: 1.5 }),
       SVG.rect({ x: 18.5, y: 31.5, width: 6, height: 3, rx: 1.5 })
     ]),
-    SVG.rect({ x: 0, y: 0, width: 25, height: 35 }, [
-      SVG.animate({
-        attributeName: "fill",
-        values: [
-          "#0000007f",
-          "#000000bf",
-          "#0000007f"
-        ].join(";"),
-        dur: "4s",
-        repeatCount: "indefinite"
-      })
+    SVG.rect({ x: 0, y: 0, width: 25, height: 35, fill: "#000000bf" }, [
+      // SVG.animate({
+      //     attributeName: 'fill',
+      //     values: [
+      //         '#0000007f',
+      //         '#000000bf',
+      //         '#0000007f',
+      //     ].join(';'),
+      //     dur: '4s',
+      //     repeatCount: 'indefinite',
+      // }),
     ]),
     name && SVG.text({ x: 2, y: 2.5, font_size: 1.5, font_family: "monospace", fill: "white" }, name.length > 24 ? name.slice(0, 21) + "..." : name)
   ]);
@@ -1858,18 +1849,134 @@ var init_skeleton = __esm({
   }
 });
 
+// ui/modal/modal.ts
+function show_modal(modal) {
+  hide_all_modals();
+  modal.classList.add("show");
+  modal.addEventListener("click", (event) => event.stopPropagation());
+}
+function hide_all_modals() {
+  for (const child of MODALS.children) {
+    hide_modal(child);
+  }
+}
+function hide_modal(modal) {
+  modal.classList.remove("show");
+}
+var MODALS;
+var init_modal = __esm({
+  "ui/modal/modal.ts"() {
+    init_xml();
+    MODALS = HTML.div({
+      id: "modals",
+      onclick: () => hide_all_modals()
+    });
+  }
+});
+
+// ui/modal/card-edit-modal.ts
+function edit_card_modal(card) {
+  show_modal(HTML.div({
+    id: "card-edit-modal"
+  }, [
+    HTML.div({ class: "row" }, [
+      quantity_input(card),
+      ...card.card ? [
+        card.name,
+        HTML.span({ class: "light" }, card.to_string(" (SET:000)? *EN*?"))
+      ] : [name_input(card)]
+    ]),
+    !card.card && HTML.div([
+      set_input(card),
+      collector_number_input(card),
+      language_input(card)
+    ]),
+    HTML.div([])
+  ]));
+}
+var quantity_input, name_input, set_input, collector_number_input, language_input;
+var init_card_edit_modal = __esm({
+  "ui/modal/card-edit-modal.ts"() {
+    init_xml();
+    init_modal();
+    init_language();
+    init_deck_view();
+    init_value();
+    init_api();
+    quantity_input = (card) => HTML.input({
+      id: "quantity-input",
+      type: "number",
+      min: 0,
+      value: card.quantity,
+      style: { width: "5ch" },
+      onchange: ({ value }) => {
+        card.quantity = Number.parseInt(value);
+        if (is_nullish(card.quantity)) card.quantity = 1;
+        DeckView.render();
+      }
+    });
+    name_input = (card) => HTML.input({
+      id: "name-input",
+      type: "text",
+      value: card.name,
+      placeholder: "Card Name",
+      style: { width: "30ch" },
+      onchange: ({ value }) => {
+        card.name = value;
+        DeckView.render();
+      }
+    });
+    set_input = (card) => HTML.input({
+      id: "set-input",
+      type: "text",
+      value: card.set?.toUpperCase(),
+      placeholder: "Set",
+      style: { width: "5ch" },
+      onchange: (element) => {
+        element.value = element.value.toUpperCase() || null;
+        card.set = API.SETS.normalise(element.value);
+        DeckView.render();
+      }
+    });
+    collector_number_input = (card) => HTML.input({
+      id: "collector-number-input",
+      type: "text",
+      value: card.collector_number,
+      placeholder: "Number",
+      style: { width: "6ch" },
+      onchange: ({ value }) => {
+        card.collector_number = value;
+        DeckView.render();
+      }
+    });
+    language_input = (card) => HTML.select({
+      id: "language-input",
+      value: card.language.code(),
+      placeholder: "Language",
+      onchange: ({ value }) => {
+        card.language = Language.match(value);
+        DeckView.render();
+      },
+      ontimeout: (element) => {
+        element.value = card.language.code();
+      }
+    }, Language.all().map((language) => HTML.option({ value: language.code() }, language.name)));
+  }
+});
+
 // ui/card-view.ts
 var CardView;
 var init_card_view = __esm({
   "ui/card-view.ts"() {
     init_xml();
-    init_card_edit_view();
     init_skeleton();
+    init_card_edit_modal();
     CardView = class _CardView {
       static renderings = /* @__PURE__ */ new WeakMap();
       static render(card, id, last_in_card = false, last_in_stack = false, face_id = card.display_face_id) {
         const card_class = /* @__PURE__ */ new Set(["card"]);
         if (!last_in_card) card_class.add("collapsible");
+        if (card.quantity < 1) card_class.add("ghost");
         const faces = [];
         switch (card.layout()) {
           case "transform":
@@ -1946,12 +2053,12 @@ var init_card_view = __esm({
           if (face_id2 > 0 && !(card.is_double_faced() || card.has_alternative_back())) {
             return;
           }
-          const face = card.faces()[face_id2];
           const urls = [];
           if (face_id2 === 0 || card.is_double_faced()) {
+            const face = card.faces()[face_id2];
             urls.push(...face.image_urls());
-            const face_name = card.is_double_faced() && face.card_name(true) || card.card_name(true);
-            urls.push(data_url(skeleton(face_name)));
+            const name = card.is_double_faced() && face.card_name(true) || card.card_name(true) || `[${card.set.toUpperCase()}:${card.collector_number}]`;
+            urls.push(data_url(skeleton(name)));
           } else if (card.has_alternative_back()) {
             const back_url = card.back_image_url();
             if (back_url) {
@@ -1961,6 +2068,7 @@ var init_card_view = __esm({
             }
           }
           faces.push(HTML.div({
+            id: `${id}-face-${faces.length}`,
             class: [
               "card-face",
               ["front", "back"][face_id2],
@@ -1975,9 +2083,9 @@ var init_card_view = __esm({
         const elements = _CardView.renderings.get(card) ?? [];
         const card_view = HTML.div(
           {
-            id: `${id}-${card.id}-${elements.length}`,
+            id,
             class: [...card_class],
-            onpointermove: ({ x, y }) => {
+            onpointermove: (_, { x, y }) => {
               const { top, left, width, height } = card_view.getBoundingClientRect();
               const effective_height = last_in_stack ? height : card_view.children[0].getBoundingClientRect().height;
               const dx = x - (left + 24) - width / 2;
@@ -1995,19 +2103,26 @@ var init_card_view = __esm({
               tilt.style.setProperty("--tilt-angle", `0`);
               tilt.style.setProperty("--tilt-azimuth", `0`);
             },
-            onclick: () => {
-              console.log(`clicked ${card.name}`);
-              CardEditView.show(card);
-            }
+            onclick: () => edit_card_modal(card)
           },
           HTML.div({ class: "backdrop" }),
           HTML.div({ class: "trigger" }),
           HTML.div(
-            { class: "card-shift" },
+            {
+              id: `${id}-shift`,
+              class: "card-shift"
+            },
             last_in_card && HTML.div({ class: "count" }, `${card.quantity}\xD7`),
             tilt = HTML.div(
-              { class: "card-tilt" },
-              HTML.div({ class: "card-faces", style: faces_style }, faces)
+              {
+                id: `${id}-tilt`,
+                class: "card-tilt"
+              },
+              HTML.div({
+                id: `${id}-faces`,
+                class: "card-faces",
+                style: faces_style
+              }, faces)
             )
           )
         );
@@ -2274,11 +2389,12 @@ var init_deck_view = __esm({
             cards.sort((a, b) => ordering.compare(a, b)).flatMap((card, i, cards2) => {
               const last_deck_card = i === cards2.length - 1;
               const elements = [];
-              for (let j = 0; j < card.quantity; j++) {
-                const last_of_card = j === card.quantity - 1;
+              const quantity = Math.max(1, card.quantity);
+              for (let j = 0; j < quantity; j++) {
+                const last_of_card = j === quantity - 1;
                 elements.push(CardView.render(
                   card,
-                  `${id}-card-${j}`,
+                  `${id}-card-${card.id}-${quantity - 1 - j}`,
                   last_of_card,
                   last_deck_card && last_of_card,
                   grouping?.face_id(card, group.value)
@@ -2307,6 +2423,10 @@ var init_deck_view = __esm({
 });
 
 // deck.ts
+var deck_exports = {};
+__export(deck_exports, {
+  Deck: () => Deck
+});
 var Deck;
 var init_deck = __esm({
   "deck.ts"() {
@@ -3125,10 +3245,7 @@ function initialise_deck_controls() {
       DeckView.GROUPING = CARD_GROUPINGS[group_select.value];
       DeckView.render();
     }
-  });
-  CARD_GROUPINGS.forEach((grouping, i) => {
-    group_select.add(new Option(grouping.name, `${i}`));
-  });
+  }, CARD_GROUPINGS.map((grouping, i) => HTML.option({ value: i }, grouping.name)));
   const by_board = HTML.input({
     id: "by-board",
     onchange: () => {
@@ -3142,10 +3259,7 @@ function initialise_deck_controls() {
       DeckView.ORDERING = CARD_ORDERINGS[order_select.value];
       DeckView.render();
     }
-  });
-  CARD_ORDERINGS.forEach((ordering, i) => {
-    order_select.add(new Option(ordering.name, `${i}`));
-  });
+  }, CARD_ORDERINGS.map((ordering, i) => HTML.option({ value: i }, ordering.name)));
 }
 var CARD_GROUPINGS, CARD_ORDERINGS;
 var init_deck_controls = __esm({
@@ -3220,7 +3334,13 @@ var require_main = __commonJS({
   "main.js"(exports) {
     Object.defineProperty(exports, "__esModule", { value: true });
     var initialise_controls_1 = (init_initialise_controls(), __toCommonJS(initialise_controls_exports));
+    var deck_1 = (init_deck(), __toCommonJS(deck_exports));
     (0, initialise_controls_1.initialise_controls)();
+    deck_1.Deck.load_current(`
+Lightning Bolt
+Grizzly Bears
+Etali, Primal Conqueror    
+`);
   }
 });
 export default require_main();

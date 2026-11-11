@@ -12,17 +12,17 @@ export function skeleton(name?: string): SVGSVGElement {
             SVG.rect({x: 0.5, y: 19.5, width: 24, height: 3, rx: 1.5}),
             SVG.rect({x: 18.5, y: 31.5, width: 6, height: 3, rx: 1.5}),
         ]),
-        SVG.rect({x: 0, y: 0, width: 25, height: 35}, [
-            SVG.animate({
-                attributeName: 'fill',
-                values: [
-                    '#0000007f',
-                    '#000000bf',
-                    '#0000007f',
-                ].join(';'),
-                dur: '4s',
-                repeatCount: 'indefinite',
-            }),
+        SVG.rect({x: 0, y: 0, width: 25, height: 35, fill: '#000000bf'}, [
+            // SVG.animate({
+            //     attributeName: 'fill',
+            //     values: [
+            //         '#0000007f',
+            //         '#000000bf',
+            //         '#0000007f',
+            //     ].join(';'),
+            //     dur: '4s',
+            //     repeatCount: 'indefinite',
+            // }),
         ]),
         name && SVG.text({x: 2, y: 2.5, font_size: 1.5, font_family: 'monospace', fill: 'white'}, name.length > 24
             ? name.slice(0, 21) + '...'

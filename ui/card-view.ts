@@ -1,7 +1,7 @@
 import {HTML} from "./xml";
 import {DeckCard} from "../deck-card";
-import {CardEditView} from "./card-edit-view";
 import {data_url, skeleton, skeleton_back} from "./skeleton";
+import {edit_card_modal} from "./modal/card-edit-modal";
 
 export class CardView {
 
@@ -16,6 +16,8 @@ export class CardView {
     ): HTMLDivElement {
         const card_class: Set<string> = new Set(['card']);
         if (!last_in_card) card_class.add('collapsible');
+        if (card.quantity < 1) card_class.add('ghost');
+
         const faces: HTMLDivElement[] = [];
 
         switch (card.layout()) {
@@ -107,16 +109,16 @@ export class CardView {
                 return;
             }
 
-            const face = card.faces()[face_id];
             const urls: string[] = [];
             if (face_id === 0 || card.is_double_faced()) {
+                const face = card.faces()[face_id];
                 urls.push(...face.image_urls());
 
-                const face_name = card.is_double_faced()
+                const name = card.is_double_faced()
                     && face.card_name(true)
-                    || card.card_name(true);
-
-                urls.push(data_url(skeleton(face_name)));
+                    || card.card_name(true)
+                    || `[${card.set.toUpperCase()}:${card.collector_number}]`;
+                urls.push(data_url(skeleton(name)));
             } else if (card.has_alternative_back()) {
                 const back_url = card.back_image_url();
                 if (back_url) {
@@ -127,6 +129,7 @@ export class CardView {
             }
 
             faces.push(HTML.div({
+                id: `${id}-face-${faces.length}`,
                 class: [
                     'card-face',
                     ['front', 'back'][face_id],
@@ -144,9 +147,9 @@ export class CardView {
         const elements = CardView.renderings.get(card) ?? [];
         const card_view = HTML.div(
             {
-                id: `${id}-${card.id}-${elements.length}`,
+                id,
                 class: [...card_class],
-                onpointermove: ({x, y}: MouseEvent) => {
+                onpointermove: (_, {x, y}) => {
                     const {top, left, width, height} = card_view.getBoundingClientRect();
                     const effective_height = last_in_stack
                         ? height
@@ -168,19 +171,26 @@ export class CardView {
                     tilt.style.setProperty('--tilt-angle', `0`);
                     tilt.style.setProperty('--tilt-azimuth', `0`);
                 },
-                onclick: () => {
-                    console.log(`clicked ${card.name}`);
-                    CardEditView.show(card);
-                },
+                onclick: () => edit_card_modal(card),
             },
             HTML.div({class: 'backdrop'}),
             HTML.div({class: 'trigger'}),
             HTML.div(
-                {class: 'card-shift'},
+                {
+                    id: `${id}-shift`,
+                    class: 'card-shift',
+                },
                 last_in_card && HTML.div({class: 'count'}, `${card.quantity}×`),
                 tilt = HTML.div(
-                    {class: 'card-tilt'},
-                    HTML.div({class: 'card-faces', style: faces_style}, faces),
+                    {
+                        id: `${id}-tilt`,
+                        class: 'card-tilt',
+                    },
+                    HTML.div({
+                        id: `${id}-faces`,
+                        class: 'card-faces',
+                        style: faces_style,
+                    }, faces),
                 ),
             ),
         );

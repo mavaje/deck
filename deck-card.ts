@@ -294,6 +294,10 @@ export class DeckCard extends Face {
                 this.collector_number = null;
             }
 
+            if (this.language.code() !== card.lang && this.language.is_default()) {
+                this.language = Language.match(card.lang);
+            }
+
             if (this.name && card.card_faces) {
                 const normal_name = normalise(this.name);
 
@@ -350,19 +354,6 @@ export class DeckCard extends Face {
 
     back_face(): Face {
         return this.faces()[1];
-    }
-
-    is_double_faced(): boolean {
-        switch (this.layout()) {
-            case 'transform':
-            case 'modal_dfc':
-            case 'double_faced_token':
-            case 'reversible_card':
-            case 'art_series':
-                return true;
-            default:
-                return false;
-        }
     }
 
     all_faces(): Face[] {

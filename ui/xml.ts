@@ -1,24 +1,29 @@
 import {is_nullish} from "../value";
 
-type Attributes = Record<string, any> & {
+type Attributes<
+    EL extends any = any,
+    EM extends any = any,
+> = {
     class?: string | string[];
-    style?: Record<string, any>
-};
+    style?: Record<string, any>;
+    ontimeout?: (element: EL) => any;
+} & {
+    [K in keyof EM & string as `on${K}`]?: (element: EL, event: EM[K]) => any;
+} & Record<string, any>;
 
 type Child = number | string | Node;
 
 type XMLConstructor<
-    M extends object,
-    T extends keyof M
-> =
-    ((...children: Child[]) => M[T]) &
-    ((children?: Child[]) => M[T]) &
-    ((attributes: Attributes, children?: Child[]) => M[T]) &
-    ((attributes: Attributes, ...children: Child[]) => M[T]);
+    EL extends Element,
+    EM extends any,
+> = ((...children: Child[]) => EL) &
+    ((children?: Child[]) => EL) &
+    ((attributes: Attributes<EL, EM>, children?: Child[]) => EL) &
+    ((attributes: Attributes<EL, EM>, ...children: Child[]) => EL);
 
-type HTMLConstructor<T extends keyof HTMLElementTagNameMap> = XMLConstructor<HTMLElementTagNameMap, T>;
+type HTMLConstructor<T extends keyof HTMLElementTagNameMap> = XMLConstructor<HTMLElementTagNameMap[T], SVGElementEventMap>;
 
-type SVGConstructor<T extends keyof SVGElementTagNameMap> = XMLConstructor<SVGElementTagNameMap, T>;
+type SVGConstructor<T extends keyof SVGElementTagNameMap> = XMLConstructor<SVGElementTagNameMap[T], HTMLElementEventMap>;
 
 const EVENT_LISTENERS: WeakMap<Element, Record<string, any>> = new WeakMap();
 
@@ -61,6 +66,11 @@ function create_element<T extends string>(
                 element.classList.add(...value.filter(Boolean));
                 return;
 
+            case 'value':
+                // element.setAttribute(key, String(value));
+                (element as any).value = value;
+                return;
+
             case 'style':
                 element.removeAttribute('style');
                 if (typeof value === 'object' && 'style' in element) {
@@ -72,6 +82,7 @@ function create_element<T extends string>(
                     });
                     return;
                 }
+
             // fallthrough
             default:
                 if (key.startsWith('on') && typeof value === 'function') {
@@ -87,8 +98,9 @@ function create_element<T extends string>(
                             if (listeners[event]) {
                                 element.removeEventListener(event, listeners[event]);
                             }
-                            element.addEventListener(event, value);
-                            listeners[event] = value;
+                            const listener = (event: Event) => value(element, event);
+                            element.addEventListener(event, listener);
+                            listeners[event] = listener;
                             EVENT_LISTENERS.set(element, listeners);
                     }
                 } else {

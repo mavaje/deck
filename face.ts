@@ -64,6 +64,19 @@ export class Face<T extends Card | CardFace = Card | CardFace> {
         return this.card?.layout ?? 'normal';
     }
 
+    is_double_faced(): boolean {
+        switch (this.layout()) {
+            case 'transform':
+            case 'modal_dfc':
+            case 'double_faced_token':
+            case 'reversible_card':
+            case 'art_series':
+                return true;
+            default:
+                return false;
+        }
+    }
+
     is_layout(layout: string): boolean;
     is_layout(...layouts: string[]): boolean;
     is_layout(...layouts: string[]): boolean {

@@ -54,11 +54,8 @@ export function initialise_deck_controls() {
             DeckView.GROUPING = CARD_GROUPINGS[group_select.value];
             DeckView.render();
         },
-    });
-
-    CARD_GROUPINGS.forEach((grouping, i) => {
-        group_select.add(new Option(grouping.name, `${i}`));
-    });
+    }, CARD_GROUPINGS.map((grouping, i) =>
+        HTML.option({value: i}, grouping.name)));
 
     const by_board = HTML.input({
         id: 'by-board',
@@ -74,9 +71,6 @@ export function initialise_deck_controls() {
             DeckView.ORDERING = CARD_ORDERINGS[order_select.value];
             DeckView.render();
         },
-    });
-
-    CARD_ORDERINGS.forEach((ordering, i) => {
-        order_select.add(new Option(ordering.name, `${i}`));
-    });
+    }, CARD_ORDERINGS.map((ordering, i) =>
+        HTML.option({value: i}, ordering.name)));
 }
