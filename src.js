@@ -1848,131 +1848,15 @@ var init_skeleton = __esm({
   }
 });
 
-// ui/modal/modal.ts
-function show_modal(modal) {
-  hide_all_modals();
-  modal.classList.add("show");
-  modal.addEventListener("click", (event) => event.stopPropagation());
-}
-function hide_all_modals() {
-  for (const child of MODALS.children) {
-    hide_modal(child);
-  }
-}
-function hide_modal(modal) {
-  modal.classList.remove("show");
-}
-var MODALS;
-var init_modal = __esm({
-  "ui/modal/modal.ts"() {
-    init_xml();
-    MODALS = HTML.div({
-      id: "modals",
-      onclick: () => hide_all_modals()
-    });
-  }
-});
-
-// ui/modal/card-edit-modal.ts
-function edit_card_modal(card) {
-  show_modal(HTML.div({
-    id: "card-edit-modal"
-  }, [
-    HTML.div({ class: "row" }, [
-      quantity_input(card),
-      ...card.card ? [
-        card.name,
-        HTML.span({ class: "light" }, card.to_string(" (SET:000)? *EN*?"))
-      ] : [name_input(card)]
-    ]),
-    !card.card && HTML.div([
-      set_input(card),
-      collector_number_input(card),
-      language_input(card)
-    ]),
-    HTML.div([])
-  ]));
-}
-var quantity_input, name_input, set_input, collector_number_input, language_input;
-var init_card_edit_modal = __esm({
-  "ui/modal/card-edit-modal.ts"() {
-    init_xml();
-    init_modal();
-    init_language();
-    init_deck_view();
-    init_value();
-    init_api();
-    quantity_input = (card) => HTML.input({
-      id: "quantity-input",
-      type: "number",
-      min: 0,
-      value: card.quantity,
-      style: { width: "5ch" },
-      onchange: ({ value }) => {
-        card.quantity = Number.parseInt(value);
-        if (is_nullish(card.quantity)) card.quantity = 1;
-        DeckView.render();
-      }
-    });
-    name_input = (card) => HTML.input({
-      id: "name-input",
-      type: "text",
-      value: card.name,
-      placeholder: "Card Name",
-      style: { width: "30ch" },
-      onchange: ({ value }) => {
-        card.name = value;
-        DeckView.render();
-      }
-    });
-    set_input = (card) => HTML.input({
-      id: "set-input",
-      type: "text",
-      value: card.set?.toUpperCase(),
-      placeholder: "Set",
-      style: { width: "5ch" },
-      onchange: (element) => {
-        element.value = element.value.toUpperCase() || null;
-        card.set = API.SETS.normalise(element.value);
-        DeckView.render();
-      }
-    });
-    collector_number_input = (card) => HTML.input({
-      id: "collector-number-input",
-      type: "text",
-      value: card.collector_number,
-      placeholder: "Number",
-      style: { width: "6ch" },
-      onchange: ({ value }) => {
-        card.collector_number = value;
-        DeckView.render();
-      }
-    });
-    language_input = (card) => HTML.select({
-      id: "language-input",
-      value: card.language.code(),
-      placeholder: "Language",
-      onchange: ({ value }) => {
-        card.language = Language.match(value);
-        DeckView.render();
-      },
-      ontimeout: (element) => {
-        element.value = card.language.code();
-      }
-    }, Language.all().map((language) => HTML.option({ value: language.code() }, language.name)));
-  }
-});
-
 // ui/card-view.ts
 var CardView;
 var init_card_view = __esm({
   "ui/card-view.ts"() {
     init_xml();
     init_skeleton();
-    init_card_edit_modal();
     CardView = class _CardView {
       static renderings = /* @__PURE__ */ new WeakMap();
-      static render(card, face_id = card.display_face_id, id = null, is_duplicate = false, last_in_stack = true) {
+      static render(card, face_id = card.display_face_id, id = null, is_duplicate = false, last_in_stack = true, on_click = null) {
         const card_class = /* @__PURE__ */ new Set(["card"]);
         if (is_duplicate) card_class.add("duplicate");
         if (card.quantity < 1) card_class.add("ghost");
@@ -2102,7 +1986,7 @@ var init_card_view = __esm({
               tilt.style.setProperty("--tilt-angle", `0`);
               tilt.style.setProperty("--tilt-azimuth", `0`);
             },
-            onclick: () => edit_card_modal(card)
+            onclick: on_click
           },
           // HTML.div({class: 'backdrop'}),
           HTML.div({ class: "trigger" }),
@@ -2287,6 +2171,121 @@ var init_card_classifier = __esm({
   }
 });
 
+// ui/modal/modal.ts
+function show_modal(modal) {
+  hide_all_modals();
+  modal.classList.add("show");
+  modal.addEventListener("click", (event) => event.stopPropagation());
+}
+function hide_all_modals() {
+  for (const child of MODALS.children) {
+    hide_modal(child);
+  }
+}
+function hide_modal(modal) {
+  modal.classList.remove("show");
+}
+var MODALS;
+var init_modal = __esm({
+  "ui/modal/modal.ts"() {
+    init_xml();
+    MODALS = HTML.div({
+      id: "modals",
+      onclick: () => hide_all_modals()
+    });
+  }
+});
+
+// ui/modal/card-edit-modal.ts
+function edit_card_modal(card) {
+  show_modal(HTML.div({
+    id: "card-edit-modal"
+  }, [
+    HTML.div({ class: "row" }, [
+      quantity_input(card),
+      ...card.card ? [
+        card.name,
+        HTML.span({ class: "light" }, card.to_string(" (SET:000)? *EN*?"))
+      ] : [name_input(card)]
+    ]),
+    !card.card && HTML.div([
+      set_input(card),
+      collector_number_input(card),
+      language_input(card)
+    ]),
+    HTML.div([])
+  ]));
+}
+var quantity_input, name_input, set_input, collector_number_input, language_input;
+var init_card_edit_modal = __esm({
+  "ui/modal/card-edit-modal.ts"() {
+    init_xml();
+    init_modal();
+    init_language();
+    init_deck_view();
+    init_value();
+    init_api();
+    quantity_input = (card) => HTML.input({
+      id: "quantity-input",
+      type: "number",
+      min: 0,
+      value: card.quantity,
+      style: { width: "5ch" },
+      onchange: ({ value }) => {
+        card.quantity = Number.parseInt(value);
+        if (is_nullish(card.quantity)) card.quantity = 1;
+        DeckView.render();
+      }
+    });
+    name_input = (card) => HTML.input({
+      id: "name-input",
+      type: "text",
+      value: card.name,
+      placeholder: "Card Name",
+      style: { width: "30ch" },
+      onchange: ({ value }) => {
+        card.name = value;
+        DeckView.render();
+      }
+    });
+    set_input = (card) => HTML.input({
+      id: "set-input",
+      type: "text",
+      value: card.set?.toUpperCase(),
+      placeholder: "Set",
+      style: { width: "5ch" },
+      onchange: (element) => {
+        element.value = element.value.toUpperCase() || null;
+        card.set = API.SETS.normalise(element.value);
+        DeckView.render();
+      }
+    });
+    collector_number_input = (card) => HTML.input({
+      id: "collector-number-input",
+      type: "text",
+      value: card.collector_number,
+      placeholder: "Number",
+      style: { width: "6ch" },
+      onchange: ({ value }) => {
+        card.collector_number = value;
+        DeckView.render();
+      }
+    });
+    language_input = (card) => HTML.select({
+      id: "language-input",
+      value: card.language.code(),
+      placeholder: "Language",
+      onchange: ({ value }) => {
+        card.language = Language.match(value);
+        DeckView.render();
+      },
+      ontimeout: (element) => {
+        element.value = card.language.code();
+      }
+    }, Language.all().map((language) => HTML.option({ value: language.code() }, language.name)));
+  }
+});
+
 // ui/deck-view.ts
 var DeckView;
 var init_deck_view = __esm({
@@ -2298,6 +2297,7 @@ var init_deck_view = __esm({
     init_card_classifier();
     init_face_selector();
     init_group();
+    init_card_edit_modal();
     DeckView = class {
       static BY_BOARD = true;
       static GROUPING = CardClassifier;
@@ -2393,7 +2393,8 @@ var init_deck_view = __esm({
                   grouping?.face_id(card, group.value),
                   `${id}-card-${card.id}-${quantity - 1 - j}`,
                   !last_of_card,
-                  last_deck_card && last_of_card
+                  last_deck_card && last_of_card,
+                  () => edit_card_modal(card)
                 ));
               }
               return elements;
@@ -3314,7 +3315,7 @@ function initialise_search() {
   SEARCH_INPUT.addEventListener("keypress", ({ key }) => {
     if (key === "Enter") search();
   });
-  HTML.input({
+  HTML.button({
     id: "search-button",
     onclick: () => search()
   });
@@ -3324,30 +3325,19 @@ async function search(query = SEARCH_INPUT.value) {
   if (!query) return;
   SEARCH_RESULTS.classList.remove("collapsed");
   SEARCH_RESULTS.classList.add("loading");
-  const card_list = await API.card_search(query);
-  SEARCH_RESULTS.classList.remove("loading");
-  if (card_list.data) {
-    HTML.input({
-      id: "search-results",
-      class: "groups"
-    }, card_list.data.map((card) => DeckCard.from_card(card, true)).map((card) => HTML.div(
-      { class: "group" },
-      HTML.div(
-        { class: "stack" },
-        CardView.render(card)
-      )
-    )));
-  }
+  HTML.div({ id: "search-results" }, HTML.div(
+    { class: "groups" },
+    HTML.div({ class: "skeleton-card" }),
+    HTML.div({ class: "skeleton-card" }),
+    HTML.div({ class: "skeleton-card" })
+  ));
 }
 var SEARCH_INPUT, SEARCH_RESULTS;
 var init_search = __esm({
   "ui/search/search.ts"() {
     init_xml();
-    init_api();
-    init_deck_card();
-    init_card_view();
     SEARCH_INPUT = HTML.input({ id: "search-query" });
-    SEARCH_RESULTS = HTML.input({ id: "search-results" });
+    SEARCH_RESULTS = HTML.div({ id: "search-results" });
   }
 });
 

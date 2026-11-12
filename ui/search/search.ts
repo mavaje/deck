@@ -4,14 +4,14 @@ import {DeckCard} from "../../deck-card";
 import {CardView} from "../card-view";
 
 const SEARCH_INPUT = HTML.input({id: 'search-query'});
-const SEARCH_RESULTS = HTML.input({id: 'search-results'});
+const SEARCH_RESULTS = HTML.div({id: 'search-results'});
 
 export function initialise_search() {
     SEARCH_INPUT.addEventListener('keypress', ({key}) => {
         if (key === 'Enter') search();
     })
 
-    HTML.input({
+    HTML.button({
         id: 'search-button',
         onclick: () => search(),
     });
@@ -22,20 +22,26 @@ export async function search(query: string = SEARCH_INPUT.value): Promise<void> 
     if (!query) return;
     SEARCH_RESULTS.classList.remove('collapsed');
     SEARCH_RESULTS.classList.add('loading');
-    const card_list = await API.card_search(query);
-    SEARCH_RESULTS.classList.remove('loading');
-    if (card_list.data) {
-        HTML.input({
-            id: 'search-results',
-            class: 'groups',
-        }, card_list.data
-            .map(card => DeckCard.from_card(card, true))
-            .map(card => HTML.div(
-                {class: 'group'},
-                HTML.div(
-                    {class: 'stack'},
-                    CardView.render(card),
-                ),
-            )));
-    }
+    HTML.div({id: 'search-results'}, HTML.div(
+        {class: 'groups'},
+        HTML.div({class: 'skeleton-card'}),
+        HTML.div({class: 'skeleton-card'}),
+        HTML.div({class: 'skeleton-card'}),
+    ));
+    // const card_list = await API.card_search(query);
+    // SEARCH_RESULTS.classList.remove('loading');
+    // if (card_list) {
+    //     HTML.div({id: 'search-results'}, HTML.div(
+    //         {class: 'groups'},
+    //         card_list.data
+    //             .map(card => DeckCard.from_card(card, true))
+    //             .map(card => HTML.div(
+    //                 {class: 'group'},
+    //                 HTML.div(
+    //                     {class: 'stack'},
+    //                     CardView.render(card),
+    //                 ),
+    //             )),
+    //     ));
+    // }
 }

@@ -10,8 +10,4 @@
         <rect x="0.5" y="19.5" width="24" height="3" rx="1.5"/>
         <rect x="18.5" y="31.5" width="6" height="3" rx="1.5"/>
     </g>
-    
-    <rect x="0" y="0" width="25" height="35">
-        <animate attributeName="fill" values="#0000007f;#000000bf;#0000007f" dur="4s" repeatCount="indefinite"/>
-    </rect>
 </svg>

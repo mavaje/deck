@@ -121,7 +121,7 @@ input[type=checkbox] {
     overflow-x: auto;
     overflow-y: visible;
     width: 100%;
-    min-height: calc(35 * var(--card-scale));
+    min-height: calc(35 * var(--card-scale) + 24px);
     transition-property: min-height;
     padding-bottom: 100px;
     margin-bottom: -100px;
@@ -133,7 +133,7 @@ input[type=checkbox] {
     min-height: 0;
 }
 
-#search-results > .group {
+#search-results > .groups {
     pointer-events: auto;
 }
 
@@ -211,7 +211,6 @@ input[type=checkbox] {
     display: flex;
     justify-content: start;
     align-items: center;
-    gap: 8px;
     min-height: 16px;
     text-transform: capitalize;
     color: white;
@@ -577,6 +576,22 @@ input[type=checkbox] {
 .card:hover .card-faces,
 .card.focus .card-faces {
     box-shadow: 0 0 2px 1px white, 0 0 8px 2px var(--theme);
+}
+
+.skeleton-card {
+    width: calc(25 * var(--card-scale));
+    height: calc(35 * var(--card-scale));
+    border-radius: calc(1.25 * var(--card-scale));
+    margin: 12px 8px;
+    background-image: url(public/skeleton-card.svg);
+    animation: skeleton-animation 4s linear infinite;
+    filter: brightness(100%);
+}
+
+@keyframes skeleton-animation {
+    0% { filter: brightness(100%) }
+    50% { filter: brightness(50%) }
+    100% { filter: brightness(100%) }
 }
 
 #modals {
