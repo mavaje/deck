@@ -1366,7 +1366,7 @@ var init_deck_card = __esm({
         }
       }
       static empty() {
-        return new _DeckCard({ quantity: 0 });
+        return new _DeckCard();
       }
       static parse(input, deck, default_board = Board.DEFAULT) {
         const match = this.LINE_REGEXP.exec(input);
