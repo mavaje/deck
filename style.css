@@ -559,22 +559,22 @@ input[type=checkbox] {
     width: 100%;
     height: 100%;
     mix-blend-mode: overlay;
-    background-image: url(public/filter/foil.svg);
     background-size: var(--foil-scale) var(--foil-scale);
     border-radius: var(--card-radius);
     opacity: 25%;
-    animation: foil-animation 4s linear infinite;
+}
+
+.card-face.foil:after {
+    background-image: url(public/filter/foil.svg);
+}
+
+.card-face.etched:after {
+    background-image: url(public/filter/foil.svg);
 }
 
 .card.landscape .card-face.foil:after,
-.card.landscape .card-face.etched:after,
-.card.landscape-front .card-face.foil:not(.back):after,
-.card.landscape-front .card-face.etched:not(.back):after {
+.card.landscape-front .card-face.foil:not(.back):after {
     background-image: url(public/filter/foil-rotated.svg);
-}
-
-@keyframes foil-animation {
-    100% { background-position: var(--foil-scale) 0 }
 }
 
 .show-quantity .card.ghost:not(:hover) .count {
