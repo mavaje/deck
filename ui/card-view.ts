@@ -1,7 +1,6 @@
 import {HTML} from "./xml";
 import {DeckCard} from "../deck-card";
 import {data_url, skeleton, skeleton_back} from "./skeleton";
-import {edit_card_modal} from "./modal/card-edit-modal";
 
 export class CardView {
 
@@ -13,6 +12,7 @@ export class CardView {
         id: number | string = null,
         is_duplicate: boolean = false,
         last_in_stack: boolean = true,
+        on_click: () => any = null,
     ): HTMLDivElement {
         const card_class: Set<string> = new Set(['card']);
         if (is_duplicate) card_class.add('duplicate');
@@ -171,7 +171,7 @@ export class CardView {
                     tilt.style.setProperty('--tilt-angle', `0`);
                     tilt.style.setProperty('--tilt-azimuth', `0`);
                 },
-                onclick: () => edit_card_modal(card),
+                onclick: on_click,
             },
             // HTML.div({class: 'backdrop'}),
             HTML.div({class: 'trigger'}),

@@ -7,6 +7,7 @@ import {CardClassifier} from "../card-classifier/card-classifier";
 import {CardList} from "../card-list";
 import {FaceSelector} from "../card-classifier/face-selector";
 import {Group} from "../card-classifier/group";
+import {edit_card_modal} from "./modal/card-edit-modal";
 
 export class DeckView {
 
@@ -128,6 +129,7 @@ export class DeckView {
                                 `${id}-card-${card.id}-${quantity - 1 - j}`,
                                 !last_of_card,
                                 last_deck_card && last_of_card,
+                                () => edit_card_modal(card),
                             ));
                         }
 

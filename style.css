@@ -7,6 +7,13 @@
     transition-duration: 0.2s;
 
     font-family: monospace;
+
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+    display: none;
 }
 
 html {
@@ -111,16 +118,23 @@ input[type=checkbox] {
 #search-results {
     display: flex;
     padding-inline: 8px;
-    padding-bottom: 8px;
     overflow-x: auto;
     overflow-y: visible;
     width: 100%;
     min-height: calc(35 * var(--card-scale));
     transition-property: min-height;
+    padding-bottom: 100px;
+    margin-bottom: -100px;
+    z-index: 7;
+    pointer-events: none;
 }
 
 #search-results.collapsed {
     min-height: 0;
+}
+
+#search-results > .group {
+    pointer-events: auto;
 }
 
 #divider {
@@ -128,7 +142,7 @@ input[type=checkbox] {
     align-self: stretch;
     background-color: white;
     box-shadow: 0 0 8px 2px var(--theme);
-    z-index: 7;
+    z-index: 6;
 }
 
 #deck {
@@ -247,7 +261,7 @@ input[type=checkbox] {
 }
 
 .stack {
-    margin-top: 12px;
+    margin-block: 12px;
 }
 
 .card {
