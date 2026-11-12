@@ -4,13 +4,34 @@ import {DeckCard} from "../../deck-card";
 import {CardView} from "../card-view";
 import {count_plural} from "../../text";
 
-const SEARCH_INPUT = HTML.input({id: 'search-query'});
-const SEARCH_RESULTS = HTML.div({id: 'search-results'});
+function expand_search() {
+    HTML.div({id: 'search-results', class: '-collapsed'});
+    HTML.button({id: 'search-collapse'}, '-');
+}
+
+function collapse_search() {
+    HTML.div({id: 'search-results', class: 'collapsed'});
+    HTML.button({id: 'search-collapse'}, '+');
+}
 
 export function initialise_search() {
-    SEARCH_INPUT.addEventListener('keypress', ({key}) => {
-        if (key === 'Enter') search();
-    })
+    HTML.button({
+        id: 'search-collapse',
+        onclick: () => {
+            if (HTML.div({id: 'search-results'}).classList.contains('collapsed')) {
+                expand_search();
+            } else {
+                collapse_search();
+            }
+        },
+    });
+
+    HTML.input({
+        id: 'search-query',
+        onkeypress: (_, {key}) => {
+            if (key === 'Enter') search();
+        },
+    });
 
     HTML.button({
         id: 'search-button',
@@ -18,10 +39,10 @@ export function initialise_search() {
     });
 }
 
-export async function search(query: string = SEARCH_INPUT.value): Promise<void> {
-    SEARCH_INPUT.value = query;
+export async function search(query: string = HTML.input({id: 'search-query'}).value): Promise<void> {
+    HTML.input({id: 'search-query', value: query});
     if (!query) return;
-    SEARCH_RESULTS.classList.remove('collapsed');
+    expand_search();
     HTML.div({id: 'search-status'}, 'Searching...');
     HTML.div({id: 'search-results', class: 'searching'}, HTML.div(
         {class: 'groups'},
@@ -33,10 +54,9 @@ export async function search(query: string = SEARCH_INPUT.value): Promise<void> 
             ),
     ));
     const card_list = await API.card_search(query);
-    SEARCH_RESULTS.classList.remove('searching');
     if (card_list) {
         HTML.div({id: 'search-status'}, `Found ${count_plural(card_list.total_cards, 'card')}`);
-        HTML.div({id: 'search-results'}, HTML.div(
+        HTML.div({id: 'search-results', class: '-searching'}, HTML.div(
             {class: 'groups'},
             card_list.data
                 .map(card => DeckCard.from_card(card, true))
@@ -47,7 +67,8 @@ export async function search(query: string = SEARCH_INPUT.value): Promise<void> 
                 ),
         ));
     } else {
+        collapse_search();
         HTML.div({id: 'search-status'}, 'No cards found');
-        HTML.div({id: 'search-results', class: 'collapsed'}, []);
+        HTML.div({id: 'search-results', class: '-searching'}, []);
     }
 }

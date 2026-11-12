@@ -57,7 +57,8 @@ function create_element(tag, parameters, namespace) {
       case "class":
         if (!Array.isArray(value)) value = value.split(/\s+/g);
         element.className = "";
-        element.classList.add(...value.filter(Boolean));
+        element.classList.add(...value.filter((c) => c && c[0] !== "-"));
+        element.classList.remove(...value.filter((c) => c[0] === "-" && c[1]).map((c) => c.slice(1)));
         return;
       case "value":
         element.value = value;
@@ -3296,19 +3297,40 @@ var init_deck_controls = __esm({
 });
 
 // ui/search/search.ts
+function expand_search() {
+  HTML.div({ id: "search-results", class: "-collapsed" });
+  HTML.button({ id: "search-collapse" }, "-");
+}
+function collapse_search() {
+  HTML.div({ id: "search-results", class: "collapsed" });
+  HTML.button({ id: "search-collapse" }, "+");
+}
 function initialise_search() {
-  SEARCH_INPUT.addEventListener("keypress", ({ key }) => {
-    if (key === "Enter") search();
+  HTML.button({
+    id: "search-collapse",
+    onclick: () => {
+      if (HTML.div({ id: "search-results" }).classList.contains("collapsed")) {
+        expand_search();
+      } else {
+        collapse_search();
+      }
+    }
+  });
+  HTML.input({
+    id: "search-query",
+    onkeypress: (_, { key }) => {
+      if (key === "Enter") search();
+    }
   });
   HTML.button({
     id: "search-button",
     onclick: () => search()
   });
 }
-async function search(query = SEARCH_INPUT.value) {
-  SEARCH_INPUT.value = query;
+async function search(query = HTML.input({ id: "search-query" }).value) {
+  HTML.input({ id: "search-query", value: query });
   if (!query) return;
-  SEARCH_RESULTS.classList.remove("collapsed");
+  expand_search();
   HTML.div({ id: "search-status" }, "Searching...");
   HTML.div({ id: "search-results", class: "searching" }, HTML.div(
     { class: "groups" },
@@ -3320,10 +3342,9 @@ async function search(query = SEARCH_INPUT.value) {
     )
   ));
   const card_list = await API.card_search(query);
-  SEARCH_RESULTS.classList.remove("searching");
   if (card_list) {
     HTML.div({ id: "search-status" }, `Found ${count_plural(card_list.total_cards, "card")}`);
-    HTML.div({ id: "search-results" }, HTML.div(
+    HTML.div({ id: "search-results", class: "-searching" }, HTML.div(
       { class: "groups" },
       card_list.data.map((card) => DeckCard.from_card(card, true)).map(
         (card, i) => HTML.div(
@@ -3333,11 +3354,11 @@ async function search(query = SEARCH_INPUT.value) {
       )
     ));
   } else {
+    collapse_search();
     HTML.div({ id: "search-status" }, "No cards found");
-    HTML.div({ id: "search-results", class: "collapsed" }, []);
+    HTML.div({ id: "search-results", class: "-searching" }, []);
   }
 }
-var SEARCH_INPUT, SEARCH_RESULTS;
 var init_search = __esm({
   "ui/search/search.ts"() {
     init_xml();
@@ -3345,8 +3366,6 @@ var init_search = __esm({
     init_deck_card();
     init_card_view();
     init_text();
-    SEARCH_INPUT = HTML.input({ id: "search-query" });
-    SEARCH_RESULTS = HTML.div({ id: "search-results" });
   }
 });
 

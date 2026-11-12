@@ -63,7 +63,11 @@ function create_element<T extends string>(
             case 'class':
                 if (!Array.isArray(value)) value = value.split(/\s+/g);
                 element.className = '';
-                element.classList.add(...value.filter(Boolean));
+                element.classList.add(...value
+                    .filter(c => c && c[0] !== '-'));
+                element.classList.remove(...value
+                    .filter(c => c[0] === '-' && c[1])
+                    .map(c => c.slice(1)));
                 return;
 
             case 'value':
