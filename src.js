@@ -3317,7 +3317,6 @@ async function search(query = SEARCH_INPUT.value) {
     )
   ));
   const card_list = await API.card_search(query);
-  await new Promise((resolve) => setTimeout(resolve, 3e3));
   SEARCH_RESULTS.classList.remove("loading");
   if (card_list) {
     HTML.div({ id: "search-results" }, HTML.div(
