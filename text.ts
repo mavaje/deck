@@ -188,3 +188,13 @@ export function format(message: string, values: object = {}) {
 
     return message;
 }
+
+export function plural(count: number, noun: string, plural_noun: string = `${noun}s`): string {
+    return count === 1
+        ? noun
+        : plural_noun;
+}
+
+export function count_plural(count: number, noun: string, plural_noun: string = `${noun}s`): string {
+    return `${count} ${plural(count, noun, plural_noun)}`;
+}

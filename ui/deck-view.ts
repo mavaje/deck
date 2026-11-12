@@ -116,8 +116,7 @@ export class DeckView {
                 },
                 cards
                     .sort((a, b) => ordering.compare(a, b))
-                    .flatMap((card, i, cards) => {
-                        const last_deck_card = i === cards.length - 1;
+                    .flatMap(card => {
                         const elements: HTMLDivElement[] = [];
 
                         const quantity = Math.max(1, card.quantity);
@@ -128,7 +127,6 @@ export class DeckView {
                                 grouping?.face_id(card, group.value),
                                 `${id}-card-${card.id}-${quantity - 1 - j}`,
                                 !last_of_card,
-                                last_deck_card && last_of_card,
                                 () => edit_card_modal(card),
                             ));
                         }

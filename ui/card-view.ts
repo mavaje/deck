@@ -11,7 +11,6 @@ export class CardView {
         face_id: number = card.display_face_id,
         id: number | string = null,
         is_duplicate: boolean = false,
-        last_in_stack: boolean = true,
         on_click: () => any = null,
     ): HTMLDivElement {
         const card_class: Set<string> = new Set(['card']);
@@ -153,9 +152,8 @@ export class CardView {
                 class: [...card_class],
                 onpointermove: (_, {x, y}) => {
                     const {top, left, width, height} = card_view.getBoundingClientRect();
-                    const effective_height = last_in_stack
-                        ? height
-                        : card_view.children[0].getBoundingClientRect().height;
+                    const effective_height = height
+                        + Number.parseFloat(getComputedStyle(card_view).marginBottom);
                     const dx = x - (left + 24) - width / 2;
                     const dy = y - top - effective_height / 2;
                     const angle = Math.atan2(dy, dx);
@@ -175,7 +173,6 @@ export class CardView {
                 },
                 onclick: on_click,
             },
-            // HTML.div({class: 'backdrop'}),
             HTML.div({class: 'trigger'}),
             HTML.div(
                 {

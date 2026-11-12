@@ -110,14 +110,19 @@ input[type=checkbox] {
 
 #search-controls {
     display: flex;
+    align-items: center;
     padding: 4px;
     background-color: #0000007f;
     backdrop-filter: blur(4px);
 }
 
+#search-status {
+    margin-inline: 8px;
+    font-weight: bold;
+}
+
 #search-results {
     display: flex;
-    padding-inline: 8px;
     overflow-x: auto;
     overflow-y: visible;
     width: 100%;
@@ -129,13 +134,24 @@ input[type=checkbox] {
     pointer-events: none;
 }
 
+#search-results > .groups {
+    padding-inline: 8px;
+    pointer-events: auto;
+}
+
 #search-results.collapsed {
     min-height: 0;
 }
 
-#search-results > .groups {
-    pointer-events: auto;
+#search-results.searching .card {
+    pointer-events: none;
 }
+
+#search-results.searching .stack:nth-child(2) .card {opacity: 80%;}
+#search-results.searching .stack:nth-child(2) .card {opacity: 40%;}
+#search-results.searching .stack:nth-child(3) .card {opacity: 20%;}
+#search-results.searching .stack:nth-child(4) .card {opacity: 10%;}
+#search-results.searching .stack:nth-child(5) .card {opacity: 5%;}
 
 #divider {
     flex: 0 0 2px;

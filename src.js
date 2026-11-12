@@ -261,6 +261,12 @@ function trigram(a, b) {
   if (trigrams_a.size === 0 || trigrams_b.size === 0) return 0;
   return trigrams_a.intersection(trigrams_b).size / trigrams_a.union(trigrams_b).size;
 }
+function plural(count, noun, plural_noun = `${noun}s`) {
+  return count === 1 ? noun : plural_noun;
+}
+function count_plural(count, noun, plural_noun = `${noun}s`) {
+  return `${count} ${plural(count, noun, plural_noun)}`;
+}
 var UNITS, TEENS, TENS;
 var init_text = __esm({
   "text.ts"() {
@@ -1835,7 +1841,7 @@ var init_card_view = __esm({
     init_skeleton();
     CardView = class _CardView {
       static renderings = /* @__PURE__ */ new WeakMap();
-      static render(card, face_id = card.display_face_id, id = null, is_duplicate = false, last_in_stack = true, on_click = null) {
+      static render(card, face_id = card.display_face_id, id = null, is_duplicate = false, on_click = null) {
         const card_class = /* @__PURE__ */ new Set(["card"]);
         if (is_duplicate) card_class.add("duplicate");
         if (card.quantity < 1) card_class.add("ghost");
@@ -1952,7 +1958,7 @@ var init_card_view = __esm({
             class: [...card_class],
             onpointermove: (_, { x, y }) => {
               const { top, left, width, height } = card_view.getBoundingClientRect();
-              const effective_height = last_in_stack ? height : card_view.children[0].getBoundingClientRect().height;
+              const effective_height = height + Number.parseFloat(getComputedStyle(card_view).marginBottom);
               const dx = x - (left + 24) - width / 2;
               const dy = y - top - effective_height / 2;
               const angle = Math.atan2(dy, dx);
@@ -1970,7 +1976,6 @@ var init_card_view = __esm({
             },
             onclick: on_click
           },
-          // HTML.div({class: 'backdrop'}),
           HTML.div({ class: "trigger" }),
           HTML.div(
             {
@@ -2364,8 +2369,7 @@ var init_deck_view = __esm({
               id: `${id}-stack`,
               class: "stack"
             },
-            cards.sort((a, b) => ordering.compare(a, b)).flatMap((card, i, cards2) => {
-              const last_deck_card = i === cards2.length - 1;
+            cards.sort((a, b) => ordering.compare(a, b)).flatMap((card) => {
               const elements = [];
               const quantity = Math.max(1, card.quantity);
               for (let j = 0; j < quantity; j++) {
@@ -2375,7 +2379,6 @@ var init_deck_view = __esm({
                   grouping?.face_id(card, group.value),
                   `${id}-card-${card.id}-${quantity - 1 - j}`,
                   !last_of_card,
-                  last_deck_card && last_of_card,
                   () => edit_card_modal(card)
                 ));
               }
@@ -3306,10 +3309,10 @@ async function search(query = SEARCH_INPUT.value) {
   SEARCH_INPUT.value = query;
   if (!query) return;
   SEARCH_RESULTS.classList.remove("collapsed");
-  SEARCH_RESULTS.classList.add("loading");
-  HTML.div({ id: "search-results" }, HTML.div(
+  HTML.div({ id: "search-status" }, "Searching...");
+  HTML.div({ id: "search-results", class: "searching" }, HTML.div(
     { class: "groups" },
-    [...Array(3)].map(
+    [...Array(5)].map(
       (_, i) => HTML.div(
         { id: `search-stack-${i}`, class: "stack" },
         CardView.render(DeckCard.empty(), null, `search-result-${i}`)
@@ -3317,8 +3320,9 @@ async function search(query = SEARCH_INPUT.value) {
     )
   ));
   const card_list = await API.card_search(query);
-  SEARCH_RESULTS.classList.remove("loading");
+  SEARCH_RESULTS.classList.remove("searching");
   if (card_list) {
+    HTML.div({ id: "search-status" }, `Found ${count_plural(card_list.total_cards, "card")}`);
     HTML.div({ id: "search-results" }, HTML.div(
       { class: "groups" },
       card_list.data.map((card) => DeckCard.from_card(card, true)).map(
@@ -3328,6 +3332,9 @@ async function search(query = SEARCH_INPUT.value) {
         )
       )
     ));
+  } else {
+    HTML.div({ id: "search-status" }, "No cards found");
+    HTML.div({ id: "search-results", class: "collapsed" }, []);
   }
 }
 var SEARCH_INPUT, SEARCH_RESULTS;
@@ -3337,6 +3344,7 @@ var init_search = __esm({
     init_api();
     init_deck_card();
     init_card_view();
+    init_text();
     SEARCH_INPUT = HTML.input({ id: "search-query" });
     SEARCH_RESULTS = HTML.div({ id: "search-results" });
   }
