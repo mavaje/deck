@@ -543,7 +543,7 @@ input[type=checkbox] {
     width: 100%;
     height: 100%;
     mix-blend-mode: overlay;
-    background-image: linear-gradient(-45deg in hsl increasing hue, #f00, #0ff, #f00, #0ff, #f00);
+    background-image: url(public/filter/foil.svg);
     background-size: var(--foil-scale) var(--foil-scale);
     border-radius: var(--card-radius);
     opacity: 25%;
@@ -554,14 +554,14 @@ input[type=checkbox] {
 .card.landscape .card-face.etched:after,
 .card.landscape-front .card-face.foil:not(.back):after,
 .card.landscape-front .card-face.etched:not(.back):after {
-    background-image: linear-gradient(45deg in hsl increasing hue, #f00, #0ff, #f00, #0ff, #f00);
+    background-image: url(public/filter/foil-rotated.svg);
 }
 
 @keyframes foil-animation {
     100% { background-position: var(--foil-scale) 0 }
 }
 
-.card.ghost:not(:hover) .count {
+.show-quantity .card.ghost:not(:hover) .count {
     opacity: 50%;
 }
 
@@ -576,22 +576,6 @@ input[type=checkbox] {
 .card:hover .card-faces,
 .card.focus .card-faces {
     box-shadow: 0 0 2px 1px white, 0 0 8px 2px var(--theme);
-}
-
-.skeleton-card {
-    width: calc(25 * var(--card-scale));
-    height: calc(35 * var(--card-scale));
-    border-radius: calc(1.25 * var(--card-scale));
-    margin: 12px 8px;
-    background-image: url(public/skeleton-card.svg);
-    animation: skeleton-animation 4s linear infinite;
-    filter: brightness(100%);
-}
-
-@keyframes skeleton-animation {
-    0% { filter: brightness(100%) }
-    50% { filter: brightness(50%) }
-    100% { filter: brightness(100%) }
 }
 
 #modals {

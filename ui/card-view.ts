@@ -114,10 +114,12 @@ export class CardView {
                 const face = card.faces()[face_id];
                 urls.push(...face.image_urls());
 
-                const name = card.is_double_faced()
+                let name: string = card.is_double_faced()
                     && face.card_name(true)
-                    || card.card_name(true)
-                    || `[${card.set.toUpperCase()}:${card.collector_number}]`;
+                    || card.card_name(true);
+                if (card.set && card.collector_number) {
+                    name ||= `[${card.set.toUpperCase()}:${card.collector_number}]`;
+                }
                 urls.push(data_url(skeleton(name)));
             } else if (card.has_alternative_back()) {
                 const back_url = card.back_image_url();

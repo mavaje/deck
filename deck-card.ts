@@ -81,6 +81,10 @@ export class DeckCard extends Face {
         }
     }
 
+    static empty(): DeckCard {
+        return new DeckCard();
+    }
+
     static parse(
         input: string,
         deck?: Deck,

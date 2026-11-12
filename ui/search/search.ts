@@ -24,24 +24,26 @@ export async function search(query: string = SEARCH_INPUT.value): Promise<void> 
     SEARCH_RESULTS.classList.add('loading');
     HTML.div({id: 'search-results'}, HTML.div(
         {class: 'groups'},
-        HTML.div({class: 'skeleton-card'}),
-        HTML.div({class: 'skeleton-card'}),
-        HTML.div({class: 'skeleton-card'}),
+        [...Array(3)]
+            .map((_, i) =>
+                HTML.div({id: `search-stack-${i}`, class: 'stack'},
+                    CardView.render(DeckCard.empty(), null, `search-result-${i}`),
+                )
+            ),
     ));
-    // const card_list = await API.card_search(query);
-    // SEARCH_RESULTS.classList.remove('loading');
-    // if (card_list) {
-    //     HTML.div({id: 'search-results'}, HTML.div(
-    //         {class: 'groups'},
-    //         card_list.data
-    //             .map(card => DeckCard.from_card(card, true))
-    //             .map(card => HTML.div(
-    //                 {class: 'group'},
-    //                 HTML.div(
-    //                     {class: 'stack'},
-    //                     CardView.render(card),
-    //                 ),
-    //             )),
-    //     ));
-    // }
+    const card_list = await API.card_search(query);
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    SEARCH_RESULTS.classList.remove('loading');
+    if (card_list) {
+        HTML.div({id: 'search-results'}, HTML.div(
+            {class: 'groups'},
+            card_list.data
+                .map(card => DeckCard.from_card(card, true))
+                .map((card, i) =>
+                    HTML.div({id: `search-stack-${i}`, class: 'stack'},
+                        CardView.render(card, null, `search-result-${i}`),
+                    )
+                ),
+        ));
+    }
 }

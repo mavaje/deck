@@ -1365,6 +1365,9 @@ var init_deck_card = __esm({
           console.error(`cards starting with numbers < 1000: `, number_cards.map((card) => card.name));
         }
       }
+      static empty() {
+        return new _DeckCard({ quantity: 0 });
+      }
       static parse(input, deck, default_board = Board.DEFAULT) {
         const match = this.LINE_REGEXP.exec(input);
         if (!match) return null;
@@ -1796,26 +1799,14 @@ function skeleton(name) {
     xmlns: "http://www.w3.org/2000/svg",
     viewBox: "0 0 25 35"
   }, [
-    SVG.rect({ x: 0, y: 0, width: 25, height: 35, fill: "black" }),
-    SVG.rect({ x: 2, y: 2, width: 21, height: 31, fill: "white", opacity: "50%" }),
-    SVG.g({ fill: "white", stroke: "black", stroke_width: 1 }, [
+    SVG.rect({ x: 0, y: 0, width: 25, height: 35, fill: "#000000" }),
+    SVG.rect({ x: 2, y: 2, width: 21, height: 31, fill: "#1f1f1f" }),
+    SVG.g({ fill: "#3f3f3f", stroke: "#000000", stroke_width: 1 }, [
       SVG.rect({ x: 0.5, y: 0.5, width: 24, height: 3, rx: 1.5 }),
       SVG.rect({ x: 0.5, y: 19.5, width: 24, height: 3, rx: 1.5 }),
       SVG.rect({ x: 18.5, y: 31.5, width: 6, height: 3, rx: 1.5 })
     ]),
-    SVG.rect({ x: 0, y: 0, width: 25, height: 35, fill: "#000000bf" }, [
-      // SVG.animate({
-      //     attributeName: 'fill',
-      //     values: [
-      //         '#0000007f',
-      //         '#000000bf',
-      //         '#0000007f',
-      //     ].join(';'),
-      //     dur: '4s',
-      //     repeatCount: 'indefinite',
-      // }),
-    ]),
-    name && SVG.text({ x: 2, y: 2.5, font_size: 1.5, font_family: "monospace", fill: "white" }, name.length > 24 ? name.slice(0, 21) + "..." : name)
+    name && SVG.text({ x: 2, y: 2.5, font_size: 1.5, font_family: "monospace", fill: "#ffffff" }, name.length > 24 ? name.slice(0, 21) + "..." : name)
   ]);
 }
 function skeleton_back() {
@@ -1823,20 +1814,8 @@ function skeleton_back() {
     xmlns: "http://www.w3.org/2000/svg",
     viewBox: "0 0 25 35"
   }, [
-    SVG.rect({ x: 0, y: 0, width: 25, height: 35, fill: "black" }),
-    SVG.rect({ x: 2, y: 2, width: 21, height: 31, fill: "white", opacity: "50%" }),
-    SVG.rect({ x: 0, y: 0, width: 25, height: 35 }, [
-      SVG.animate({
-        attributeName: "fill",
-        values: [
-          "#0000007f",
-          "#000000bf",
-          "#0000007f"
-        ].join(";"),
-        dur: "4s",
-        repeatCount: "indefinite"
-      })
-    ])
+    SVG.rect({ x: 0, y: 0, width: 25, height: 35, fill: "#000000" }),
+    SVG.rect({ x: 2, y: 2, width: 21, height: 31, fill: "#0000001f" })
   ]);
 }
 function data_url(svg) {
@@ -1940,7 +1919,10 @@ var init_card_view = __esm({
           if (face_id2 === 0 || card.is_double_faced()) {
             const face = card.faces()[face_id2];
             urls.push(...face.image_urls());
-            const name = card.is_double_faced() && face.card_name(true) || card.card_name(true) || `[${card.set.toUpperCase()}:${card.collector_number}]`;
+            let name = card.is_double_faced() && face.card_name(true) || card.card_name(true);
+            if (card.set && card.collector_number) {
+              name ||= `[${card.set.toUpperCase()}:${card.collector_number}]`;
+            }
             urls.push(data_url(skeleton(name)));
           } else if (card.has_alternative_back()) {
             const back_url = card.back_image_url();
@@ -3327,15 +3309,35 @@ async function search(query = SEARCH_INPUT.value) {
   SEARCH_RESULTS.classList.add("loading");
   HTML.div({ id: "search-results" }, HTML.div(
     { class: "groups" },
-    HTML.div({ class: "skeleton-card" }),
-    HTML.div({ class: "skeleton-card" }),
-    HTML.div({ class: "skeleton-card" })
+    [...Array(3)].map(
+      (_, i) => HTML.div(
+        { id: `search-stack-${i}`, class: "stack" },
+        CardView.render(DeckCard.empty(), null, `search-result-${i}`)
+      )
+    )
   ));
+  const card_list = await API.card_search(query);
+  await new Promise((resolve) => setTimeout(resolve, 3e3));
+  SEARCH_RESULTS.classList.remove("loading");
+  if (card_list) {
+    HTML.div({ id: "search-results" }, HTML.div(
+      { class: "groups" },
+      card_list.data.map((card) => DeckCard.from_card(card, true)).map(
+        (card, i) => HTML.div(
+          { id: `search-stack-${i}`, class: "stack" },
+          CardView.render(card, null, `search-result-${i}`)
+        )
+      )
+    ));
+  }
 }
 var SEARCH_INPUT, SEARCH_RESULTS;
 var init_search = __esm({
   "ui/search/search.ts"() {
     init_xml();
+    init_api();
+    init_deck_card();
+    init_card_view();
     SEARCH_INPUT = HTML.input({ id: "search-query" });
     SEARCH_RESULTS = HTML.div({ id: "search-results" });
   }
