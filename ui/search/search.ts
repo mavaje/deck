@@ -32,7 +32,6 @@ export async function search(query: string = SEARCH_INPUT.value): Promise<void> 
             ),
     ));
     const card_list = await API.card_search(query);
-    await new Promise(resolve => setTimeout(resolve, 3000));
     SEARCH_RESULTS.classList.remove('loading');
     if (card_list) {
         HTML.div({id: 'search-results'}, HTML.div(
