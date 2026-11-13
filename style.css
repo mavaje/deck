@@ -161,14 +161,15 @@ input[type=checkbox] {
 #deck {
     flex: 1;
     display: flex;
-    overflow: auto;
-    overscroll-behavior: none;
+    position: relative;
 }
 
-#deck-controls {
-    position: sticky;
+#deck-controls,
+#card-edit {
+    position: absolute;
     top: 0;
-    left: 0;
+    bottom: 0;
+    width: 320px;
     display: flex;
     flex-direction: column;
     justify-content: start;
@@ -177,6 +178,17 @@ input[type=checkbox] {
     z-index: 5;
     background-color: #0000007f;
     backdrop-filter: blur(4px);
+    transition-property: width, padding;
+}
+
+#deck-controls.collapsed,
+#card-edit.collapsed {
+    width: 0;
+    padding: 0;
+}
+
+#deck-controls {
+    left: 0;
     margin-right: 4px;
 }
 
@@ -188,29 +200,23 @@ input[type=checkbox] {
 }
 
 #card-edit {
-    position: sticky;
-    top: 0;
     right: 0;
-    width: 320px;
-    display: flex;
-    flex-direction: column;
-    justify-content: start;
-    align-items: start;
-    padding: 4px;
-    z-index: 5;
-    background-color: #0000007f;
-    backdrop-filter: blur(4px);
     margin-left: 4px;
-    transition-property: width, padding;
-}
-
-#card-edit.collapsed {
-    width: 0;
-    padding: 0;
 }
 
 #deck-cards {
-    padding-right: 4px;
+    overflow: auto;
+    overscroll-behavior: none;
+    padding-inline: 332px;
+    transition-property: padding;
+}
+
+#deck:has(#deck-controls.collapsed) #deck-cards {
+    padding-inline-start: 12px;
+}
+
+#deck:has(#card-edit.collapsed) #deck-cards {
+    padding-inline-end: 12px;
 }
 
 .groups {
@@ -275,7 +281,7 @@ input[type=checkbox] {
 
 .label div {
     position: sticky;
-    left: calc(264px + 8px);
+    left: 8px;
     right: 8px;
     display: flex;
     flex-direction: row;

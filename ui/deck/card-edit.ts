@@ -93,9 +93,11 @@ export function update_card_edit_panel(card: DeckCard): void {
     }, [
         HTML.div({
             style: {
+                align_self: 'stretch',
                 display: 'flex',
                 flex_direction: 'row',
-                align_self: 'stretch',
+                align_items: 'center',
+                gap: '4px',
             },
         }, [
             quantity_input(card),

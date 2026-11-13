@@ -2238,9 +2238,11 @@ function update_card_edit_panel(card) {
   }, [
     HTML.div({
       style: {
+        align_self: "stretch",
         display: "flex",
         flex_direction: "row",
-        align_self: "stretch"
+        align_items: "center",
+        gap: "4px"
       }
     }, [
       quantity_input(card),
@@ -2529,6 +2531,7 @@ var init_deck = __esm({
         Tag.clear();
         _Deck.current = _Deck.parse(input);
         DeckView.render();
+        await _Deck.current.load(() => DeckView.render());
         for (let i = 0; i < _Deck.current.length; i++) {
           if (DeckView.set_background(_Deck.current[i])) break;
         }
