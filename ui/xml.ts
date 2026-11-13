@@ -1,6 +1,6 @@
 import {is_nullish} from "../value";
 
-type Attributes<
+export type Attributes<
     EL extends any = any,
     EM extends any = any,
 > = {
@@ -71,7 +71,7 @@ function create_element<T extends string>(
                 return;
 
             case 'value':
-                // element.setAttribute(key, String(value));
+                element.setAttribute(key, String(value));
                 (element as any).value = value;
                 return;
 

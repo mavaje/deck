@@ -4,6 +4,6 @@ import {initialise_search} from "./search/search";
 
 export function initialise_ui() {
     initialise_search();
-    initialise_deck_controls();
     initialise_deck_upload();
+    initialise_deck_controls();
 }

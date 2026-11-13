@@ -171,7 +171,10 @@ export class CardView {
                     tilt.style.setProperty('--tilt-angle', `0`);
                     tilt.style.setProperty('--tilt-azimuth', `0`);
                 },
-                onclick: on_click,
+                onclick: on_click && ((_, event) => {
+                    event.stopPropagation();
+                    on_click();
+                }),
             },
             HTML.div({class: 'trigger'}),
             HTML.div(

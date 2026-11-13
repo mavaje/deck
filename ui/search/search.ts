@@ -28,14 +28,13 @@ export function initialise_search() {
 
     HTML.input({
         id: 'search-query',
-        onkeypress: (_, {key}) => {
-            if (key === 'Enter') search();
+        placeholder: 'Search',
+        onkeypress: (input, {key}) => {
+            if (key === 'Enter') {
+                search();
+                input.blur();
+            }
         },
-    });
-
-    HTML.button({
-        id: 'search-button',
-        onclick: () => search(),
     });
 }
 

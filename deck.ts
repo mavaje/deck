@@ -66,7 +66,7 @@ export class Deck extends CardList {
         Tag.clear();
         Deck.current = Deck.parse(input);
         DeckView.render();
-        await Deck.current.load(() => DeckView.render());
+        // await Deck.current.load(() => DeckView.render());
         for (let i = 0; i < Deck.current.length; i++) {
             if (DeckView.set_background(Deck.current[i])) break;
         }

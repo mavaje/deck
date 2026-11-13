@@ -61,6 +61,7 @@ function create_element(tag, parameters, namespace) {
         element.classList.remove(...value.filter((c) => c[0] === "-" && c[1]).map((c) => c.slice(1)));
         return;
       case "value":
+        element.setAttribute(key, String(value));
         element.value = value;
         return;
       case "style":
@@ -1975,7 +1976,10 @@ var init_card_view = __esm({
               tilt.style.setProperty("--tilt-angle", `0`);
               tilt.style.setProperty("--tilt-azimuth", `0`);
             },
-            onclick: on_click
+            onclick: on_click && ((_, event) => {
+              event.stopPropagation();
+              on_click();
+            })
           },
           HTML.div({ class: "trigger" }),
           HTML.div(
@@ -2159,113 +2163,167 @@ var init_card_classifier = __esm({
   }
 });
 
-// ui/modal/modal.ts
-function show_modal(modal) {
-  hide_all_modals();
-  modal.classList.add("show");
-  modal.addEventListener("click", (event) => event.stopPropagation());
-}
-function hide_all_modals() {
-  for (const child of MODALS.children) {
-    hide_modal(child);
+// history/history.ts
+function undo() {
+  const action = HISTORY.pop();
+  if (action) {
+    FUTURE.push(action.reverse());
   }
 }
-function hide_modal(modal) {
-  modal.classList.remove("show");
+function redo() {
+  const action = FUTURE.pop();
+  if (action) {
+    HISTORY.push(action.reverse());
+  }
 }
-var MODALS;
-var init_modal = __esm({
-  "ui/modal/modal.ts"() {
-    init_xml();
-    MODALS = HTML.div({
-      id: "modals",
-      onclick: () => hide_all_modals()
+function edit_card_field_action(card, field, new_value, old_value = card[field]) {
+  card[field] = new_value;
+  DeckView.render();
+  return {
+    reverse: () => edit_card_field_action(card, field, old_value)
+  };
+}
+function edit_card_field(card, field, value) {
+  HISTORY.push(edit_card_field_action(card, field, value));
+}
+var HISTORY, FUTURE;
+var init_history = __esm({
+  "history/history.ts"() {
+    init_deck_view();
+    HISTORY = [];
+    FUTURE = [];
+    window.addEventListener("keydown", (event) => {
+      if (event.target instanceof HTMLInputElement) return;
+      if (event.ctrlKey || event.metaKey) {
+        switch (event.key) {
+          case "y":
+            if (event.shiftKey) {
+              undo();
+            } else {
+              redo();
+            }
+            break;
+          case "z":
+            if (event.shiftKey) {
+              redo();
+            } else {
+              undo();
+            }
+            break;
+        }
+      }
     });
   }
 });
 
-// ui/modal/card-edit-modal.ts
-function edit_card_modal(card) {
-  show_modal(HTML.div({
-    id: "card-edit-modal"
+// ui/deck/card-edit.ts
+function input_event_listeners(on_change) {
+  const listener = (input) => {
+    input.value = on_change(input.value);
+    input.blur();
+  };
+  return {
+    onchange: listener,
+    onkeypress: (input, { key }) => {
+      if (key === "Enter") {
+        listener(input);
+      }
+    }
+  };
+}
+function update_card_edit_panel(card) {
+  HTML.div({
+    id: "card-edit",
+    class: "-collapsed"
   }, [
-    HTML.div({ class: "row" }, [
+    HTML.div({
+      style: {
+        display: "flex",
+        flex_direction: "row",
+        align_self: "stretch"
+      }
+    }, [
       quantity_input(card),
       ...card.card ? [
         card.name,
         HTML.span({ class: "light" }, card.to_string(" (SET:000)? *EN*?"))
       ] : [name_input(card)]
     ]),
-    !card.card && HTML.div([
+    !card.card && HTML.div({
+      style: {
+        // display: 'flex',
+        // flex_direction: 'row',
+        // align_self: 'stretch',
+      }
+    }, [
       set_input(card),
       collector_number_input(card),
       language_input(card)
     ]),
     HTML.div([])
-  ]));
+  ]);
 }
 var quantity_input, name_input, set_input, collector_number_input, language_input;
-var init_card_edit_modal = __esm({
-  "ui/modal/card-edit-modal.ts"() {
+var init_card_edit = __esm({
+  "ui/deck/card-edit.ts"() {
     init_xml();
-    init_modal();
     init_language();
-    init_deck_view();
     init_value();
     init_api();
+    init_history();
     quantity_input = (card) => HTML.input({
       id: "quantity-input",
       type: "number",
       min: 0,
       value: card.quantity,
       style: { width: "5ch" },
-      onchange: ({ value }) => {
-        card.quantity = Number.parseInt(value);
-        if (is_nullish(card.quantity)) card.quantity = 1;
-        DeckView.render();
-      }
+      ...input_event_listeners((value) => {
+        let quantity = Number.parseInt(value);
+        if (is_nullish(quantity)) quantity = 1;
+        edit_card_field(card, "quantity", quantity);
+        return `${quantity}`;
+      })
     });
     name_input = (card) => HTML.input({
       id: "name-input",
       type: "text",
-      value: card.name,
+      value: card.name || "",
       placeholder: "Card Name",
-      style: { width: "30ch" },
-      onchange: ({ value }) => {
-        card.name = value;
-        DeckView.render();
-      }
+      style: { flex: "1" },
+      ...input_event_listeners((value) => {
+        edit_card_field(card, "name", value || null);
+        return value;
+      })
     });
     set_input = (card) => HTML.input({
       id: "set-input",
       type: "text",
-      value: card.set?.toUpperCase(),
+      value: card.set?.toUpperCase() || "",
       placeholder: "Set",
       style: { width: "5ch" },
-      onchange: (element) => {
-        element.value = element.value.toUpperCase() || null;
-        card.set = API.SETS.normalise(element.value);
-        DeckView.render();
-      }
+      ...input_event_listeners((value) => {
+        value = API.SETS.normalise(value);
+        edit_card_field(card, "set", value || null);
+        return value.toUpperCase();
+      })
     });
     collector_number_input = (card) => HTML.input({
       id: "collector-number-input",
       type: "text",
-      value: card.collector_number,
+      value: card.collector_number || "",
       placeholder: "Number",
       style: { width: "6ch" },
-      onchange: ({ value }) => {
-        card.collector_number = value;
-        DeckView.render();
-      }
+      ...input_event_listeners((value) => {
+        edit_card_field(card, "collector_number", value || null);
+        return value;
+      })
     });
     language_input = (card) => HTML.select({
       id: "language-input",
       value: card.language.code(),
       placeholder: "Language",
       onchange: ({ value }) => {
-        card.language = Language.match(value);
-        DeckView.render();
+        edit_card_field(card, "language", Language.match(value));
       },
       ontimeout: (element) => {
         element.value = card.language.code();
@@ -2285,7 +2343,7 @@ var init_deck_view = __esm({
     init_card_classifier();
     init_face_selector();
     init_group();
-    init_card_edit_modal();
+    init_card_edit();
     DeckView = class {
       static BY_BOARD = true;
       static GROUPING = CardClassifier;
@@ -2296,7 +2354,14 @@ var init_deck_view = __esm({
         CardView.renderings = /* @__PURE__ */ new WeakMap();
         const show_boards = this.BY_BOARD && deck.some((card) => !card.board.is_default());
         return HTML.div(
-          { id: "deck-cards", class: "groups" },
+          {
+            id: "deck-cards",
+            class: "groups",
+            onclick: () => HTML.div({
+              id: "card-edit",
+              class: "collapsed"
+            })
+          },
           show_boards ? Board.all().map((board) => this.render_board(deck.board(board), board)) : [this.render_board(deck.copy())]
         );
       }
@@ -2380,7 +2445,7 @@ var init_deck_view = __esm({
                   grouping?.face_id(card, group.value),
                   `${id}-card-${card.id}-${quantity - 1 - j}`,
                   !last_of_card,
-                  () => edit_card_modal(card)
+                  () => update_card_edit_panel(card)
                 ));
               }
               return elements;
@@ -2464,7 +2529,6 @@ var init_deck = __esm({
         Tag.clear();
         _Deck.current = _Deck.parse(input);
         DeckView.render();
-        await _Deck.current.load(() => DeckView.render());
         for (let i = 0; i < _Deck.current.length; i++) {
           if (DeckView.set_background(_Deck.current[i])) break;
         }
@@ -3318,13 +3382,13 @@ function initialise_search() {
   });
   HTML.input({
     id: "search-query",
-    onkeypress: (_, { key }) => {
-      if (key === "Enter") search();
+    placeholder: "Search",
+    onkeypress: (input, { key }) => {
+      if (key === "Enter") {
+        search();
+        input.blur();
+      }
     }
-  });
-  HTML.button({
-    id: "search-button",
-    onclick: () => search()
   });
 }
 async function search(query = HTML.input({ id: "search-query" }).value) {
@@ -3376,8 +3440,8 @@ __export(initialise_ui_exports, {
 });
 function initialise_ui() {
   initialise_search();
-  initialise_deck_controls();
   initialise_deck_upload();
+  initialise_deck_controls();
 }
 var init_initialise_ui = __esm({
   "ui/initialise-ui.ts"() {

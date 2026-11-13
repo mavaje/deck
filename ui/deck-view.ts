@@ -7,7 +7,7 @@ import {CardClassifier} from "../card-classifier/card-classifier";
 import {CardList} from "../card-list";
 import {FaceSelector} from "../card-classifier/face-selector";
 import {Group} from "../card-classifier/group";
-import {edit_card_modal} from "./modal/card-edit-modal";
+import {update_card_edit_panel} from "./deck/card-edit";
 
 export class DeckView {
 
@@ -25,7 +25,14 @@ export class DeckView {
             && deck.some(card => !card.board.is_default());
 
         return HTML.div(
-            {id: 'deck-cards', class: 'groups'},
+            {
+                id: 'deck-cards',
+                class: 'groups',
+                onclick: () => HTML.div({
+                    id: 'card-edit',
+                    class: 'collapsed',
+                }),
+            },
             show_boards
                 ? Board.all()
                     .map(board => this.render_board(deck.board(board), board))
@@ -127,7 +134,7 @@ export class DeckView {
                                 grouping?.face_id(card, group.value),
                                 `${id}-card-${card.id}-${quantity - 1 - j}`,
                                 !last_of_card,
-                                () => edit_card_modal(card),
+                                () => update_card_edit_panel(card),
                             ));
                         }
 
