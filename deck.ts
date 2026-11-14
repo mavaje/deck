@@ -67,9 +67,19 @@ export class Deck extends CardList {
         Deck.current = Deck.parse(input);
         DeckView.render();
         await Deck.current.load(() => DeckView.render());
+
+        const invalid_boards = Board.all()
+            .filter(board => {
+                if (!board.card_types) return false;
+                return Deck.current.board(board)
+                    .every(card => !board.can_include(card));
+            });
+        console.log(invalid_boards);
+
         for (let i = 0; i < Deck.current.length; i++) {
             if (DeckView.set_background(Deck.current[i])) break;
         }
+        DeckCard.CACHE.dump();
         return Deck.current;
     }
 

@@ -281,8 +281,13 @@ export class DeckCard extends Face {
     }
 
     async reload(): Promise<this> {
-        this.flush();
-        return this.load();
+        return this.flush().load();
+    }
+
+    flush(): this {
+        this.raw = null;
+        this.raw_name = null;
+        return super.flush();
     }
 
     hydrate(card = this.card): this {

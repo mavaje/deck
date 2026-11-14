@@ -162,14 +162,15 @@ input[type=checkbox] {
     flex: 1;
     display: flex;
     position: relative;
+    min-height: 0;
 }
 
-#deck-controls,
-#card-edit {
+#deck-panel,
+#card-panel {
     position: absolute;
     top: 0;
     bottom: 0;
-    width: 320px;
+    width: 312px;
     display: flex;
     flex-direction: column;
     justify-content: start;
@@ -178,30 +179,32 @@ input[type=checkbox] {
     z-index: 5;
     background-color: #0000007f;
     backdrop-filter: blur(4px);
-    transition-property: width, padding;
+    transition-property: left, right;
 }
 
-#deck-controls.collapsed,
-#card-edit.collapsed {
-    width: 0;
-    padding: 0;
-}
-
-#deck-controls {
+#deck-panel {
     left: 0;
     margin-right: 4px;
 }
 
-#deck-controls > div {
+#deck-panel.collapsed {
+    left: -324px;
+}
+
+#deck-panel > div {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
 }
 
-#card-edit {
+#card-panel {
     right: 0;
     margin-left: 4px;
+}
+
+#card-panel.collapsed {
+    right: -324px;
 }
 
 #deck-cards {
@@ -211,11 +214,11 @@ input[type=checkbox] {
     transition-property: padding;
 }
 
-#deck:has(#deck-controls.collapsed) #deck-cards {
+#deck:has(#deck-panel.collapsed) #deck-cards {
     padding-inline-start: 12px;
 }
 
-#deck:has(#card-edit.collapsed) #deck-cards {
+#deck:has(#card-panel.collapsed) #deck-cards {
     padding-inline-end: 12px;
 }
 
@@ -302,6 +305,7 @@ input[type=checkbox] {
 
 .stack {
     margin-block: 12px;
+    padding-bottom: 64px;
 }
 
 .card {
@@ -313,8 +317,8 @@ input[type=checkbox] {
     position: relative;
     width: var(--card-width);
     height: var(--card-height);
-    margin-inline: 8px;
     margin-bottom: calc(var(--card-title-height) - var(--card-height));
+    margin-inline: 8px;
     transform: perspective(1024px);
     transform-origin: 50% calc(8 * var(--card-scale));
     transform-style: preserve-3d;
@@ -336,13 +340,19 @@ input[type=checkbox] {
     opacity: 0;
 }
 
-#deck:not(.compact) .card.aftermath.invert,
+.card.aftermath.invert,
 .card.landscape-front.invert,
 .compact .card.landscape:not(.double),
 .compact .card.landscape-front:not(.double) {
     width: var(--card-height);
     height: var(--card-width);
     margin-bottom: calc(var(--card-title-height) - var(--card-width));
+}
+
+.compact .card.aftermath.invert {
+    width: var(--card-width);
+    height: var(--card-height);
+    margin-bottom: calc(var(--card-title-height) - var(--card-height));
 }
 
 .show-quantity .group .card {

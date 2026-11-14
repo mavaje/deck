@@ -36,6 +36,7 @@ export class API {
     ): Promise<T> {
         const can_cache = method === 'GET' && !body;
         if (can_cache && this.CACHE.has(url)) {
+            console.log(`${method} ${url} (cached)`, body ?? '');
             return this.CACHE.get(url) as T;
         }
 

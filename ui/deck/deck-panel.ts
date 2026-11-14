@@ -15,6 +15,7 @@ import {Subtype} from "../../card-classifier/subtype";
 import {Keyword} from "../../card-classifier/keyword";
 import {Artist} from "../../card-classifier/artist";
 import {TypePrimary} from "../../card-classifier/type-primary";
+import {close_card_panel} from "./card-panel";
 
 const CARD_GROUPINGS: (typeof CardClassifier<string | number>)[] = [
     CardClassifier,
@@ -47,7 +48,7 @@ const CARD_ORDERINGS: (typeof CardClassifier<string | number>)[] = [
     RankPenny,
 ];
 
-export function initialise_deck_controls() {
+export function initialise_deck_panel() {
     const group_select = HTML.select({
         id: 'group-by',
         onchange: () => {
@@ -73,4 +74,21 @@ export function initialise_deck_controls() {
         },
     }, CARD_ORDERINGS.map((ordering, i) =>
         HTML.option({value: i}, ordering.name)));
+}
+
+export function open_deck_panel(): void {
+    if (window.innerWidth < 960) {
+        close_card_panel();
+    }
+    HTML.div({
+        id: 'deck-panel',
+        class: '-collapsed',
+    });
+}
+
+export function close_deck_panel(): void {
+    HTML.div({
+        id: 'deck-panel',
+        class: 'collapsed',
+    });
 }
