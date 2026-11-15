@@ -7,7 +7,7 @@ import {CardClassifier} from "../card-classifier/card-classifier";
 import {CardList} from "../card-list";
 import {FaceSelector} from "../card-classifier/face-selector";
 import {Group} from "../card-classifier/group";
-import {close_card_panel, open_card_panel} from "./deck/card-panel";
+import {CardPanel} from "./deck/card-panel";
 
 export class DeckView {
 
@@ -27,7 +27,7 @@ export class DeckView {
         return HTML.div(
             {
                 id: 'deck-cards',
-                onclick: () => close_card_panel(),
+                onclick: () => CardPanel.close(),
             },
             HTML.div(
                 {
@@ -136,7 +136,7 @@ export class DeckView {
                                 grouping?.face_id(card, group.value),
                                 `${id}-card-${card.id}-${quantity - 1 - j}`,
                                 !last_of_card,
-                                () => open_card_panel(card),
+                                () => CardPanel.open(card),
                             ));
                         }
 

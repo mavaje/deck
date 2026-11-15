@@ -634,15 +634,15 @@ input[type=checkbox] {
     box-shadow: 0 0 8px 2px #ffffff7f;
 }
 
-.card.ghost .card-face {
+.card.ghost:not(:hover) .card-face {
     filter: contrast(50%);
-}
-
-.card.ghost:hover .card-face {
-    filter: contrast(75%);
 }
 
 .card:hover .card-faces,
 .card.focus .card-faces {
     box-shadow: 0 0 2px 1px white, 0 0 8px 2px var(--theme);
+}
+
+.card.select .card-faces {
+    box-shadow: 0 0 2px 2px white, 0 0 8px 4px var(--theme);
 }

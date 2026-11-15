@@ -15,80 +15,95 @@ import {Subtype} from "../../card-classifier/subtype";
 import {Keyword} from "../../card-classifier/keyword";
 import {Artist} from "../../card-classifier/artist";
 import {TypePrimary} from "../../card-classifier/type-primary";
-import {close_card_panel} from "./card-panel";
+import {CardPanel} from "./card-panel";
+import {Panel} from "../panel";
+import {Deck} from "../../deck";
+import {DeckCard} from "../../deck-card";
 
-const CARD_GROUPINGS: (typeof CardClassifier<string | number>)[] = [
-    CardClassifier,
-    SetClassifier,
-    Rarity,
-    Type,
-    TypePrimary,
-    Subtype,
-    Color,
-    ColorIdentity,
-    ManaValue,
-    Artist,
-    Keyword,
-    Tag,
-];
+export class DeckPanel extends Panel {
+    static id: string = 'deck-panel';
 
-const CARD_ORDERINGS: (typeof CardClassifier<string | number>)[] = [
-    CardClassifier,
-    Name,
-    SetClassifier,
-    Rarity,
-    TypePrimary,
-    Color,
-    ColorIdentity,
-    PriceUSD,
-    PriceEUR,
-    PriceTIX,
-    ManaValue,
-    RankEDHREC,
-    RankPenny,
-];
+    static CARD_GROUPINGS: (typeof CardClassifier<string | number>)[] = [
+        CardClassifier,
+        SetClassifier,
+        Rarity,
+        Type,
+        TypePrimary,
+        Subtype,
+        Color,
+        ColorIdentity,
+        ManaValue,
+        Artist,
+        Keyword,
+        Tag,
+    ];
 
-export function initialise_deck_panel() {
-    const group_select = HTML.select({
-        id: 'group-by',
-        onchange: () => {
-            DeckView.GROUPING = CARD_GROUPINGS[group_select.value];
-            DeckView.render();
-        },
-    }, CARD_GROUPINGS.map((grouping, i) =>
-        HTML.option({value: i}, grouping.name)));
+    static CARD_ORDERINGS: (typeof CardClassifier<string | number>)[] = [
+        CardClassifier,
+        Name,
+        SetClassifier,
+        Rarity,
+        TypePrimary,
+        Color,
+        ColorIdentity,
+        PriceUSD,
+        PriceEUR,
+        PriceTIX,
+        ManaValue,
+        RankEDHREC,
+        RankPenny,
+    ];
 
-    const by_board = HTML.input({
-        id: 'by-board',
-        onchange: () => {
-            DeckView.BY_BOARD = by_board.checked;
-            DeckView.render();
-        },
-    });
+    static initialise() {
+        HTML.button({
+            id: 'deck-upload-button',
+            onclick: () => file_input.click(),
+        });
 
-    const order_select = HTML.select({
-        id: 'order-by',
-        onchange: () => {
-            DeckView.ORDERING = CARD_ORDERINGS[order_select.value];
-            DeckView.render();
-        },
-    }, CARD_ORDERINGS.map((ordering, i) =>
-        HTML.option({value: i}, ordering.name)));
-}
+        const file_input = HTML.input({
+            id: 'deck-file-input',
+            oninput: input => {
+                const file = input.files[0];
+                file.text()
+                    .then(input => Deck.load_current(input))
+                    .then(deck => {
+                        DeckCard.CACHE.dump();
+                        console.log(deck.to_string());
+                    });
+            },
+        });
 
-export function open_deck_panel(): void {
-    if (window.innerWidth < 960) {
-        close_card_panel();
+        HTML.select({
+            id: 'group-by',
+            onchange: select => {
+                DeckView.GROUPING = this.CARD_GROUPINGS[select.value];
+                DeckView.render();
+            },
+        }, this.CARD_GROUPINGS.map((grouping, i) =>
+            HTML.option({value: i}, grouping.name)));
+
+        HTML.input({
+            id: 'by-board',
+            onchange: input => {
+                DeckView.BY_BOARD = input.checked;
+                DeckView.render();
+            },
+        });
+
+        HTML.select({
+            id: 'order-by',
+            onchange: select => {
+                DeckView.ORDERING = this.CARD_ORDERINGS[select.value];
+                DeckView.render();
+            },
+        }, this.CARD_ORDERINGS.map((ordering, i) =>
+            HTML.option({value: i}, ordering.name)));
     }
-    HTML.div({
-        id: 'deck-panel',
-        class: '-collapsed',
-    });
-}
 
-export function close_deck_panel(): void {
-    HTML.div({
-        id: 'deck-panel',
-        class: 'collapsed',
-    });
+    static open(): void {
+        if (window.innerWidth < 960) {
+            CardPanel.close();
+        }
+        super.open();
+    }
 }

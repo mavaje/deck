@@ -161,13 +161,9 @@ export class CardView {
                     tilt.style.setProperty('--tilt-angle', `${angle}rad`);
                     tilt.style.setProperty('--tilt-azimuth', `${azimuth}deg`);
                 },
-                onpointerenter: () => {
-                    CardView.renderings.get(card)
-                        ?.forEach(element => element.classList.add('focus'));
-                },
+                onpointerenter: () => this.focus(card),
                 onpointerleave: () => {
-                    CardView.renderings.get(card)
-                        ?.forEach(element => element.classList.remove('focus'));
+                    this.unfocus(card);
                     tilt.style.setProperty('--tilt-angle', `0`);
                     tilt.style.setProperty('--tilt-azimuth', `0`);
                 },
@@ -199,5 +195,25 @@ export class CardView {
         elements.push(card_view);
         CardView.renderings.set(card, elements);
         return card_view;
+    }
+
+    static focus(card: DeckCard) {
+        CardView.renderings.get(card)
+            ?.forEach(element => element.classList.add('focus'));
+    }
+
+    static unfocus(card: DeckCard) {
+        CardView.renderings.get(card)
+            ?.forEach(element => element.classList.remove('focus'));
+    }
+
+    static select(card: DeckCard) {
+        CardView.renderings.get(card)
+            ?.forEach(element => element.classList.add('select'));
+    }
+
+    static deselect(card: DeckCard) {
+        CardView.renderings.get(card)
+            ?.forEach(element => element.classList.remove('select'));
     }
 }
