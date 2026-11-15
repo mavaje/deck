@@ -3173,10 +3173,15 @@ var init_deck_view = __esm({
         return HTML.div(
           {
             id: "deck-cards",
-            class: "groups",
             onclick: () => close_card_panel()
           },
-          show_boards ? Board.all().map((board) => this.render_board(deck.board(board), board)) : [this.render_board(deck.copy())]
+          HTML.div(
+            {
+              id: "deck-groups",
+              class: "groups"
+            },
+            show_boards ? Board.all().map((board) => this.render_board(deck.board(board), board)) : [this.render_board(deck.copy())]
+          )
         );
       }
       static render_board(cards, board) {
@@ -3228,7 +3233,7 @@ var init_deck_view = __esm({
               ontimeout: (element) => {
                 const top = element.getBoundingClientRect().top;
                 const { offsetTop, scrollTop } = this.DECK_ELEMENT;
-                element.style.top = `${top + scrollTop - offsetTop}px`;
+                element.style.top = `${top - scrollTop - offsetTop}px`;
               }
             },
             HTML.div(

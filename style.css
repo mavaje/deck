@@ -209,17 +209,6 @@ input[type=checkbox] {
 
 #deck-cards {
     overflow: auto;
-    overscroll-behavior: none;
-    padding-inline: 332px;
-    transition-property: padding;
-}
-
-#deck:has(#deck-panel.collapsed) #deck-cards {
-    padding-inline-start: 12px;
-}
-
-#deck:has(#card-panel.collapsed) #deck-cards {
-    padding-inline-end: 12px;
 }
 
 .groups {
@@ -231,15 +220,30 @@ input[type=checkbox] {
 .group {
     display: flex;
     flex-direction: column;
-    transition-property: z-index;
-    transition-timing-function: step-end;
+    transition: padding 0.2s ease, z-index 0.2s step-end;
     z-index: 1;
     position: relative;
 }
 
 .group:has(.card:hover) {
-    transition-timing-function: step-start;
+    transition: padding 0.2s ease, z-index 0.2s step-start;
     z-index: 2;
+}
+
+#deck-groups > .group:first-child {
+    padding-inline-start: 332px;
+}
+
+#deck-groups > .group:last-child {
+    padding-inline-end: 332px;
+}
+
+#deck:has(#deck-panel.collapsed) #deck-groups > .group:first-child {
+    padding-inline-start: 12px;
+}
+
+#deck:has(#card-panel.collapsed) #deck-groups > .group:last-child {
+    padding-inline-end: 12px;
 }
 
 .label {
@@ -284,12 +288,17 @@ input[type=checkbox] {
 
 .label div {
     position: sticky;
-    left: 8px;
+    left: 328px;
     right: 8px;
     display: flex;
     flex-direction: row;
     align-items: center;
     gap: 8px;
+    transition-property: left;
+}
+
+#deck:has(#deck-panel.collapsed) .label div {
+    left: 8px;
 }
 
 .icon {
@@ -305,7 +314,10 @@ input[type=checkbox] {
 
 .stack {
     margin-block: 12px;
-    padding-bottom: 64px;
+}
+
+#deck .stack {
+    margin-bottom: 36px;
 }
 
 .card {
@@ -622,8 +634,12 @@ input[type=checkbox] {
     box-shadow: 0 0 8px 2px #ffffff7f;
 }
 
-.card.ghost:not(:hover) .card-face {
+.card.ghost .card-face {
     filter: contrast(50%);
+}
+
+.card.ghost:hover .card-face {
+    filter: contrast(75%);
 }
 
 .card:hover .card-faces,

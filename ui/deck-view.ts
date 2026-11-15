@@ -27,13 +27,18 @@ export class DeckView {
         return HTML.div(
             {
                 id: 'deck-cards',
-                class: 'groups',
                 onclick: () => close_card_panel(),
             },
-            show_boards
-                ? Board.all()
-                    .map(board => this.render_board(deck.board(board), board))
-                : [this.render_board(deck.copy())],
+            HTML.div(
+                {
+                    id: 'deck-groups',
+                    class: 'groups',
+                },
+                show_boards
+                    ? Board.all()
+                        .map(board => this.render_board(deck.board(board), board))
+                    : [this.render_board(deck.copy())],
+                ),
         );
     }
 
