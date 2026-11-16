@@ -10,6 +10,7 @@ import {Condition} from "../../designation/condition";
 import {CardView} from "../card-view";
 import {DeckPanel} from "./deck-panel";
 import {Panel} from "../panel";
+import {Search} from "../search/search";
 
 export class CardPanel extends Panel {
     static id: string = 'card-panel';
@@ -21,6 +22,7 @@ export class CardPanel extends Panel {
     ): Attributes<HTMLElementTagNameMap['input'], SVGElementEventMap> {
         return {
             onchange: input => {
+
                 input.value = on_change(input.value);
             },
             onkeypress: (input, {key}) => {
@@ -36,6 +38,7 @@ export class CardPanel extends Panel {
             id: 'quantity-input',
             type: 'number',
             min: 0,
+            max: 99,
             value: card.quantity,
             style: {width: '5ch'},
             ...this.input_event_listeners((value) => {
@@ -64,6 +67,7 @@ export class CardPanel extends Panel {
     private static set_input(card: DeckCard) {
         return HTML.input({
             id: 'set-input',
+            class: [card.invalid_set() && 'error'],
             type: 'text',
             value: card.set?.toUpperCase() || '',
             placeholder: 'Set',
@@ -79,6 +83,7 @@ export class CardPanel extends Panel {
     private static collector_number_input(card: DeckCard) {
         return HTML.input({
             id: 'collector-number-input',
+            class: [card.invalid_collector_number() && 'error'],
             type: 'text',
             value: card.collector_number || '',
             placeholder: 'Number',
@@ -93,6 +98,7 @@ export class CardPanel extends Panel {
     private static language_input(card: DeckCard) {
         return HTML.select({
             id: 'language-input',
+            class: [card.invalid_language() && 'error'],
             value: card.language.code(),
             onchange: ({value}) => {
                 edit_card_field(card, 'language', Language.match(value));
@@ -166,6 +172,15 @@ export class CardPanel extends Panel {
             HTML.div({id: 'card-panel-row-1'}, [
                 this.set_input(card),
                 this.collector_number_input(card),
+                HTML.span({
+                    class: 'text-button',
+                    onclick: () => {
+                        let query = `!"${card.name}" unique:prints`;
+                        if (!card.language.is_default()) query += ` lang:${card.language}`;
+                        if (card.card) query += ` oracleid:${card.card.oracle_id}`;
+                        Search.run(query);
+                    },
+                }, 'Find prints'),
             ]),
             HTML.div({id: 'card-panel-row-2'}, [
                 this.language_input(card),

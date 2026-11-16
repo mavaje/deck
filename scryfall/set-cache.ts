@@ -31,7 +31,7 @@ export class SetCache extends Cache<Set> {
         return normalise(
             key,
             false,
-            /[^0-9a-z]/gi,
+            /[^0-9a-z]/g,
         );
     }
 

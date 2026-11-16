@@ -71,8 +71,9 @@ export class Deck extends CardList {
         const invalid_boards = Board.all()
             .filter(board => {
                 if (!board.card_types) return false;
-                return Deck.current.board(board)
-                    .every(card => !board.can_include(card));
+                const cards = Deck.current.board(board);
+                return cards.length > 0
+                    && cards.every(card => !board.can_include(card));
             });
         console.log(invalid_boards);
 

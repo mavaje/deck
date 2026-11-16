@@ -3,11 +3,11 @@ import {HTML} from "./xml";
 export class Panel {
     static id: string;
 
-    static toggle() {
+    static toggle(...args: any[]) {
         if (HTML.div({id: this.id}).classList.contains('collapsed')) {
-            this.open();
+            this.open(...args);
         } else {
-            this.close();
+            this.close(...args);
         }
     }
 
@@ -18,7 +18,7 @@ export class Panel {
         });
     }
 
-    static close(): void {
+    static close(...args: any[]): void {
         HTML.div({
             id: this.id,
             class: 'collapsed',

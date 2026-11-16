@@ -11,6 +11,8 @@ import {Finish} from "./designation/finish";
 import {Deck} from "./deck";
 import {Tag} from "./designation/tag";
 import {Face} from "./face";
+import {DeckView} from "./ui/deck-view";
+import {CardPanel} from "./ui/deck/card-panel";
 
 export class DeckCard extends Face {
 
@@ -255,6 +257,7 @@ export class DeckCard extends Face {
 
         if (set && collector_number && !is_alchemy_set) {
             this.card ??= await API.card(set, collector_number, language.code());
+            this.card ??= await API.card(set, collector_number);
         }
 
         if (name) {
@@ -287,21 +290,21 @@ export class DeckCard extends Face {
     flush(): this {
         this.raw = null;
         this.raw_name = null;
+        this.display_face_id = null;
         return super.flush();
+    }
+
+    hydrate_printing(card: Card) {
+        this.set = card.set;
+        this.collector_number = card.collector_number;
+        this.language = Language.match(card.lang);
+        this.hydrate(card);
     }
 
     hydrate(card = this.card): this {
         super.hydrate(card);
 
         if (card) {
-            if (this.set !== card.set) {
-                this.set = null;
-            }
-
-            if (this.collector_number !== card.collector_number) {
-                this.collector_number = null;
-            }
-
             if (this.language.code() !== card.lang && this.language.is_default()) {
                 this.language = Language.match(card.lang);
             }
@@ -333,7 +336,16 @@ export class DeckCard extends Face {
             this.name = this.deck_list_name();
         }
 
+        this.render_hooks();
+
         return this;
+    }
+
+    render_hooks() {
+        DeckView.render();
+        if (this === CardPanel.SELECTED) {
+            CardPanel.open(this);
+        }
     }
 
     cache(): this {
@@ -342,6 +354,21 @@ export class DeckCard extends Face {
         }
 
         return this;
+    }
+
+    invalid_set(): boolean {
+        if (!this.set || !this.card) return false;
+        return API.SETS.normalise(this.set) !== this.card.set;
+    }
+
+    invalid_collector_number(): boolean {
+        if (!this.collector_number || !this.card) return false;
+        return this.collector_number !== this.card.collector_number;
+    }
+
+    invalid_language(): boolean {
+        if (!this.card) return false;
+        return this.language.code() !== this.card.lang;
     }
 
     set_code(): string {

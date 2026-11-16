@@ -4,6 +4,8 @@ import {DeckCard} from "../../deck-card";
 import {CardView} from "../card-view";
 import {count_plural} from "../../text";
 import {Panel} from "../panel";
+import {CardPanel} from "../deck/card-panel";
+import {set_card_printing} from "../../history/history";
 
 export class Search extends Panel {
     static id: string = 'search-results';
@@ -59,7 +61,17 @@ export class Search extends Panel {
                     .map(card => DeckCard.from_card(card, true))
                     .map((card, i) =>
                         HTML.div({id: `search-stack-${i}`, class: 'stack'},
-                            CardView.render(card, null, `search-result-${i}`),
+                            CardView.render(
+                                card,
+                                null,
+                                `search-result-${i}`,
+                                false,
+                                () => {
+                                    if (card.card.oracle_id === CardPanel.SELECTED?.card?.oracle_id) {
+                                        set_card_printing(CardPanel.SELECTED, card.card);
+                                    }
+                                },
+                            ),
                         )
                     ),
             ));

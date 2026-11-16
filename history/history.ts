@@ -1,8 +1,8 @@
 import {DeckCard} from "../deck-card";
-import {DeckView} from "../ui/deck-view";
-import {CardPanel} from "../ui/deck/card-panel";
+import {Card} from "../scryfall/types";
 
 export interface Action {
+    name?: string;
     reverse(): Action;
 }
 
@@ -11,16 +11,20 @@ const FUTURE: Action[] = [];
 
 function undo(): void {
     const action = HISTORY.pop();
-    if (action) {
-        FUTURE.push(action.reverse());
-    }
+    if (action) FUTURE.push(action.reverse());
+    console.log(HISTORY.map(({name}) => name));
 }
 
 function redo(): void {
     const action = FUTURE.pop();
-    if (action) {
-        HISTORY.push(action.reverse());
-    }
+    if (action) HISTORY.push(action.reverse());
+    console.log(HISTORY.map(({name}) => name));
+}
+
+function log_action(action: Action): void {
+    HISTORY.push(action);
+    FUTURE.splice(0, FUTURE.length);
+    console.log(HISTORY.map(({name}) => name));
 }
 
 function edit_card_field_action<
@@ -29,8 +33,8 @@ function edit_card_field_action<
     card: DeckCard,
     field: K,
     new_value: DeckCard[K],
-    old_value: DeckCard[K] = card[field],
 ): Action {
+    const old_value: DeckCard[K] = card[field];
     card[field] = new_value;
     if (([
         'name',
@@ -38,19 +42,11 @@ function edit_card_field_action<
         'collector_number',
         'language',
     ] as (keyof DeckCard)[]).includes(field)) {
-        card.reload()
-            .then(() => {
-                DeckView.render();
-                if (card === CardPanel.SELECTED) {
-                    CardPanel.open(card);
-                }
-            });
+        card.reload();
     }
-    DeckView.render();
-    if (card === CardPanel.SELECTED) {
-        CardPanel.open(card);
-    }
+    card.render_hooks();
     return {
+        name: `Set card.${field} to ${new_value}`,
         reverse: () => edit_card_field_action(card, field, old_value),
     };
 }
@@ -62,7 +58,28 @@ export function edit_card_field<
     field: K,
     value: DeckCard[K],
 ): void {
-    HISTORY.push(edit_card_field_action(card, field, value));
+    if (card[field] === value) return;
+    log_action(edit_card_field_action(card, field, value));
+}
+
+export function set_card_printing_action(
+    card: DeckCard,
+    printing: Card,
+): Action {
+    const original = card.card;
+    card.hydrate_printing(printing);
+    return {
+        name: `Set card printing to ${printing.set.toUpperCase()}:${printing.collector_number}`,
+        reverse: () => set_card_printing_action(card, original),
+    };
+}
+
+export function set_card_printing(
+    card: DeckCard,
+    printing: Card,
+): void {
+    if (card.card?.id === printing.id) return;
+    log_action(set_card_printing_action(card, printing));
 }
 
 window.addEventListener('keydown', (event: KeyboardEvent) => {
@@ -75,6 +92,7 @@ window.addEventListener('keydown', (event: KeyboardEvent) => {
                 } else {
                     redo();
                 }
+                event.preventDefault();
                 break;
             case 'z':
                 if (event.shiftKey) {
@@ -82,6 +100,7 @@ window.addEventListener('keydown', (event: KeyboardEvent) => {
                 } else {
                     undo();
                 }
+                event.preventDefault();
                 break;
         }
     }

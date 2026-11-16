@@ -538,7 +538,7 @@ var init_set_cache = __esm({
         return normalise(
           key,
           false,
-          /[^0-9a-z]/gi
+          /[^0-9a-z]/g
         );
       }
       normalise(code, type = "code") {
@@ -591,6 +591,7 @@ var init_api = __esm({
               if (can_cache) this.CACHE.put(url, response);
               done(response);
             } else {
+              if (can_cache) this.CACHE.put(url, null);
               console.error(response);
               done(null);
             }
@@ -623,7 +624,7 @@ var init_api = __esm({
         return this.request("POST", url, payload);
       }
       static card_url(set, collector_number, language, parameters = {}) {
-        return this.url(language !== Language.DEFAULT.code() ? `cards/${set}/${collector_number}/${language}` : `cards/${set}/${collector_number}`, parameters);
+        return this.url(language && language !== Language.DEFAULT.code() ? `cards/${set}/${collector_number}/${language}` : `cards/${set}/${collector_number}`, parameters);
       }
       static card_named_url(name, set, exact = false, parameters = {}) {
         name = normalise(name);
@@ -1305,6 +1306,608 @@ var init_face = __esm({
   }
 });
 
+// history/history.ts
+function undo() {
+  const action = HISTORY.pop();
+  if (action) FUTURE.push(action.reverse());
+  console.log(HISTORY.map(({ name }) => name));
+}
+function redo() {
+  const action = FUTURE.pop();
+  if (action) HISTORY.push(action.reverse());
+  console.log(HISTORY.map(({ name }) => name));
+}
+function log_action(action) {
+  HISTORY.push(action);
+  FUTURE.splice(0, FUTURE.length);
+  console.log(HISTORY.map(({ name }) => name));
+}
+function edit_card_field_action(card, field, new_value) {
+  const old_value = card[field];
+  card[field] = new_value;
+  if ([
+    "name",
+    "set",
+    "collector_number",
+    "language"
+  ].includes(field)) {
+    card.reload();
+  }
+  card.render_hooks();
+  return {
+    name: `Set card.${field} to ${new_value}`,
+    reverse: () => edit_card_field_action(card, field, old_value)
+  };
+}
+function edit_card_field(card, field, value) {
+  if (card[field] === value) return;
+  log_action(edit_card_field_action(card, field, value));
+}
+function set_card_printing_action(card, printing) {
+  const original = card.card;
+  card.hydrate_printing(printing);
+  return {
+    name: `Set card printing to ${printing.set.toUpperCase()}:${printing.collector_number}`,
+    reverse: () => set_card_printing_action(card, original)
+  };
+}
+function set_card_printing(card, printing) {
+  if (card.card?.id === printing.id) return;
+  log_action(set_card_printing_action(card, printing));
+}
+var HISTORY, FUTURE;
+var init_history = __esm({
+  "history/history.ts"() {
+    HISTORY = [];
+    FUTURE = [];
+    window.addEventListener("keydown", (event) => {
+      if (event.target instanceof HTMLInputElement) return;
+      if (event.ctrlKey || event.metaKey) {
+        switch (event.key) {
+          case "y":
+            if (event.shiftKey) {
+              undo();
+            } else {
+              redo();
+            }
+            event.preventDefault();
+            break;
+          case "z":
+            if (event.shiftKey) {
+              redo();
+            } else {
+              undo();
+            }
+            event.preventDefault();
+            break;
+        }
+      }
+    });
+  }
+});
+
+// ui/skeleton.ts
+function skeleton(name) {
+  return SVG.svg({
+    xmlns: "http://www.w3.org/2000/svg",
+    viewBox: "0 0 25 35"
+  }, [
+    SVG.rect({ x: 0, y: 0, width: 25, height: 35, fill: "#000000" }),
+    SVG.rect({ x: 2, y: 2, width: 21, height: 31, fill: "#1f1f1f" }),
+    SVG.g({ fill: "#3f3f3f", stroke: "#000000", stroke_width: 1 }, [
+      SVG.rect({ x: 0.5, y: 0.5, width: 24, height: 3, rx: 1.5 }),
+      SVG.rect({ x: 0.5, y: 19.5, width: 24, height: 3, rx: 1.5 }),
+      SVG.rect({ x: 18.5, y: 31.5, width: 6, height: 3, rx: 1.5 })
+    ]),
+    name && SVG.text({ x: 2, y: 2.5, font_size: 1.5, font_family: "monospace", fill: "#ffffff" }, name.length > 24 ? name.slice(0, 21) + "..." : name)
+  ]);
+}
+function skeleton_back() {
+  return SVG.svg({
+    xmlns: "http://www.w3.org/2000/svg",
+    viewBox: "0 0 25 35"
+  }, [
+    SVG.rect({ x: 0, y: 0, width: 25, height: 35, fill: "#000000" }),
+    SVG.rect({ x: 2, y: 2, width: 21, height: 31, fill: "#0000001f" })
+  ]);
+}
+function data_url(svg) {
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg.outerHTML).replaceAll(/[()"']/g, (s) => "%" + s.charCodeAt(0).toString(16))}`;
+}
+var init_skeleton = __esm({
+  "ui/skeleton.ts"() {
+    init_xml();
+  }
+});
+
+// ui/card-view.ts
+var CardView;
+var init_card_view = __esm({
+  "ui/card-view.ts"() {
+    init_xml();
+    init_skeleton();
+    CardView = class _CardView {
+      static renderings = /* @__PURE__ */ new WeakMap();
+      static render(card, face_id = card.display_face_id, id = null, is_duplicate = false, on_click = null) {
+        const card_class = /* @__PURE__ */ new Set(["card"]);
+        if (is_duplicate) card_class.add("duplicate");
+        if (card.quantity < 1) card_class.add("ghost");
+        const faces = [];
+        switch (card.layout()) {
+          case "transform":
+          case "modal_dfc":
+          case "double_faced_token":
+          case "reversible_card":
+          case "art_series":
+            card_class.add("transform");
+            if (face_id === 1) card_class.add("invert");
+            break;
+          case "split":
+            if (card.has_keyword("Aftermath")) {
+              card_class.add("aftermath");
+              if (face_id === 1) card_class.add("invert");
+            } else {
+              card_class.add("landscape");
+            }
+            break;
+          case "flip":
+            card_class.add("flip");
+            if (face_id === 1) card_class.add("invert");
+            break;
+          case "meld":
+            const parts = card.card.all_parts;
+            const my_part = parts.find((part) => part.name === card.card.name);
+            if (my_part?.component === "meld_result") {
+              card_class.add("double");
+            }
+            break;
+          case "scheme":
+          case "vanguard":
+            card_class.add("double");
+            break;
+          case "planar":
+            card_class.add("double");
+            card_class.add("landscape");
+            break;
+        }
+        if (card.is_type("Battle")) {
+          card_class.add("landscape-front");
+        }
+        let faces_style = {};
+        switch (card.card?.id) {
+          // Hawkins National Laboratory // The Upside Down
+          case "83a86763-c3fe-4cff-8b65-22cb329d112c":
+            faces_style["--transform-initial"] = "rotateX(0deg)";
+            faces_style["--transform-final"] = "rotateX(180deg)";
+            break;
+        }
+        switch (card.card?.oracle_id) {
+          // Topsy Turvy
+          case "4516f30c-fb21-4371-818f-7dd211612a72":
+            card_class.add("flip");
+            card_class.add("invert");
+            break;
+          // Burning Cinder Fury of Crimson Chaos Fire
+          case "9716976e-1b52-4351-932e-b99fe206afbd":
+            card_class.add("landscape");
+            break;
+          // Who // What // When // Where // Why
+          case "adfe1b07-dd82-4c39-a7a6-ded0b1c39761":
+            card_class.delete("landscape");
+            card_class.add("landscape-front");
+            if ([2, 3, 4].includes(face_id)) card_class.add("invert");
+            faces_style["transform-origin"] = "calc(var(--card-width) / 2) 50%";
+            faces_style["--transform-initial"] = "rotateZ(90deg)";
+            faces_style["--transform-final"] = "rotateZ(0deg)";
+            break;
+        }
+        if (card.card?.oversized) {
+          card_class.add("double");
+        }
+        [0, 1].forEach((face_id2) => {
+          if (face_id2 > 0 && !(card.is_double_faced() || card.has_alternative_back())) {
+            return;
+          }
+          const urls = [];
+          if (face_id2 === 0 || card.is_double_faced()) {
+            const face = card.faces()[face_id2];
+            urls.push(...face.image_urls());
+            let name = card.is_double_faced() && face.card_name(true) || card.card_name(true);
+            if (card.set && card.collector_number) {
+              name ||= `[${card.set.toUpperCase()}:${card.collector_number}]`;
+            }
+            urls.push(data_url(skeleton(name)));
+          } else if (card.has_alternative_back()) {
+            const back_url = card.back_image_url();
+            if (back_url) {
+              card_class.add("transform");
+              urls.push(card.back_image_url());
+              urls.push(data_url(skeleton_back()));
+            }
+          }
+          faces.push(HTML.div({
+            id: `${id}-face-${faces.length}`,
+            class: [
+              "card-face",
+              ["front", "back"][face_id2],
+              !card.finish.is_default() && card.finish.name.toLowerCase()
+            ],
+            style: {
+              background_image: urls.map((url) => `url(${url})`).join(", ")
+            }
+          }));
+        });
+        let tilt = null;
+        const elements = _CardView.renderings.get(card) ?? [];
+        const card_view = HTML.div(
+          {
+            id,
+            class: [...card_class],
+            onpointermove: (_, { x, y }) => {
+              const { top, left, width, height } = card_view.getBoundingClientRect();
+              const effective_height = height + Number.parseFloat(getComputedStyle(card_view).marginBottom);
+              const dx = x - (left + 24) - width / 2;
+              const dy = y - top - effective_height / 2;
+              const angle = Math.atan2(dy, dx);
+              const azimuth = -10 * Math.min(Math.hypot(dx, dy) / 100, 1);
+              tilt.style.setProperty("--tilt-angle", `${angle}rad`);
+              tilt.style.setProperty("--tilt-azimuth", `${azimuth}deg`);
+            },
+            onpointerenter: () => this.focus(card),
+            onpointerleave: () => {
+              this.unfocus(card);
+              tilt.style.setProperty("--tilt-angle", `0`);
+              tilt.style.setProperty("--tilt-azimuth", `0`);
+            },
+            onclick: on_click && ((_, event) => {
+              event.stopPropagation();
+              on_click();
+            })
+          },
+          HTML.div({ class: "trigger" }),
+          HTML.div(
+            {
+              id: id && `${id}-shift`,
+              class: "card-shift"
+            },
+            !is_duplicate && HTML.div({ class: "count" }, `${card.quantity}\xD7`),
+            tilt = HTML.div(
+              {
+                id: id && `${id}-tilt`,
+                class: "card-tilt"
+              },
+              HTML.div({
+                id: id && `${id}-faces`,
+                class: "card-faces",
+                style: faces_style
+              }, faces)
+            )
+          )
+        );
+        elements.push(card_view);
+        _CardView.renderings.set(card, elements);
+        return card_view;
+      }
+      static focus(card) {
+        _CardView.renderings.get(card)?.forEach((element) => element.classList.add("focus"));
+      }
+      static unfocus(card) {
+        _CardView.renderings.get(card)?.forEach((element) => element.classList.remove("focus"));
+      }
+      static select(card) {
+        _CardView.renderings.get(card)?.forEach((element) => element.classList.add("select"));
+      }
+      static deselect(card) {
+        _CardView.renderings.get(card)?.forEach((element) => element.classList.remove("select"));
+      }
+    };
+  }
+});
+
+// ui/panel.ts
+var Panel;
+var init_panel = __esm({
+  "ui/panel.ts"() {
+    init_xml();
+    Panel = class {
+      static id;
+      static toggle(...args) {
+        if (HTML.div({ id: this.id }).classList.contains("collapsed")) {
+          this.open(...args);
+        } else {
+          this.close(...args);
+        }
+      }
+      static open(...args) {
+        HTML.div({
+          id: this.id,
+          class: "-collapsed"
+        });
+      }
+      static close(...args) {
+        HTML.div({
+          id: this.id,
+          class: "collapsed"
+        });
+      }
+    };
+  }
+});
+
+// ui/search/search.ts
+var Search;
+var init_search = __esm({
+  "ui/search/search.ts"() {
+    init_xml();
+    init_api();
+    init_deck_card();
+    init_card_view();
+    init_text();
+    init_panel();
+    init_card_panel();
+    init_history();
+    Search = class extends Panel {
+      static id = "search-results";
+      static initialise() {
+        HTML.button({
+          id: "search-collapse",
+          onclick: () => this.toggle()
+        });
+        HTML.input({
+          id: "search-query",
+          placeholder: "Search",
+          onkeypress: (input, { key }) => {
+            if (key === "Enter") {
+              this.run();
+              input.blur();
+            }
+          }
+        });
+      }
+      static open() {
+        HTML.button({ id: "search-collapse" }, "-");
+        super.open();
+      }
+      static close() {
+        HTML.button({ id: "search-collapse" }, "+");
+        super.close();
+      }
+      static async run(query = HTML.input({ id: "search-query" }).value) {
+        HTML.input({ id: "search-query", value: query });
+        if (!query) return;
+        this.open();
+        HTML.div({ id: "search-status" }, "Searching...");
+        HTML.div({ id: "search-results", class: "searching" }, HTML.div(
+          { class: "groups" },
+          [...Array(5)].map(
+            (_, i) => HTML.div(
+              { id: `search-stack-${i}`, class: "stack" },
+              CardView.render(DeckCard.empty(), null, `search-result-${i}`)
+            )
+          )
+        ));
+        const card_list = await API.card_search(query);
+        if (card_list) {
+          HTML.div({ id: "search-status" }, `Found ${count_plural(card_list.total_cards, "card")}`);
+          HTML.div({ id: "search-results", class: "-searching" }, HTML.div(
+            { class: "groups" },
+            card_list.data.map((card) => DeckCard.from_card(card, true)).map(
+              (card, i) => HTML.div(
+                { id: `search-stack-${i}`, class: "stack" },
+                CardView.render(
+                  card,
+                  null,
+                  `search-result-${i}`,
+                  false,
+                  () => {
+                    if (card.card.oracle_id === CardPanel.SELECTED?.card?.oracle_id) {
+                      set_card_printing(CardPanel.SELECTED, card.card);
+                    }
+                  }
+                )
+              )
+            )
+          ));
+        } else {
+          this.close();
+          HTML.div({ id: "search-status" }, "No cards found");
+          HTML.div({ id: "search-results", class: "-searching" }, []);
+        }
+      }
+    };
+  }
+});
+
+// ui/deck/card-panel.ts
+var CardPanel;
+var init_card_panel = __esm({
+  "ui/deck/card-panel.ts"() {
+    init_xml();
+    init_language();
+    init_value();
+    init_api();
+    init_history();
+    init_board();
+    init_finish();
+    init_condition();
+    init_card_view();
+    init_deck_panel();
+    init_panel();
+    init_search();
+    CardPanel = class extends Panel {
+      static id = "card-panel";
+      static SELECTED = null;
+      static input_event_listeners(on_change) {
+        return {
+          onchange: (input) => {
+            input.value = on_change(input.value);
+          },
+          onkeypress: (input, { key }) => {
+            if (key === "Enter") {
+              input.blur();
+            }
+          }
+        };
+      }
+      static quantity_input(card) {
+        return HTML.input({
+          id: "quantity-input",
+          type: "number",
+          min: 0,
+          max: 99,
+          value: card.quantity,
+          style: { width: "5ch" },
+          ...this.input_event_listeners((value) => {
+            let quantity = Number.parseInt(value);
+            if (is_nullish(quantity)) quantity = 1;
+            edit_card_field(card, "quantity", quantity);
+            return `${quantity}`;
+          })
+        });
+      }
+      static name_input(card) {
+        return HTML.input({
+          id: "name-input",
+          type: "text",
+          value: card.name || "",
+          placeholder: "Card Name",
+          style: { flex: "1" },
+          ...this.input_event_listeners((value) => {
+            edit_card_field(card, "name", value || null);
+            return value;
+          })
+        });
+      }
+      static set_input(card) {
+        return HTML.input({
+          id: "set-input",
+          class: [card.invalid_set() && "error"],
+          type: "text",
+          value: card.set?.toUpperCase() || "",
+          placeholder: "Set",
+          style: { width: "5ch" },
+          ...this.input_event_listeners((value) => {
+            value = API.SETS.normalise(value);
+            edit_card_field(card, "set", value || null);
+            return value.toUpperCase();
+          })
+        });
+      }
+      static collector_number_input(card) {
+        return HTML.input({
+          id: "collector-number-input",
+          class: [card.invalid_collector_number() && "error"],
+          type: "text",
+          value: card.collector_number || "",
+          placeholder: "Number",
+          style: { width: "6ch" },
+          ...this.input_event_listeners((value) => {
+            edit_card_field(card, "collector_number", value || null);
+            return value;
+          })
+        });
+      }
+      static language_input(card) {
+        return HTML.select({
+          id: "language-input",
+          class: [card.invalid_language() && "error"],
+          value: card.language.code(),
+          onchange: ({ value }) => {
+            edit_card_field(card, "language", Language.match(value));
+          },
+          ontimeout: (element) => {
+            element.value = card.language.code();
+          }
+        }, Language.all().map((language) => HTML.option({ value: language.code() }, language.name)));
+      }
+      static board_input(card) {
+        return HTML.select({
+          id: "board-input",
+          value: card.board.code(),
+          onchange: ({ value }) => {
+            edit_card_field(card, "board", Board.match(value));
+          },
+          ontimeout: (element) => {
+            element.value = card.board.code();
+          }
+        }, Board.all().map((board) => HTML.option({ value: board.code() }, board.name)));
+      }
+      static finish_input(card) {
+        return HTML.select({
+          id: "finish-input",
+          value: card.finish.code(),
+          onchange: ({ value }) => {
+            edit_card_field(card, "finish", Finish.match(value));
+          },
+          ontimeout: (element) => {
+            element.value = card.finish.code();
+          }
+        }, Finish.all().map((finish) => HTML.option({ value: finish.code() }, finish.name)));
+      }
+      static condition_input(card) {
+        return HTML.select({
+          id: "condition-input",
+          value: card.condition?.code() ?? "",
+          onchange: ({ value }) => {
+            edit_card_field(card, "condition", Condition.match(value));
+          },
+          ontimeout: (element) => {
+            element.value = card.condition?.code() ?? "";
+          }
+        }, [
+          HTML.option({ value: "" }, "Unspecified"),
+          ...Condition.all().map((condition) => HTML.option({ value: condition.code() }, condition.name))
+        ]);
+      }
+      static open(card) {
+        CardView.deselect(this.SELECTED);
+        CardView.select(card);
+        this.SELECTED = card;
+        if (window.innerWidth < 960) {
+          DeckPanel.close();
+        }
+        super.open();
+        HTML.div({ id: this.id }, [
+          HTML.div({ id: "card-panel-row-0" }, [
+            this.quantity_input(card),
+            this.name_input(card)
+          ]),
+          HTML.div({ id: "card-panel-row-1" }, [
+            this.set_input(card),
+            this.collector_number_input(card),
+            HTML.span({
+              class: "text-button",
+              onclick: () => {
+                let query = `!"${card.name}" unique:prints`;
+                if (!card.language.is_default()) query += ` lang:${card.language}`;
+                if (card.card) query += ` oracleid:${card.card.oracle_id}`;
+                Search.run(query);
+              }
+            }, "Find prints")
+          ]),
+          HTML.div({ id: "card-panel-row-2" }, [
+            this.language_input(card)
+          ]),
+          HTML.div({ id: "card-panel-row-3" }, [
+            this.board_input(card)
+          ]),
+          HTML.div({ id: "card-panel-row-4" }, [
+            this.finish_input(card)
+          ]),
+          HTML.div({ id: "card-panel-row-5" }, [
+            this.condition_input(card)
+          ])
+        ]);
+      }
+      static close() {
+        CardView.deselect(this.SELECTED);
+        this.SELECTED = null;
+        super.close();
+      }
+    };
+  }
+});
+
 // deck-card.ts
 var DeckCard;
 var init_deck_card = __esm({
@@ -1319,6 +1922,8 @@ var init_deck_card = __esm({
     init_finish();
     init_tag();
     init_face();
+    init_deck_view();
+    init_card_panel();
     DeckCard = class _DeckCard extends Face {
       static CACHE = new Cache();
       static BASIC_LAND_REGEXP = /^(snow(.?cover(ed)?).?)?(plains?|island|swamp|mountain|forest|wastes?)$/i;
@@ -1503,6 +2108,7 @@ var init_deck_card = __esm({
         const is_alchemy_set = /^y\d\d$/i.test(set);
         if (set && collector_number && !is_alchemy_set) {
           this.card ??= await API.card(set, collector_number, language.code());
+          this.card ??= await API.card(set, collector_number);
         }
         if (name) {
           if (/^_{6,}$/.test(name) && !set) {
@@ -1528,17 +2134,18 @@ var init_deck_card = __esm({
       flush() {
         this.raw = null;
         this.raw_name = null;
+        this.display_face_id = null;
         return super.flush();
+      }
+      hydrate_printing(card) {
+        this.set = card.set;
+        this.collector_number = card.collector_number;
+        this.language = Language.match(card.lang);
+        this.hydrate(card);
       }
       hydrate(card = this.card) {
         super.hydrate(card);
         if (card) {
-          if (this.set !== card.set) {
-            this.set = null;
-          }
-          if (this.collector_number !== card.collector_number) {
-            this.collector_number = null;
-          }
           if (this.language.code() !== card.lang && this.language.is_default()) {
             this.language = Language.match(card.lang);
           }
@@ -1564,13 +2171,32 @@ var init_deck_card = __esm({
           }
           this.name = this.deck_list_name();
         }
+        this.render_hooks();
         return this;
+      }
+      render_hooks() {
+        DeckView.render();
+        if (this === CardPanel.SELECTED) {
+          CardPanel.open(this);
+        }
       }
       cache() {
         if (this.card) {
           _DeckCard.CACHE.put_each(this.cache_keys(), this.card);
         }
         return this;
+      }
+      invalid_set() {
+        if (!this.set || !this.card) return false;
+        return API.SETS.normalise(this.set) !== this.card.set;
+      }
+      invalid_collector_number() {
+        if (!this.collector_number || !this.card) return false;
+        return this.collector_number !== this.card.collector_number;
+      }
+      invalid_language() {
+        if (!this.card) return false;
+        return this.language.code() !== this.card.lang;
       }
       set_code() {
         return API.SETS.normalise(this.set ?? this.card?.set);
@@ -1868,7 +2494,8 @@ var init_deck = __esm({
         await _Deck.current.load(() => DeckView.render());
         const invalid_boards = Board.all().filter((board) => {
           if (!board.card_types) return false;
-          return _Deck.current.board(board).every((card) => !board.can_include(card));
+          const cards = _Deck.current.board(board);
+          return cards.length > 0 && cards.every((card) => !board.can_include(card));
         });
         console.log(invalid_boards);
         for (let i = 0; i < _Deck.current.length; i++) {
@@ -1928,224 +2555,6 @@ var init_deck = __esm({
       }
       toString() {
         return this.to_string();
-      }
-    };
-  }
-});
-
-// ui/skeleton.ts
-function skeleton(name) {
-  return SVG.svg({
-    xmlns: "http://www.w3.org/2000/svg",
-    viewBox: "0 0 25 35"
-  }, [
-    SVG.rect({ x: 0, y: 0, width: 25, height: 35, fill: "#000000" }),
-    SVG.rect({ x: 2, y: 2, width: 21, height: 31, fill: "#1f1f1f" }),
-    SVG.g({ fill: "#3f3f3f", stroke: "#000000", stroke_width: 1 }, [
-      SVG.rect({ x: 0.5, y: 0.5, width: 24, height: 3, rx: 1.5 }),
-      SVG.rect({ x: 0.5, y: 19.5, width: 24, height: 3, rx: 1.5 }),
-      SVG.rect({ x: 18.5, y: 31.5, width: 6, height: 3, rx: 1.5 })
-    ]),
-    name && SVG.text({ x: 2, y: 2.5, font_size: 1.5, font_family: "monospace", fill: "#ffffff" }, name.length > 24 ? name.slice(0, 21) + "..." : name)
-  ]);
-}
-function skeleton_back() {
-  return SVG.svg({
-    xmlns: "http://www.w3.org/2000/svg",
-    viewBox: "0 0 25 35"
-  }, [
-    SVG.rect({ x: 0, y: 0, width: 25, height: 35, fill: "#000000" }),
-    SVG.rect({ x: 2, y: 2, width: 21, height: 31, fill: "#0000001f" })
-  ]);
-}
-function data_url(svg) {
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg.outerHTML).replaceAll(/[()"']/g, (s) => "%" + s.charCodeAt(0).toString(16))}`;
-}
-var init_skeleton = __esm({
-  "ui/skeleton.ts"() {
-    init_xml();
-  }
-});
-
-// ui/card-view.ts
-var CardView;
-var init_card_view = __esm({
-  "ui/card-view.ts"() {
-    init_xml();
-    init_skeleton();
-    CardView = class _CardView {
-      static renderings = /* @__PURE__ */ new WeakMap();
-      static render(card, face_id = card.display_face_id, id = null, is_duplicate = false, on_click = null) {
-        const card_class = /* @__PURE__ */ new Set(["card"]);
-        if (is_duplicate) card_class.add("duplicate");
-        if (card.quantity < 1) card_class.add("ghost");
-        const faces = [];
-        switch (card.layout()) {
-          case "transform":
-          case "modal_dfc":
-          case "double_faced_token":
-          case "reversible_card":
-          case "art_series":
-            card_class.add("transform");
-            if (face_id === 1) card_class.add("invert");
-            break;
-          case "split":
-            if (card.has_keyword("Aftermath")) {
-              card_class.add("aftermath");
-              if (face_id === 1) card_class.add("invert");
-            } else {
-              card_class.add("landscape");
-            }
-            break;
-          case "flip":
-            card_class.add("flip");
-            if (face_id === 1) card_class.add("invert");
-            break;
-          case "meld":
-            const parts = card.card.all_parts;
-            const my_part = parts.find((part) => part.name === card.card.name);
-            if (my_part?.component === "meld_result") {
-              card_class.add("double");
-            }
-            break;
-          case "scheme":
-          case "vanguard":
-            card_class.add("double");
-            break;
-          case "planar":
-            card_class.add("double");
-            card_class.add("landscape");
-            break;
-        }
-        if (card.is_type("Battle")) {
-          card_class.add("landscape-front");
-        }
-        let faces_style = {};
-        switch (card.card?.id) {
-          // Hawkins National Laboratory // The Upside Down
-          case "83a86763-c3fe-4cff-8b65-22cb329d112c":
-            faces_style["--transform-initial"] = "rotateX(0deg)";
-            faces_style["--transform-final"] = "rotateX(180deg)";
-            break;
-        }
-        switch (card.card?.oracle_id) {
-          // Topsy Turvy
-          case "4516f30c-fb21-4371-818f-7dd211612a72":
-            card_class.add("flip");
-            card_class.add("invert");
-            break;
-          // Burning Cinder Fury of Crimson Chaos Fire
-          case "9716976e-1b52-4351-932e-b99fe206afbd":
-            card_class.add("landscape");
-            break;
-          // Who // What // When // Where // Why
-          case "adfe1b07-dd82-4c39-a7a6-ded0b1c39761":
-            card_class.delete("landscape");
-            card_class.add("landscape-front");
-            if ([2, 3, 4].includes(face_id)) card_class.add("invert");
-            faces_style["transform-origin"] = "calc(var(--card-width) / 2) 50%";
-            faces_style["--transform-initial"] = "rotateZ(90deg)";
-            faces_style["--transform-final"] = "rotateZ(0deg)";
-            break;
-        }
-        if (card.card?.oversized) {
-          card_class.add("double");
-        }
-        [0, 1].forEach((face_id2) => {
-          if (face_id2 > 0 && !(card.is_double_faced() || card.has_alternative_back())) {
-            return;
-          }
-          const urls = [];
-          if (face_id2 === 0 || card.is_double_faced()) {
-            const face = card.faces()[face_id2];
-            urls.push(...face.image_urls());
-            let name = card.is_double_faced() && face.card_name(true) || card.card_name(true);
-            if (card.set && card.collector_number) {
-              name ||= `[${card.set.toUpperCase()}:${card.collector_number}]`;
-            }
-            urls.push(data_url(skeleton(name)));
-          } else if (card.has_alternative_back()) {
-            const back_url = card.back_image_url();
-            if (back_url) {
-              card_class.add("transform");
-              urls.push(card.back_image_url());
-              urls.push(data_url(skeleton_back()));
-            }
-          }
-          faces.push(HTML.div({
-            id: `${id}-face-${faces.length}`,
-            class: [
-              "card-face",
-              ["front", "back"][face_id2],
-              !card.finish.is_default() && card.finish.name.toLowerCase()
-            ],
-            style: {
-              background_image: urls.map((url) => `url(${url})`).join(", ")
-            }
-          }));
-        });
-        let tilt = null;
-        const elements = _CardView.renderings.get(card) ?? [];
-        const card_view = HTML.div(
-          {
-            id,
-            class: [...card_class],
-            onpointermove: (_, { x, y }) => {
-              const { top, left, width, height } = card_view.getBoundingClientRect();
-              const effective_height = height + Number.parseFloat(getComputedStyle(card_view).marginBottom);
-              const dx = x - (left + 24) - width / 2;
-              const dy = y - top - effective_height / 2;
-              const angle = Math.atan2(dy, dx);
-              const azimuth = -10 * Math.min(Math.hypot(dx, dy) / 100, 1);
-              tilt.style.setProperty("--tilt-angle", `${angle}rad`);
-              tilt.style.setProperty("--tilt-azimuth", `${azimuth}deg`);
-            },
-            onpointerenter: () => this.focus(card),
-            onpointerleave: () => {
-              this.unfocus(card);
-              tilt.style.setProperty("--tilt-angle", `0`);
-              tilt.style.setProperty("--tilt-azimuth", `0`);
-            },
-            onclick: on_click && ((_, event) => {
-              event.stopPropagation();
-              on_click();
-            })
-          },
-          HTML.div({ class: "trigger" }),
-          HTML.div(
-            {
-              id: id && `${id}-shift`,
-              class: "card-shift"
-            },
-            !is_duplicate && HTML.div({ class: "count" }, `${card.quantity}\xD7`),
-            tilt = HTML.div(
-              {
-                id: id && `${id}-tilt`,
-                class: "card-tilt"
-              },
-              HTML.div({
-                id: id && `${id}-faces`,
-                class: "card-faces",
-                style: faces_style
-              }, faces)
-            )
-          )
-        );
-        elements.push(card_view);
-        _CardView.renderings.set(card, elements);
-        return card_view;
-      }
-      static focus(card) {
-        _CardView.renderings.get(card)?.forEach((element) => element.classList.add("focus"));
-      }
-      static unfocus(card) {
-        _CardView.renderings.get(card)?.forEach((element) => element.classList.remove("focus"));
-      }
-      static select(card) {
-        _CardView.renderings.get(card)?.forEach((element) => element.classList.add("select"));
-      }
-      static deselect(card) {
-        _CardView.renderings.get(card)?.forEach((element) => element.classList.remove("select"));
       }
     };
   }
@@ -2300,282 +2709,6 @@ var init_card_classifier = __esm({
         const null_a = is_nullish(a) ? 1 : 0;
         const null_b = is_nullish(b) ? 1 : 0;
         return null_a - null_b;
-      }
-    };
-  }
-});
-
-// history/history.ts
-function undo() {
-  const action = HISTORY.pop();
-  if (action) {
-    FUTURE.push(action.reverse());
-  }
-}
-function redo() {
-  const action = FUTURE.pop();
-  if (action) {
-    HISTORY.push(action.reverse());
-  }
-}
-function edit_card_field_action(card, field, new_value, old_value = card[field]) {
-  card[field] = new_value;
-  if ([
-    "name",
-    "set",
-    "collector_number",
-    "language"
-  ].includes(field)) {
-    card.reload().then(() => {
-      DeckView.render();
-      if (card === CardPanel.SELECTED) {
-        CardPanel.open(card);
-      }
-    });
-  }
-  DeckView.render();
-  if (card === CardPanel.SELECTED) {
-    CardPanel.open(card);
-  }
-  return {
-    reverse: () => edit_card_field_action(card, field, old_value)
-  };
-}
-function edit_card_field(card, field, value) {
-  HISTORY.push(edit_card_field_action(card, field, value));
-}
-var HISTORY, FUTURE;
-var init_history = __esm({
-  "history/history.ts"() {
-    init_deck_view();
-    init_card_panel();
-    HISTORY = [];
-    FUTURE = [];
-    window.addEventListener("keydown", (event) => {
-      if (event.target instanceof HTMLInputElement) return;
-      if (event.ctrlKey || event.metaKey) {
-        switch (event.key) {
-          case "y":
-            if (event.shiftKey) {
-              undo();
-            } else {
-              redo();
-            }
-            break;
-          case "z":
-            if (event.shiftKey) {
-              redo();
-            } else {
-              undo();
-            }
-            break;
-        }
-      }
-    });
-  }
-});
-
-// ui/panel.ts
-var Panel;
-var init_panel = __esm({
-  "ui/panel.ts"() {
-    init_xml();
-    Panel = class {
-      static id;
-      static toggle() {
-        if (HTML.div({ id: this.id }).classList.contains("collapsed")) {
-          this.open();
-        } else {
-          this.close();
-        }
-      }
-      static open(...args) {
-        HTML.div({
-          id: this.id,
-          class: "-collapsed"
-        });
-      }
-      static close() {
-        HTML.div({
-          id: this.id,
-          class: "collapsed"
-        });
-      }
-    };
-  }
-});
-
-// ui/deck/card-panel.ts
-var CardPanel;
-var init_card_panel = __esm({
-  "ui/deck/card-panel.ts"() {
-    init_xml();
-    init_language();
-    init_value();
-    init_api();
-    init_history();
-    init_board();
-    init_finish();
-    init_condition();
-    init_card_view();
-    init_deck_panel();
-    init_panel();
-    CardPanel = class extends Panel {
-      static id = "card-panel";
-      static SELECTED = null;
-      static input_event_listeners(on_change) {
-        return {
-          onchange: (input) => {
-            input.value = on_change(input.value);
-          },
-          onkeypress: (input, { key }) => {
-            if (key === "Enter") {
-              input.blur();
-            }
-          }
-        };
-      }
-      static quantity_input(card) {
-        return HTML.input({
-          id: "quantity-input",
-          type: "number",
-          min: 0,
-          value: card.quantity,
-          style: { width: "5ch" },
-          ...this.input_event_listeners((value) => {
-            let quantity = Number.parseInt(value);
-            if (is_nullish(quantity)) quantity = 1;
-            edit_card_field(card, "quantity", quantity);
-            return `${quantity}`;
-          })
-        });
-      }
-      static name_input(card) {
-        return HTML.input({
-          id: "name-input",
-          type: "text",
-          value: card.name || "",
-          placeholder: "Card Name",
-          style: { flex: "1" },
-          ...this.input_event_listeners((value) => {
-            edit_card_field(card, "name", value || null);
-            return value;
-          })
-        });
-      }
-      static set_input(card) {
-        return HTML.input({
-          id: "set-input",
-          type: "text",
-          value: card.set?.toUpperCase() || "",
-          placeholder: "Set",
-          style: { width: "5ch" },
-          ...this.input_event_listeners((value) => {
-            value = API.SETS.normalise(value);
-            edit_card_field(card, "set", value || null);
-            return value.toUpperCase();
-          })
-        });
-      }
-      static collector_number_input(card) {
-        return HTML.input({
-          id: "collector-number-input",
-          type: "text",
-          value: card.collector_number || "",
-          placeholder: "Number",
-          style: { width: "6ch" },
-          ...this.input_event_listeners((value) => {
-            edit_card_field(card, "collector_number", value || null);
-            return value;
-          })
-        });
-      }
-      static language_input(card) {
-        return HTML.select({
-          id: "language-input",
-          value: card.language.code(),
-          onchange: ({ value }) => {
-            edit_card_field(card, "language", Language.match(value));
-          },
-          ontimeout: (element) => {
-            element.value = card.language.code();
-          }
-        }, Language.all().map((language) => HTML.option({ value: language.code() }, language.name)));
-      }
-      static board_input(card) {
-        return HTML.select({
-          id: "board-input",
-          value: card.board.code(),
-          onchange: ({ value }) => {
-            edit_card_field(card, "board", Board.match(value));
-          },
-          ontimeout: (element) => {
-            element.value = card.board.code();
-          }
-        }, Board.all().map((board) => HTML.option({ value: board.code() }, board.name)));
-      }
-      static finish_input(card) {
-        return HTML.select({
-          id: "finish-input",
-          value: card.finish.code(),
-          onchange: ({ value }) => {
-            edit_card_field(card, "finish", Finish.match(value));
-          },
-          ontimeout: (element) => {
-            element.value = card.finish.code();
-          }
-        }, Finish.all().map((finish) => HTML.option({ value: finish.code() }, finish.name)));
-      }
-      static condition_input(card) {
-        return HTML.select({
-          id: "condition-input",
-          value: card.condition?.code() ?? "",
-          onchange: ({ value }) => {
-            edit_card_field(card, "condition", Condition.match(value));
-          },
-          ontimeout: (element) => {
-            element.value = card.condition?.code() ?? "";
-          }
-        }, [
-          HTML.option({ value: "" }, "Unspecified"),
-          ...Condition.all().map((condition) => HTML.option({ value: condition.code() }, condition.name))
-        ]);
-      }
-      static open(card) {
-        CardView.deselect(this.SELECTED);
-        CardView.select(card);
-        this.SELECTED = card;
-        if (window.innerWidth < 960) {
-          DeckPanel.close();
-        }
-        super.open();
-        HTML.div({ id: this.id }, [
-          HTML.div({ id: "card-panel-row-0" }, [
-            this.quantity_input(card),
-            this.name_input(card)
-          ]),
-          HTML.div({ id: "card-panel-row-1" }, [
-            this.set_input(card),
-            this.collector_number_input(card)
-          ]),
-          HTML.div({ id: "card-panel-row-2" }, [
-            this.language_input(card)
-          ]),
-          HTML.div({ id: "card-panel-row-3" }, [
-            this.board_input(card)
-          ]),
-          HTML.div({ id: "card-panel-row-4" }, [
-            this.finish_input(card)
-          ]),
-          HTML.div({ id: "card-panel-row-5" }, [
-            this.condition_input(card)
-          ])
-        ]);
-      }
-      static close() {
-        CardView.deselect(this.SELECTED);
-        this.SELECTED = null;
-        super.close();
       }
     };
   }
@@ -3488,78 +3621,6 @@ var init_deck_panel = __esm({
           CardPanel.close();
         }
         super.open();
-      }
-    };
-  }
-});
-
-// ui/search/search.ts
-var Search;
-var init_search = __esm({
-  "ui/search/search.ts"() {
-    init_xml();
-    init_api();
-    init_deck_card();
-    init_card_view();
-    init_text();
-    init_panel();
-    Search = class extends Panel {
-      static id = "search-results";
-      static initialise() {
-        HTML.button({
-          id: "search-collapse",
-          onclick: () => this.toggle()
-        });
-        HTML.input({
-          id: "search-query",
-          placeholder: "Search",
-          onkeypress: (input, { key }) => {
-            if (key === "Enter") {
-              this.run();
-              input.blur();
-            }
-          }
-        });
-      }
-      static open() {
-        HTML.button({ id: "search-collapse" }, "-");
-        super.open();
-      }
-      static close() {
-        HTML.button({ id: "search-collapse" }, "+");
-        super.close();
-      }
-      static async run(query = HTML.input({ id: "search-query" }).value) {
-        HTML.input({ id: "search-query", value: query });
-        if (!query) return;
-        this.open();
-        HTML.div({ id: "search-status" }, "Searching...");
-        HTML.div({ id: "search-results", class: "searching" }, HTML.div(
-          { class: "groups" },
-          [...Array(5)].map(
-            (_, i) => HTML.div(
-              { id: `search-stack-${i}`, class: "stack" },
-              CardView.render(DeckCard.empty(), null, `search-result-${i}`)
-            )
-          )
-        ));
-        const card_list = await API.card_search(query);
-        if (card_list) {
-          HTML.div({ id: "search-status" }, `Found ${count_plural(card_list.total_cards, "card")}`);
-          HTML.div({ id: "search-results", class: "-searching" }, HTML.div(
-            { class: "groups" },
-            card_list.data.map((card) => DeckCard.from_card(card, true)).map(
-              (card, i) => HTML.div(
-                { id: `search-stack-${i}`, class: "stack" },
-                CardView.render(card, null, `search-result-${i}`)
-              )
-            )
-          ));
-        } else {
-          this.close();
-          HTML.div({ id: "search-status" }, "No cards found");
-          HTML.div({ id: "search-results", class: "-searching" }, []);
-        }
       }
     };
   }

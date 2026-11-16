@@ -1,6 +1,9 @@
 * {
-    --theme-rgb: 0 255 223;
+    --theme-rgb: 0 255 191;
     --theme: rgb(var(--theme-rgb));
+
+    --error-rgb: 255 63 0;
+    --error: rgb(var(--error-rgb));
 
     transition-property: none;
     transition-duration: 0.2s;
@@ -23,7 +26,7 @@ html {
 body {
     --card-scale: 8px;
 
-    background-color: #3f001f;
+    background-color: #3f0f2f;
     color: #ffffff;
     margin: 0;
     height: 100%;
@@ -68,6 +71,16 @@ select:focus-visible {
     border-color: white;
     background-color: rgba(var(--theme-rgb) / 25%);
     box-shadow: 0 0 4px 1px var(--theme), inset 0 0 4px 1px var(--theme);
+    caret-color: var(--theme);
+}
+
+button.error,
+input.error,
+select.error {
+    border-color: white;
+    background-color: rgba(var(--error-rgb) / 25%);
+    box-shadow: 0 0 4px 1px var(--error), inset 0 0 4px 1px var(--error);
+    caret-color: var(--error);
 }
 
 select {
@@ -79,8 +92,21 @@ input[type=checkbox] {
     margin: 4px;
 }
 
-.light {
-    color: #ffffff7f;
+.text-button {
+    padding: 4px;
+    color: #ffffffbf;
+    cursor: pointer;
+    transition-property: color, text-shadow;
+    user-select: none;
+}
+
+.text-button:hover {
+    color: white;
+    text-shadow:
+        0 0 1px var(--theme),
+        0 0 2px var(--theme),
+        0 0 4px var(--theme),
+        0 0 8px var(--theme);
 }
 
 #background {
@@ -123,12 +149,21 @@ input[type=checkbox] {
     overflow-x: auto;
     overflow-y: visible;
     width: 100%;
-    min-height: calc(35 * var(--card-scale) + 24px);
-    transition-property: min-height;
+    height: calc(35 * var(--card-scale) + 24px);
+    transition-property: height, opacity;
     padding-bottom: 100px;
     margin-bottom: -100px;
     z-index: 7;
     pointer-events: none;
+}
+
+#search-results:has(.card.double:not(.landscape)) {
+    height: calc(49 * var(--card-scale) + 24px);
+}
+
+#search-results.collapsed {
+    height: 0 !important;
+    opacity: 0;
 }
 
 #search-results > .groups {
@@ -136,8 +171,12 @@ input[type=checkbox] {
     pointer-events: auto;
 }
 
-#search-results.collapsed {
-    min-height: 0;
+#search-results.collapsed > .groups {
+    pointer-events: none;
+}
+
+#search-results .card:hover {
+    z-index: 1;
 }
 
 #search-results.searching .card {
@@ -209,6 +248,7 @@ input[type=checkbox] {
 
 #deck-cards {
     overflow: auto;
+    width: 100%;
 }
 
 .groups {
@@ -548,7 +588,7 @@ input[type=checkbox] {
 .card.landscape:hover ~ .card .card-shift,
 .card.landscape-front:hover ~ .card .card-shift,
 .card.aftermath:not(.invert):has(.trigger:hover) ~ .card .card-shift,
-    .card.aftermath.invert:not(:has(.trigger:hover)):hover ~ .card .card-shift {
+.card.aftermath.invert:not(:has(.trigger:hover)):hover ~ .card .card-shift {
     --shift: 25;
 }
 
@@ -611,6 +651,12 @@ input[type=checkbox] {
     background-size: var(--foil-scale) var(--foil-scale);
     border-radius: var(--card-radius);
     opacity: 25%;
+    animation: foil-animation 4s linear infinite;
+
+}
+
+@keyframes foil-animation {
+    100% { background-position: var(--foil-scale) 0 }
 }
 
 .card-face.foil:after {
@@ -619,11 +665,6 @@ input[type=checkbox] {
 
 .card-face.etched:after {
     background-image: url(public/filter/foil.svg);
-}
-
-.card.landscape .card-face.foil:after,
-.card.landscape-front .card-face.foil:not(.back):after {
-    background-image: url(public/filter/foil-rotated.svg);
 }
 
 .show-quantity .card.ghost:not(:hover) .count {

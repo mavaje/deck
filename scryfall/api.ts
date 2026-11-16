@@ -50,6 +50,7 @@ export class API {
                     if (can_cache) this.CACHE.put(url, response);
                     done(response as T);
                 } else {
+                    if (can_cache) this.CACHE.put(url, null);
                     console.error(response);
                     done(null);
                 }
@@ -98,7 +99,7 @@ export class API {
         language?: string,
         parameters: object = {},
     ): string {
-        return this.url(language !== Language.DEFAULT.code()
+        return this.url(language && language !== Language.DEFAULT.code()
             ? `cards/${set}/${collector_number}/${language}`
             : `cards/${set}/${collector_number}`, parameters);
     }
