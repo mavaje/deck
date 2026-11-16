@@ -1345,13 +1345,34 @@ function edit_card_field_action(card, field, new_value) {
   }
   card.render_hooks();
   return {
-    name: `Set card.${field} to ${new_value}`,
+    name: `Set card ${field} to ${new_value}`,
     reverse: () => edit_card_field_action(card, field, old_value)
+  };
+}
+function edit_card_name_action(card, new_name) {
+  const { name, set, collector_number, language } = card;
+  card.name = new_name;
+  card.set = null;
+  card.collector_number = null;
+  card.language = Language.DEFAULT;
+  card.reload();
+  card.render_hooks();
+  return {
+    name: `Set card name to ${new_name}`,
+    reverse: () => {
+      Object.assign(card, { name, set, collector_number, language });
+      card.reload();
+      card.render_hooks();
+      return {
+        name: `Revert card name`,
+        reverse: () => edit_card_name_action(card, new_name)
+      };
+    }
   };
 }
 function edit_card_field(card, field, value) {
   if (card[field] === value) return;
-  log_action(edit_card_field_action(card, field, value));
+  log_action(field === "name" ? edit_card_name_action(card, value) : edit_card_field_action(card, field, value));
 }
 function set_card_printing_action(card, printing) {
   const { name, set, collector_number, language, finish, card: sf_card } = card;
@@ -1369,12 +1390,15 @@ function set_card_printing_action(card, printing) {
   };
 }
 function set_card_printing(card, printing) {
-  if (card.card?.id === printing.id) return;
+  if (printing.id === card.card?.id && printing.name === card.card_name() && printing.set === card.set && printing.collector_number === card.collector_number && printing.lang === card.language.code() && printing.finishes.includes(card.finish.sf_finish())) {
+    return;
+  }
   log_action(set_card_printing_action(card, printing));
 }
 var HISTORY, FUTURE;
 var init_history = __esm({
   "history/history.ts"() {
+    init_language();
     HISTORY = [];
     FUTURE = [];
     window.addEventListener("keydown", (event) => {

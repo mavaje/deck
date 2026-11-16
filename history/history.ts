@@ -1,5 +1,6 @@
 import {DeckCard} from "../deck-card";
 import {Card} from "../scryfall/types";
+import {Language} from "../designation/language";
 
 export interface Action {
     name?: string;
@@ -46,8 +47,33 @@ function edit_card_field_action<
     }
     card.render_hooks();
     return {
-        name: `Set card.${field} to ${new_value}`,
+        name: `Set card ${field} to ${new_value}`,
         reverse: () => edit_card_field_action(card, field, old_value),
+    };
+}
+
+function edit_card_name_action(
+    card: DeckCard,
+    new_name: string,
+): Action {
+    const {name, set, collector_number, language} = card;
+    card.name = new_name;
+    card.set = null;
+    card.collector_number = null;
+    card.language = Language.DEFAULT;
+    card.reload();
+    card.render_hooks();
+    return {
+        name: `Set card name to ${new_name}`,
+        reverse: () => {
+            Object.assign(card, {name, set, collector_number, language});
+            card.reload();
+            card.render_hooks();
+            return {
+                name: `Revert card name`,
+                reverse: () => edit_card_name_action(card, new_name),
+            };
+        },
     };
 }
 
@@ -59,7 +85,9 @@ export function edit_card_field<
     value: DeckCard[K],
 ): void {
     if (card[field] === value) return;
-    log_action(edit_card_field_action(card, field, value));
+    log_action(field === 'name'
+        ? edit_card_name_action(card, value as string)
+        : edit_card_field_action(card, field, value));
 }
 
 export function set_card_printing_action(
@@ -85,7 +113,15 @@ export function set_card_printing(
     card: DeckCard,
     printing: Card,
 ): void {
-    if (card.card?.id === printing.id) return;
+    if (printing.id === card.card?.id
+        && printing.name === card.card_name()
+        && printing.set === card.set
+        && printing.collector_number === card.collector_number
+        && printing.lang === card.language.code()
+        && printing.finishes.includes(card.finish.sf_finish())
+    ) {
+        return;
+    }
     log_action(set_card_printing_action(card, printing));
 }
 
