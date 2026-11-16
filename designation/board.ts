@@ -6,7 +6,7 @@ export class Board extends Designation {
     static vanguard = new Board('Vanguard', ['vanguard'], 1, 1, ['Vanguard']);
     static conspiracy = new Board('Conspiracy', ['conspiracy'], [0], null, ['Conspiracy']);
     static hero = new Board('Hero', ['hero'], 1, 1, ['Hero']);
-    static commander = new Board('Commander', ['cmdr', 'commanders']);
+    static commander = new Board('Commander', ['cmdr', 'commanders', 'brawlers', 'oathbreakers']);
     static companion = new Board('Companion', ['cmpn', 'companions']);
     static deck = new Board('Deck', ['main', 'main board', 'main deck']);
     static sideboard = new Board('Sideboard', ['sb', 'side board', 'side']);

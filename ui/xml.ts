@@ -54,6 +54,35 @@ function create_element<T extends string>(
         ? document.createElementNS(namespace, tag)
         : document.createElement(tag);
 
+    if (children) {
+        const new_children: ChildNode[] = children
+            .filter(child => child || child === 0)
+            .map(child => child instanceof Node
+                ? child as ChildNode
+                : document.createTextNode(String(child)));
+
+        const new_set = new Set(new_children);
+        for (const old_child of [...element.childNodes]) {
+            if (!new_set.has(old_child)) {
+                old_child.remove();
+            }
+        }
+
+        let last_child: ChildNode = null;
+        for (const new_child of new_children) {
+            if (last_child) {
+                if (new_child !== last_child.nextSibling) {
+                    last_child.after(new_child);
+                }
+            } else {
+                if (new_child !== element.childNodes[0]) {
+                    element.insertBefore(new_child, element.childNodes[0]);
+                }
+            }
+            last_child = new_child;
+        }
+    }
+
     Object.entries(attributes).forEach(([key, value]) => {
         if (is_nullish(value)) return;
 
@@ -112,35 +141,6 @@ function create_element<T extends string>(
                 }
         }
     });
-
-    if (children) {
-        const new_children: ChildNode[] = children
-            .filter(child => child || child === 0)
-            .map(child => child instanceof Node
-                ? child as ChildNode
-                : document.createTextNode(String(child)));
-
-        const new_set = new Set(new_children);
-        for (const old_child of [...element.childNodes]) {
-            if (!new_set.has(old_child)) {
-                old_child.remove();
-            }
-        }
-
-        let last_child: ChildNode = null;
-        for (const new_child of new_children) {
-            if (last_child) {
-                if (new_child !== last_child.nextSibling) {
-                    last_child.after(new_child);
-                }
-            } else {
-                if (new_child !== element.childNodes[0]) {
-                    element.insertBefore(new_child, element.childNodes[0]);
-                }
-            }
-            last_child = new_child;
-        }
-    }
 
     return element;
 }

@@ -56,6 +56,11 @@ export class DeckPanel extends Panel {
 
     static initialise() {
         HTML.button({
+            id: 'deck-panel-close',
+            onclick: () => this.close(),
+        });
+
+        HTML.button({
             id: 'deck-upload-button',
             onclick: () => file_input.click(),
         });
@@ -101,7 +106,7 @@ export class DeckPanel extends Panel {
     }
 
     static open(): void {
-        if (window.innerWidth < 960) {
+        if (window.innerWidth < 848) {
             CardPanel.close();
         }
         super.open();

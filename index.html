@@ -23,6 +23,9 @@
     <div id="deck">
         <div id="deck-panel">
             <div>
+                <button id="deck-panel-close">x</button>
+            </div>
+            <div>
                 <input id="deck-file-input" type="file">
                 <button id="deck-upload-button">Import</button>
 
@@ -42,7 +45,53 @@
             </div>
         </div>
         <div id="deck-cards" class="compact show-quantity"></div>
-        <div id="card-panel" class="collapsed"></div>
+        <div id="card-panel" class="collapsed">
+            <div id="card-panel-card-container"></div>
+            <div>
+                <input
+                    id="quantity-input"
+                    type="number"
+                    min="0"
+                    max="99"
+                    style="width: 5ch"
+                >
+                <input
+                    id="name-input"
+                    type="text"
+                    placeholder="Card Name"
+                    style="flex: 1"
+                >
+            </div>
+            <div>
+                <input
+                    id="set-input"
+                    type="text"
+                    placeholder="Set"
+                    style="width: 5ch"
+                >
+                <input
+                    id="collector-number-input"
+                    type="text"
+                    placeholder="Num."
+                    style="width: 5ch"
+                >
+                <span id="print-search" class="text-button">
+                    Find prints
+                </span>
+            </div>
+            <div>
+                <select id="language-input"></select>
+            </div>
+            <div>
+                <select id="board-input"></select>
+            </div>
+            <div>
+                <select id="finish-input"></select>
+            </div>
+            <div>
+                <select id="condition-input"></select>
+            </div>
+        </div>
     </div>
 </div>
 </body>

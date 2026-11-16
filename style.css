@@ -24,7 +24,8 @@ html {
 }
 
 body {
-    --card-scale: 8px;
+    --card-scale: min(8px, calc((100vw - 32px) / 49));
+    --panel-width: min(424px, 100vw);
 
     background-color: #3f0f2f;
     color: #ffffff;
@@ -209,11 +210,11 @@ input[type=checkbox] {
     position: absolute;
     top: 0;
     bottom: 0;
-    width: 312px;
+    width: calc(var(--panel-width) - 8px);
     display: flex;
     flex-direction: column;
     justify-content: start;
-    align-items: start;
+    align-items: stretch;
     padding: 4px;
     z-index: 5;
     background-color: #0000007f;
@@ -223,11 +224,10 @@ input[type=checkbox] {
 
 #deck-panel {
     left: 0;
-    margin-right: 4px;
 }
 
 #deck-panel.collapsed {
-    left: -324px;
+    left: calc(-4px - var(--panel-width));
 }
 
 #deck-panel > div {
@@ -239,17 +239,24 @@ input[type=checkbox] {
 
 #card-panel {
     right: 0;
-    margin-left: 4px;
 }
 
 #card-panel.collapsed {
-    right: -324px;
+    right: calc(-4px - var(--panel-width));
+}
+
+#card-panel > div {
+    display: flex;
+    justify-content: start;
+    align-items: center;
 }
 
 #card-panel-card-container {
+    align-self: center;
     padding: 12px 4px;
     height: calc(35 * var(--card-scale));
-    transition-property: width, height;
+    justify-content: center;
+    transition-property: height;
 }
 
 #card-panel-card-container:has(.card.double:not(.landscape)) {
@@ -281,11 +288,21 @@ input[type=checkbox] {
 }
 
 #deck-groups > .group:first-child {
-    padding-inline-start: 332px;
+    padding-inline-start: 12px;
 }
 
 #deck-groups > .group:last-child {
-    padding-inline-end: 332px;
+    padding-inline-end: 12px;
+}
+
+@media (min-width: 424px) {
+    #deck-groups > .group:first-child {
+        padding-inline-start: calc(var(--panel-width) + 12px);
+    }
+
+    #deck-groups > .group:last-child {
+        padding-inline-end: calc(var(--panel-width) + 12px);
+    }
 }
 
 #deck:has(#deck-panel.collapsed) #deck-groups > .group:first-child {
