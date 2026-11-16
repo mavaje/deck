@@ -110,6 +110,12 @@ input[type=checkbox] {
         0 0 8px var(--theme);
 }
 
+.text-button[disabled] {
+    color: #ffffff7f;
+    text-shadow: none;
+    cursor: default;
+}
+
 #background {
     --card-image-url: none;
     width: 100%;

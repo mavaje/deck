@@ -50,6 +50,7 @@ function create_element<T extends string>(
     if ('id' in attributes) {
         element = document.getElementById(String(attributes.id));
     }
+
     element ??= namespace
         ? document.createElementNS(namespace, tag)
         : document.createElement(tag);
@@ -84,7 +85,9 @@ function create_element<T extends string>(
     }
 
     Object.entries(attributes).forEach(([key, value]) => {
-        if (is_nullish(value)) return;
+        if (is_nullish(value) || value === false) {
+            element.removeAttribute(value);
+        }
 
         key = key.replaceAll('_', '-');
 
@@ -99,11 +102,6 @@ function create_element<T extends string>(
                     .map(c => c.slice(1)));
                 return;
 
-            case 'value':
-                element.setAttribute(key, String(value));
-                (element as any).value = value;
-                return;
-
             case 'style':
                 element.removeAttribute('style');
                 if (typeof value === 'object' && 'style' in element) {
@@ -113,10 +111,16 @@ function create_element<T extends string>(
                             String(v),
                         );
                     });
-                    return;
+                } else {
+                    element.setAttribute(key, String(value));
                 }
+                return;
 
-            // fallthrough
+            case 'value':
+                element.setAttribute(key, String(value));
+                (element as any).value = value;
+                return;
+
             default:
                 if (key.startsWith('on') && typeof value === 'function') {
                     const event = key.slice(2);

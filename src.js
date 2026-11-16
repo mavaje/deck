@@ -73,7 +73,9 @@ function create_element(tag, parameters, namespace) {
     }
   }
   Object.entries(attributes).forEach(([key, value]) => {
-    if (is_nullish(value)) return;
+    if (is_nullish(value) || value === false) {
+      element.removeAttribute(value);
+    }
     key = key.replaceAll("_", "-");
     switch (key) {
       case "class":
@@ -81,10 +83,6 @@ function create_element(tag, parameters, namespace) {
         element.className = "";
         element.classList.add(...value.filter((c) => c && c[0] !== "-"));
         element.classList.remove(...value.filter((c) => c[0] === "-" && c[1]).map((c) => c.slice(1)));
-        return;
-      case "value":
-        element.setAttribute(key, String(value));
-        element.value = value;
         return;
       case "style":
         element.removeAttribute("style");
@@ -95,9 +93,14 @@ function create_element(tag, parameters, namespace) {
               String(v)
             );
           });
-          return;
+        } else {
+          element.setAttribute(key, String(value));
         }
-      // fallthrough
+        return;
+      case "value":
+        element.setAttribute(key, String(value));
+        element.value = value;
+        return;
       default:
         if (key.startsWith("on") && typeof value === "function") {
           const event = key.slice(2);
@@ -1777,7 +1780,7 @@ var init_card_panel = __esm({
         HTML.input({
           id: "collector-number-input",
           class: card.invalid_collector_number() ? "error" : "-error",
-          value: card.set?.toUpperCase() || "",
+          value: card.collector_number,
           ...this.input_event_listeners((value) => {
             edit_card_field(card, "collector_number", value || null);
             return value.toUpperCase();
@@ -1785,7 +1788,9 @@ var init_card_panel = __esm({
         });
         HTML.span({
           id: "print-search",
+          disabled: !card.name,
           onclick: () => {
+            if (!card.name) return;
             let query = `!"${card.name}" unique:prints`;
             if (!card.language.is_default()) query += ` lang:${card.language}`;
             if (card.card) query += ` oracleid:${card.card.oracle_id}`;

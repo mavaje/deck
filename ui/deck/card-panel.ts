@@ -82,7 +82,7 @@ export class CardPanel extends Panel {
         HTML.input({
             id: 'collector-number-input',
             class: card.invalid_collector_number() ? 'error' : '-error',
-            value: card.set?.toUpperCase() || '',
+            value: card.collector_number,
             ...this.input_event_listeners((value) => {
                 edit_card_field(card, 'collector_number', value || null);
                 return value.toUpperCase();
@@ -91,7 +91,9 @@ export class CardPanel extends Panel {
 
         HTML.span({
             id: 'print-search',
+            disabled: !card.name,
             onclick: () => {
+                if (!card.name) return;
                 let query = `!"${card.name}" unique:prints`;
                 if (!card.language.is_default()) query += ` lang:${card.language}`;
                 if (card.card) query += ` oracleid:${card.card.oracle_id}`;
