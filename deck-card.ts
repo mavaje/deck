@@ -91,6 +91,7 @@ export class DeckCard extends Face {
         input: string,
         deck?: Deck,
         default_board: Board = Board.DEFAULT,
+        exclude_boards: Board[] = [],
     ): DeckCard {
         const match = this.LINE_REGEXP.exec(input);
         if (!match) return null;
@@ -159,7 +160,7 @@ export class DeckCard extends Face {
                 }
 
                 const board = Board.match(tag);
-                if (board) {
+                if (board && !exclude_boards.includes(board)) {
                     card.board = board;
                     continue;
                 }
@@ -184,9 +185,7 @@ export class DeckCard extends Face {
     static from_card(card: Card, exact: boolean = false): DeckCard {
         const deck_card = new DeckCard({
             card,
-            finish: Object.entries(Finish.map())
-                .find(([finish]) => card.finishes.includes(finish as any))?.[1]
-                    ?? Finish.DEFAULT,
+            finish: Finish.first_for_card(card) ?? Finish.DEFAULT,
         });
 
         deck_card.hydrate(card);
@@ -298,6 +297,9 @@ export class DeckCard extends Face {
         this.set = card.set;
         this.collector_number = card.collector_number;
         this.language = Language.match(card.lang);
+        if (!card.finishes.includes(this.finish.sf_finish())) {
+            this.finish = Finish.first_for_card(card) ?? this.finish;
+        }
         this.hydrate(card);
     }
 
@@ -550,6 +552,8 @@ export class DeckCard extends Face {
 
     rulebreaks(): RuleBreak[] {
         const oracle = this.main_face().oracle();
+        if (!oracle) return [];
+
         const breaks: RuleBreak[] = [];
 
         const additional_color_id_match =

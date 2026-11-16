@@ -17,7 +17,7 @@ export class Deck extends CardList {
     format: Format = null;
     game: Game = null;
 
-    static parse(input: string) {
+    static parse(input: string, exclude_boards: Board[] = []) {
         const deck = new Deck();
         deck.raw = input;
 
@@ -38,7 +38,7 @@ export class Deck extends CardList {
                 const {tag, header} = header_match.groups;
 
                 const board = Board.match(header, !tag);
-                if (board) {
+                if (board && !exclude_boards.includes(board)) {
                     group_board = board;
                     return;
                 }
@@ -49,7 +49,7 @@ export class Deck extends CardList {
                 }
             }
 
-            const card = DeckCard.parse(line, deck, group_board);
+            const card = DeckCard.parse(line, deck, group_board, exclude_boards);
             if (card) {
                 if (group_tag) {
                     card.tags.add(group_tag);
@@ -63,19 +63,22 @@ export class Deck extends CardList {
     }
 
     static async load_current(input: string): Promise<Deck> {
-        Tag.clear();
-        Deck.current = Deck.parse(input);
-        DeckView.render();
-        await Deck.current.load(() => DeckView.render());
+        let invalid_boards: Board[] = [];
 
-        const invalid_boards = Board.all()
-            .filter(board => {
-                if (!board.card_types) return false;
-                const cards = Deck.current.board(board);
-                return cards.length > 0
-                    && cards.every(card => !board.can_include(card));
-            });
-        console.log(invalid_boards);
+        do {
+            Tag.clear();
+            Deck.current = Deck.parse(input, invalid_boards);
+            DeckView.render();
+            await Deck.current.load(() => DeckView.render());
+
+            invalid_boards = Board.all()
+                .filter(board => {
+                    if (!board.card_types) return false;
+                    const cards = Deck.current.board(board);
+                    return cards.length > 0
+                        && cards.every(card => !board.can_include(card));
+                });
+        } while (invalid_boards.length > 0);
 
         for (let i = 0; i < Deck.current.length; i++) {
             if (DeckView.set_background(Deck.current[i])) break;

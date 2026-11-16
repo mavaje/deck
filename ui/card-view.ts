@@ -15,6 +15,7 @@ export class CardView {
         const card_class: Set<string> = new Set(['card']);
         if (is_duplicate) card_class.add('duplicate');
         if (card.quantity < 1) card_class.add('ghost');
+        if (DeckView.errors.some(error => error.cards?.includes(card))) card_class.add('error');
 
         const faces: HTMLDivElement[] = [];
 

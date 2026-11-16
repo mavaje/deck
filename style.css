@@ -770,8 +770,13 @@ button:disabled {
     filter: contrast(50%);
 }
 
+.card.error .card-faces {
+    --theme: var(--error);
+}
+
 .card:hover .card-faces,
-.card.focus .card-faces {
+.card.focus .card-faces,
+.card.error .card-faces {
     box-shadow: 0 0 2px 1px white, 0 0 8px 2px var(--theme);
 }
 

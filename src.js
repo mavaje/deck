@@ -764,7 +764,7 @@ var init_rule_break = __esm({
         );
       }
       breaks_color_identity(card) {
-        if (card.card.cmc < this.min_mv) return false;
+        if (card.main_face().mana_value() < this.min_mv) return false;
         if (this.types && !card.is_any_type(this.types)) return false;
         return this.extra_colors > 0;
       }
@@ -809,8 +809,14 @@ var init_finish = __esm({
       static foil = new _Finish("Foil", ["f"]);
       static etched = new _Finish("Etched", ["et"]);
       static DEFAULT = this.nonfoil;
+      sf_finish() {
+        return this.name.toLowerCase().replaceAll(/[^a-z]/g, "");
+      }
       is_default() {
         return this === _Finish.DEFAULT;
+      }
+      static first_for_card(card) {
+        return _Finish.all().find((finish) => card.finishes.includes(finish.sf_finish()));
       }
     };
   }
@@ -1348,12 +1354,12 @@ function edit_card_field(card, field, value) {
   log_action(edit_card_field_action(card, field, value));
 }
 function set_card_printing_action(card, printing) {
-  const { name, set, collector_number, language, card: sf_card } = card;
+  const { name, set, collector_number, language, finish, card: sf_card } = card;
   card.hydrate_printing(printing);
   return {
     name: `Set card printing to ${printing.set.toUpperCase()}:${printing.collector_number}`,
     reverse: () => {
-      Object.assign(card, { name, set, collector_number, language });
+      Object.assign(card, { name, set, collector_number, language, finish });
       card.hydrate(sf_card);
       return {
         name: "Reverted card printing",
@@ -1443,6 +1449,7 @@ var init_card_view = __esm({
         const card_class = /* @__PURE__ */ new Set(["card"]);
         if (is_duplicate) card_class.add("duplicate");
         if (card.quantity < 1) card_class.add("ghost");
+        if (DeckView.errors.some((error) => error.cards?.includes(card))) card_class.add("error");
         const faces = [];
         switch (card.layout()) {
           case "transform":
@@ -1935,7 +1942,7 @@ var init_deck_card = __esm({
       static empty() {
         return new _DeckCard();
       }
-      static parse(input, deck, default_board = Board.DEFAULT) {
+      static parse(input, deck, default_board = Board.DEFAULT, exclude_boards = []) {
         const match = this.LINE_REGEXP.exec(input);
         if (!match) return null;
         const {
@@ -1986,7 +1993,7 @@ var init_deck_card = __esm({
               continue;
             }
             const board = Board.match(tag);
-            if (board) {
+            if (board && !exclude_boards.includes(board)) {
               card.board = board;
               continue;
             }
@@ -2007,7 +2014,7 @@ var init_deck_card = __esm({
       static from_card(card, exact = false) {
         const deck_card = new _DeckCard({
           card,
-          finish: Object.entries(Finish.map()).find(([finish]) => card.finishes.includes(finish))?.[1] ?? Finish.DEFAULT
+          finish: Finish.first_for_card(card) ?? Finish.DEFAULT
         });
         deck_card.hydrate(card);
         if (exact) {
@@ -2094,6 +2101,9 @@ var init_deck_card = __esm({
         this.set = card.set;
         this.collector_number = card.collector_number;
         this.language = Language.match(card.lang);
+        if (!card.finishes.includes(this.finish.sf_finish())) {
+          this.finish = Finish.first_for_card(card) ?? this.finish;
+        }
         this.hydrate(card);
       }
       hydrate(card = this.card) {
@@ -2275,6 +2285,7 @@ var init_deck_card = __esm({
       }
       rulebreaks() {
         const oracle = this.main_face().oracle();
+        if (!oracle) return [];
         const breaks = [];
         const additional_color_id_match = oracle.match(/If ~ is your commander, choose a color before the game begins. ~ is the chosen color\./) ?? oracle.match(/If ~ is your commander, the color identity of (?<type_1>[\w\s]+) cards in your deck can include one color of your choice not in your commander's color identity, and your deck can have any (?<type_2>[\w\s]+) cards\./);
         if (additional_color_id_match) {
@@ -2405,7 +2416,7 @@ var init_deck = __esm({
       raw;
       format = null;
       game = null;
-      static parse(input) {
+      static parse(input, exclude_boards = []) {
         const deck = new _Deck();
         deck.raw = input;
         let group_board = Board.DEFAULT;
@@ -2420,7 +2431,7 @@ var init_deck = __esm({
           if (header_match) {
             const { tag, header } = header_match.groups;
             const board = Board.match(header, !tag);
-            if (board) {
+            if (board && !exclude_boards.includes(board)) {
               group_board = board;
               return;
             }
@@ -2429,7 +2440,7 @@ var init_deck = __esm({
               return;
             }
           }
-          const card = DeckCard.parse(line, deck, group_board);
+          const card = DeckCard.parse(line, deck, group_board, exclude_boards);
           if (card) {
             if (group_tag) {
               card.tags.add(group_tag);
@@ -2441,16 +2452,18 @@ var init_deck = __esm({
         return deck;
       }
       static async load_current(input) {
-        Tag.clear();
-        _Deck.current = _Deck.parse(input);
-        DeckView.render();
-        await _Deck.current.load(() => DeckView.render());
-        const invalid_boards = Board.all().filter((board) => {
-          if (!board.card_types) return false;
-          const cards = _Deck.current.board(board);
-          return cards.length > 0 && cards.every((card) => !board.can_include(card));
-        });
-        console.log(invalid_boards);
+        let invalid_boards = [];
+        do {
+          Tag.clear();
+          _Deck.current = _Deck.parse(input, invalid_boards);
+          DeckView.render();
+          await _Deck.current.load(() => DeckView.render());
+          invalid_boards = Board.all().filter((board) => {
+            if (!board.card_types) return false;
+            const cards = _Deck.current.board(board);
+            return cards.length > 0 && cards.every((card) => !board.can_include(card));
+          });
+        } while (invalid_boards.length > 0);
         for (let i = 0; i < _Deck.current.length; i++) {
           if (DeckView.set_background(_Deck.current[i])) break;
         }
@@ -2667,6 +2680,346 @@ var init_card_classifier = __esm({
   }
 });
 
+// deck-validator.ts
+var DeckValidator;
+var init_deck_validator = __esm({
+  "deck-validator.ts"() {
+    init_catalog();
+    init_text();
+    init_board();
+    DeckValidator = class {
+      constructor(deck, format = deck.format) {
+        this.deck = deck;
+        this.format = format;
+      }
+      deck;
+      format;
+      rulebreaks = [];
+      is_valid(format = this.format) {
+        return this.validate(format).length === 0;
+      }
+      validate(format = this.format) {
+        const errors = [];
+        const commanders = this.deck.board(Board.commander);
+        const commander_count = commanders.count();
+        const conspiracies = this.deck.board(Board.conspiracy);
+        this.rulebreaks.push(...commanders.skip_empty().flatMap((card) => card.rulebreaks()));
+        this.rulebreaks.push(...conspiracies.skip_empty().flatMap((card) => card.rulebreaks()));
+        if (format) {
+          const banned_cards = this.deck.board(...Board.STANDARD).filter((card) => card.legality(format) === "banned");
+          if (banned_cards.count() > 0) {
+            errors.push({
+              type: "illegal-card",
+              message: `These cards are banned in this format`,
+              cards: banned_cards
+            });
+          }
+          const illegal_cards = this.deck.board(...Board.STANDARD).filter((card) => card.legality(format) === "not_legal");
+          if (illegal_cards.count() > 0) {
+            errors.push({
+              type: "illegal-card",
+              message: `These cards are not legal in this format`,
+              cards: illegal_cards
+            });
+          }
+          const card_count = this.deck.board(...Board.STARTING_DECK).count();
+          if (card_count < format.min_cards()) {
+            let min_cards = format.min_cards();
+            this.rulebreaks.forEach((rulebreak) => min_cards -= rulebreak.breaks_deck_min());
+            if (card_count < min_cards) {
+              errors.push({
+                type: "too-few-cards",
+                message: `You have ${card_count} cards, you need at least ${min_cards}`,
+                board: Board.deck
+              });
+            }
+          } else if (card_count > format.max_cards() && !this.rulebreaks.some((rulebreak) => rulebreak.breaks_deck_max())) {
+            errors.push({
+              type: "too-many-cards",
+              message: `You have ${card_count} cards, you can have up to ${format.max_cards()}`,
+              board: Board.deck
+            });
+          }
+          const sideboard = this.deck.board(Board.sideboard);
+          if (sideboard.count() > format.sideboard_limit) {
+            errors.push({
+              type: "too-many-sideboard-cards",
+              message: `You have ${sideboard.count()} cards in your sideboard, you can have up to ${format.sideboard_limit}`,
+              board: Board.sideboard
+            });
+          }
+          if (format.has_command_zone()) {
+            const [
+              commander_1,
+              commander_2
+            ] = commanders.flat();
+            const has_legal_pair = commander_count === 2 && (commander_1.allows_second_commander(commander_2, format) || commander_2.allows_second_commander(commander_1, format));
+            if (!has_legal_pair) {
+              if (commander_count < 1) {
+                errors.push({
+                  type: "too-few-commanders",
+                  message: `You must have a commander in this format`,
+                  board: Board.commander
+                });
+              } else if (commander_count > 1) {
+                errors.push({
+                  type: "too-many-commanders",
+                  message: `You cannot have more than one commander`,
+                  board: Board.commander
+                });
+              } else if (format.has_signature_spell) {
+                errors.push({
+                  type: "too-few-commanders",
+                  message: `You must have an oathbreaker and a signature spell`,
+                  board: Board.commander
+                });
+              }
+              const illegal_commanders = commanders.filter((card) => !card.can_command(format));
+              if (illegal_commanders.count() > 0) {
+                errors.push({
+                  type: "illegal-commander",
+                  message: `These cards cannot be commanders in this format`,
+                  cards: illegal_commanders
+                });
+              }
+            }
+          } else {
+            if (commander_count > 0) {
+              errors.push({
+                type: "too-many-commanders",
+                message: `You cannot have commanders in this format`,
+                board: Board.commander
+              });
+            }
+          }
+        }
+        errors.push(...this.deck.board(Board.companion).skip_empty().flatMap((card) => this.validate_deck_restrictions(card, format)));
+        errors.push(...conspiracies.skip_empty().flatMap((card) => this.validate_deck_restrictions(card, format)));
+        let color_identity = this.deck.color_identity();
+        this.deck.board(...Board.STANDARD).map((card) => {
+          if (color_identity) {
+            const additional_break = this.rulebreaks.find((rulebreak) => rulebreak.breaks_color_identity(card));
+            if (additional_break) {
+              const additional_colors = card.color_identity().difference(color_identity);
+              const additional_color = [...additional_colors][0];
+              if (additional_color) {
+                color_identity = color_identity.plus(additional_color);
+                additional_break.use();
+              }
+            }
+            if (!color_identity.contains(card.color_identity()) && !this.rulebreaks.some((rulebreak) => rulebreak.breaks_color_identity(card))) {
+              errors.push({
+                type: "color-identity-error",
+                message: `This card is not within your commander color identity`,
+                cards: [card]
+              });
+            }
+          }
+        });
+        this.deck.board(...Board.STANDARD).by_count((count, card) => {
+          const max = card.copy_limit(format);
+          if (count > max) {
+            errors.push({
+              type: "too-many-copies",
+              message: `You have ${count} of this card, you can only have ${max}`,
+              cards: [card]
+            });
+          }
+        });
+        Board.all().filter((board) => !Board.STANDARD.includes(board)).forEach((board) => {
+          const board_cards = this.deck.board(board);
+          if (board_cards.count() === 0) return;
+          if (board_cards.count() < board.min_cards()) {
+            errors.push({
+              type: "too-few-cards",
+              message: `You must have at least ${board.min_cards()} cards in a ${board.name.toLowerCase()}`,
+              board
+            });
+          } else if (board_cards.count() > board.max_cards()) {
+            errors.push({
+              type: "too-many-cards",
+              message: `You can only have ${board.max_cards()} cards in a ${board.name.toLowerCase()}`,
+              board
+            });
+          }
+          if (board.copy_limit) {
+            const too_many = board_cards.filter_by_count((count) => count > board.copy_limit);
+            if (too_many.count() > 0) {
+              errors.push({
+                type: "too-many-copies",
+                message: `You have only ${board.copy_limit} copy of each card in a ${board.name}`,
+                cards: too_many
+              });
+            }
+          }
+          if (board.card_types) {
+            const wrong_type = board_cards.filter((card) => !board.can_include(card));
+            if (wrong_type.count() > 0) {
+              errors.push({
+                type: "illegal-card",
+                message: `A ${board.name} can contain only ${board.card_types.join(" or ")} cards`,
+                cards: wrong_type
+              });
+            }
+          }
+        });
+        const phenomena = this.deck.board(Board.planar).filter((card) => card.is_type("Phenomenon"));
+        if (phenomena.count() > 2) {
+          errors.push({
+            type: "planar-deck-error",
+            message: `You can have up to 2 phenomenon cards in a planar deck`,
+            cards: phenomena
+          });
+        }
+        return errors;
+      }
+      validate_deck_restrictions(card, format) {
+        let deck = this.deck.board(...Board.STARTING_DECK);
+        if (card.has_keyword("Companion")) {
+          const companion_match = card.oracle().match(/Companion — (?<ability>[^(]+\.)/);
+          if (!companion_match) return [];
+          const { ability } = companion_match.groups;
+          const mana_value_match = ability.match(/Your starting deck contains only (?<description>cards with ((?<parity>even|odd) )?mana values?( (?<mv>\d+) or (?<dir>less|greater))?(?<lands> and land cards)?)\./);
+          if (mana_value_match) {
+            const { parity, mv, dir, lands, description } = mana_value_match.groups;
+            if (parity) {
+              deck = deck.filter((card2) => card2.main_face().mana_value() % 2 !== (parity === "even" ? 0 : 1));
+            }
+            if (mv) {
+              if (dir === "less") {
+                deck = deck.filter((card2) => card2.main_face().mana_value() > parseInt(mv));
+              } else {
+                deck = deck.filter((card2) => card2.main_face().mana_value() < parseInt(mv));
+              }
+            }
+            if (lands) {
+              deck = deck.filter((card2) => !card2.is_type("Land"));
+            }
+            return deck.count() > 0 ? [{
+              type: "deck-restriction-error",
+              message: `Only ${description} are allowed in a deck with this companion`,
+              cards: deck
+            }] : [];
+          }
+          const unique_mana_symbol_match = ability.match(/No card in your starting deck has more than one of the same mana symbol in its mana cost\./);
+          if (unique_mana_symbol_match) {
+            deck = deck.filter((card2) => card2.card.mana_cost.match(/(\{[^}]+}).*\1/));
+            return deck.count() > 0 ? [{
+              type: "deck-restriction-error",
+              message: `Each card must has unique symbols in its mana cost with this companion`,
+              cards: deck
+            }] : [];
+          }
+          if (format) {
+            const deck_size_match = ability.match(/Your starting deck contains at least (?<count>\w+|\d+) cards? more than the minimum deck size\./);
+            if (deck_size_match) {
+              const { count: count_string } = deck_size_match.groups;
+              let count = words_to_number(count_string) ?? Number.parseInt(count_string);
+              this.rulebreaks.forEach((rulebreak) => count -= rulebreak.breaks_deck_min());
+              return deck.count() < format.min_cards() + count ? [{
+                type: "deck-restriction-error",
+                message: `You must have ${count} more cards in a deck with this companion`
+              }] : [];
+            }
+          }
+          const each_card_match = ability.match(/Each ((?<type>\w+) )?card in your starting deck (?<quality>[^.]+)\./);
+          if (each_card_match) {
+            const { type, quality } = each_card_match.groups;
+            const each_card = `Each ${type ? `${type} ` : ""}card`;
+            if (type === "permanent") {
+              deck = deck.filter((card2) => card2.is_permanent());
+            } else {
+              const non_match = type.match(/non(?<type>\w+)/);
+              if (non_match) {
+                deck = deck.filter((card2) => !card2.is_type(non_match.groups.type));
+              } else {
+                deck = deck.filter((card2) => card2.is_type(type));
+              }
+            }
+            const types_match = quality.match(/is a (?<types>\w+(, (or )?\w+)*) card/);
+            if (types_match) {
+              const joined_types = types_match.groups.types;
+              const types = joined_types.split(/, or |, /g);
+              deck = deck.filter((card2) => !card2.is_any_type(types));
+              return deck.count() > 0 ? [{
+                type: "deck-restriction-error",
+                message: `${each_card} must be a ${joined_types} card with this companion`,
+                cards: deck
+              }] : [];
+            }
+            const mv_match = quality.match(/has mana value (?<mv>\d+) or (?<dir>less|greater)/);
+            if (mv_match) {
+              const { mv, dir } = mv_match.groups;
+              if (mv) {
+                if (dir === "less") {
+                  deck = deck.filter((card2) => card2.main_face().mana_value() > parseInt(mv));
+                } else {
+                  deck = deck.filter((card2) => card2.main_face().mana_value() < parseInt(mv));
+                }
+              }
+              return deck.count() > 0 ? [{
+                type: "deck-restriction-error",
+                message: `${each_card} must have mana value ${mv} or ${dir}`,
+                cards: deck
+              }] : [];
+            }
+            const unique_match = quality.match(/has a different name/);
+            if (unique_match) {
+              deck = deck.filter_by_count((count) => count > 1);
+              return deck.count() > 0 ? [{
+                type: "deck-restriction-error",
+                message: `${each_card} must have a different name`,
+                cards: deck
+              }] : [];
+            }
+            const shared_type_match = quality.match(/shares a card type/);
+            if (shared_type_match) {
+              let types = new Set(Catalog.card_types.all());
+              deck = deck.filter((card2) => {
+                const card_types = new Set(card2.card_types());
+                const intersection = types.intersection(card_types);
+                if (intersection.size > 0) {
+                  types = intersection;
+                  return false;
+                } else {
+                  return true;
+                }
+              });
+              return deck.count() > 0 ? [{
+                type: "deck-restriction-error",
+                message: `${each_card} must share a card type`,
+                cards: deck
+              }] : [];
+            }
+            const activated_ability_match = quality.match(/has an activated ability/);
+            if (activated_ability_match) {
+              deck = deck.filter((card2) => !card2.has_activate_ability());
+              return deck.count() > 0 ? [{
+                type: "deck-restriction-error",
+                message: `${each_card} must have an activated ability`,
+                cards: deck
+              }] : [];
+            }
+          }
+        } else if (card.is_type("Conspiracy")) {
+          const types_match = card.oracle().match(/Your starting deck can't have (?<types>\w+( \w+)*) cards(.$| and)/);
+          if (types_match) {
+            const joined_types = types_match.groups.types;
+            const types = joined_types.split(/ /g);
+            deck = deck.filter((card2) => card2.is_type(...types));
+            return deck.count() > 0 ? [{
+              type: "deck-restriction-error",
+              message: `You can't have any ${joined_types} in your deck`,
+              cards: deck
+            }] : [];
+          }
+        }
+        return [];
+      }
+    };
+  }
+});
+
 // ui/deck-view.ts
 var DeckView;
 var init_deck_view = __esm({
@@ -2679,14 +3032,17 @@ var init_deck_view = __esm({
     init_face_selector();
     init_group();
     init_card_panel();
+    init_deck_validator();
     DeckView = class _DeckView {
       static card_views = /* @__PURE__ */ new WeakMap();
+      static errors = [];
       static BY_BOARD = true;
       static GROUPING = CardClassifier;
       static ORDERING = CardClassifier;
       static FACE_SELECTOR = FaceSelector.front;
       static DECK_ELEMENT = HTML.div({ id: "deck" });
       static render(deck = Deck.current) {
+        this.errors = new DeckValidator(deck).validate();
         _DeckView.card_views = /* @__PURE__ */ new WeakMap();
         const show_boards = this.BY_BOARD && deck.some((card) => !card.board.is_default());
         return HTML.div(
@@ -2694,17 +3050,16 @@ var init_deck_view = __esm({
             id: "deck-cards",
             onclick: () => CardPanel.close()
           },
-          HTML.div(
-            {
-              id: "deck-groups",
-              class: "groups"
-            },
-            show_boards ? Board.all().map((board) => this.render_board(deck.board(board), board)) : [this.render_board(deck.copy())]
-          )
+          show_boards ? this.render_boards(deck, "deck-groups") : this.render_groups(deck, "deck-groups")
         );
       }
+      static render_boards(deck, id) {
+        return HTML.div({
+          id,
+          class: "groups"
+        }, Board.all().map((board) => this.render_board(deck.board(board), board)));
+      }
       static render_board(cards, board) {
-        const grouping = new this.GROUPING(cards);
         if (cards.length === 0) return null;
         const id = `board-${board ?? "all"}`;
         return HTML.div(
@@ -2719,17 +3074,21 @@ var init_deck_view = __esm({
             HTML.span({ style: { font_weight: "bold" } }, board.name),
             ` (${cards.count()})`
           )),
-          HTML.div(
-            {
-              id: `${id}-groups`,
-              class: "groups"
-            },
-            ...grouping.groups().map((group, j) => this.render_group(group, `${id}-group-${j}`, grouping)),
-            this.render_group(new Group({
-              name: this.GROUPING.ungrouped_name,
-              cards: cards.filter((card) => !_DeckView.card_views.has(card))
-            }), `${id}-ungrouped`)
-          )
+          this.render_groups(cards, `${id}-groups`)
+        );
+      }
+      static render_groups(cards, id) {
+        const grouping = new this.GROUPING(cards.copy());
+        return HTML.div(
+          {
+            id,
+            class: "groups"
+          },
+          ...grouping.groups().map((group, j) => this.render_group(group, `${id}-group-${j}`, grouping)),
+          this.render_group(new Group({
+            name: this.GROUPING.ungrouped_name,
+            cards: cards.filter((card) => !_DeckView.card_views.has(card))
+          }), `${id}-ungrouped`)
         );
       }
       static render_group(group, id = 0, grouping) {

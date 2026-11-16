@@ -8,10 +8,12 @@ import {CardList} from "../card-list";
 import {FaceSelector} from "../card-classifier/face-selector";
 import {Group} from "../card-classifier/group";
 import {CardPanel} from "./deck/card-panel";
+import {DeckError, DeckValidator} from "../deck-validator";
 
 export class DeckView {
 
     static card_views = new WeakMap<DeckCard, HTMLDivElement[]>();
+    static errors: DeckError[] = [];
 
     static BY_BOARD: boolean = true;
     static GROUPING: typeof CardClassifier = CardClassifier;
@@ -21,6 +23,8 @@ export class DeckView {
     static DECK_ELEMENT = HTML.div({id: 'deck'});
 
     static render(deck: Deck = Deck.current): HTMLDivElement {
+        this.errors = new DeckValidator(deck).validate();
+
         DeckView.card_views = new WeakMap();
 
         const show_boards = this.BY_BOARD
@@ -31,24 +35,23 @@ export class DeckView {
                 id: 'deck-cards',
                 onclick: () => CardPanel.close(),
             },
-            HTML.div(
-                {
-                    id: 'deck-groups',
-                    class: 'groups',
-                },
-                show_boards
-                    ? Board.all()
-                        .map(board => this.render_board(deck.board(board), board))
-                    : [this.render_board(deck.copy())],
-                ),
+            show_boards
+                ? this.render_boards(deck, 'deck-groups')
+                : this.render_groups(deck, 'deck-groups'),
         );
+    }
+
+    private static render_boards(deck: Deck, id: string): HTMLDivElement {
+        return HTML.div({
+            id,
+            class: 'groups',
+        }, Board.all().map(board => this.render_board(deck.board(board), board)));
     }
 
     private static render_board(
         cards: CardList,
         board?: Board,
     ): HTMLDivElement {
-        const grouping = new (this.GROUPING as any)(cards) as CardClassifier;
         if (cards.length === 0) return null;
         const id = `board-${board ?? 'all'}`;
         return HTML.div(
@@ -63,18 +66,26 @@ export class DeckView {
                 HTML.span({style: {font_weight: 'bold'}}, board.name),
                 ` (${cards.count()})`,
             )),
-            HTML.div(
-                {
-                    id: `${id}-groups`,
-                    class: 'groups',
-                },
-                ...grouping.groups()
-                    .map((group, j) => this.render_group(group, `${id}-group-${j}`, grouping)),
-                this.render_group(new Group({
-                    name: this.GROUPING.ungrouped_name,
-                    cards: cards.filter(card => !DeckView.card_views.has(card)),
-                }), `${id}-ungrouped`),
-            ),
+            this.render_groups(cards, `${id}-groups`),
+        );
+    }
+
+    private static render_groups(
+        cards: CardList,
+        id: string,
+    ) {
+        const grouping = new (this.GROUPING as any)(cards.copy()) as CardClassifier;
+        return HTML.div(
+            {
+                id,
+                class: 'groups',
+            },
+            ...grouping.groups()
+                .map((group, j) => this.render_group(group, `${id}-group-${j}`, grouping)),
+            this.render_group(new Group({
+                name: this.GROUPING.ungrouped_name,
+                cards: cards.filter(card => !DeckView.card_views.has(card)),
+            }), `${id}-ungrouped`),
         );
     }
 
