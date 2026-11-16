@@ -246,6 +246,16 @@ input[type=checkbox] {
     right: -324px;
 }
 
+#card-panel-card-container {
+    padding: 12px 4px;
+    height: calc(35 * var(--card-scale));
+    transition-property: width, height;
+}
+
+#card-panel-card-container:has(.card.double:not(.landscape)) {
+    height: calc(49 * var(--card-scale));
+}
+
 #deck-cards {
     overflow: auto;
     width: 100%;
@@ -478,7 +488,7 @@ input[type=checkbox] {
     user-select: none;
 }
 
-.show-quantity .card .count {
+#deck-cards.show-quantity .card .count {
     opacity: 100%;
 }
 
@@ -667,7 +677,7 @@ input[type=checkbox] {
     background-image: url(public/filter/foil.svg);
 }
 
-.show-quantity .card.ghost:not(:hover) .count {
+#deck-cards.show-quantity .card.ghost:not(:hover) .count {
     opacity: 50%;
 }
 

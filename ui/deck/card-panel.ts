@@ -11,6 +11,7 @@ import {CardView} from "../card-view";
 import {DeckPanel} from "./deck-panel";
 import {Panel} from "../panel";
 import {Search} from "../search/search";
+import {DeckView} from "../deck-view";
 
 export class CardPanel extends Panel {
     static id: string = 'card-panel';
@@ -157,14 +158,17 @@ export class CardPanel extends Panel {
     };
 
     static open(card: DeckCard): void {
-        CardView.deselect(this.SELECTED);
-        CardView.select(card);
+        DeckView.deselect(this.SELECTED);
+        DeckView.select(card);
         this.SELECTED = card;
         if (window.innerWidth < 960) {
             DeckPanel.close();
         }
         super.open();
         HTML.div({id: this.id}, [
+            HTML.div({
+                id: 'card-panel-card-container',
+            }, CardView.render(card, undefined, `card-panel-card`)),
             HTML.div({id: 'card-panel-row-0'}, [
                 this.quantity_input(card),
                 this.name_input(card),
@@ -198,7 +202,7 @@ export class CardPanel extends Panel {
     }
 
     static close(): void {
-        CardView.deselect(this.SELECTED);
+        DeckView.deselect(this.SELECTED);
         this.SELECTED = null;
         super.close();
     }

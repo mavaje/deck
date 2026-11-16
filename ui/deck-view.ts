@@ -11,6 +11,8 @@ import {CardPanel} from "./deck/card-panel";
 
 export class DeckView {
 
+    static card_views = new WeakMap<DeckCard, HTMLDivElement[]>();
+
     static BY_BOARD: boolean = true;
     static GROUPING: typeof CardClassifier = CardClassifier;
     static ORDERING: typeof CardClassifier = CardClassifier;
@@ -19,7 +21,7 @@ export class DeckView {
     static DECK_ELEMENT = HTML.div({id: 'deck'});
 
     static render(deck: Deck = Deck.current): HTMLDivElement {
-        CardView.renderings = new WeakMap();
+        DeckView.card_views = new WeakMap();
 
         const show_boards = this.BY_BOARD
             && deck.some(card => !card.board.is_default());
@@ -70,7 +72,7 @@ export class DeckView {
                     .map((group, j) => this.render_group(group, `${id}-group-${j}`, grouping)),
                 this.render_group(new Group({
                     name: this.GROUPING.ungrouped_name,
-                    cards: cards.filter(card => !CardView.renderings.has(card)),
+                    cards: cards.filter(card => !DeckView.card_views.has(card)),
                 }), `${id}-ungrouped`),
             ),
         );
@@ -140,6 +142,10 @@ export class DeckView {
                             ));
                         }
 
+                        const card_views = DeckView.card_views.get(card) ?? [];
+                        card_views.push(...elements);
+                        DeckView.card_views.set(card, card_views);
+
                         return elements;
                     }),
             ),
@@ -157,5 +163,25 @@ export class DeckView {
             return true;
         }
         return false;
+    }
+
+    static focus(card: DeckCard) {
+        DeckView.card_views.get(card)
+            ?.forEach(element => element.classList.add('focus'));
+    }
+
+    static unfocus(card: DeckCard) {
+        DeckView.card_views.get(card)
+            ?.forEach(element => element.classList.remove('focus'));
+    }
+
+    static select(card: DeckCard) {
+        DeckView.card_views.get(card)
+            ?.forEach(element => element.classList.add('select'));
+    }
+
+    static deselect(card: DeckCard) {
+        DeckView.card_views.get(card)
+            ?.forEach(element => element.classList.remove('select'));
     }
 }

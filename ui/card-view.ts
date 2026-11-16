@@ -1,10 +1,9 @@
 import {HTML} from "./xml";
 import {DeckCard} from "../deck-card";
 import {data_url, skeleton, skeleton_back} from "./skeleton";
+import {DeckView} from "./deck-view";
 
 export class CardView {
-
-    static renderings = new WeakMap<DeckCard, HTMLDivElement[]>();
 
     static render(
         card: DeckCard,
@@ -145,12 +144,11 @@ export class CardView {
         });
 
         let tilt: HTMLDivElement = null;
-        const elements = CardView.renderings.get(card) ?? [];
-        const card_view = HTML.div(
+        return HTML.div(
             {
                 id,
                 class: [...card_class],
-                onpointermove: (_, {x, y}) => {
+                onpointermove: (card_view, {x, y}) => {
                     const {top, left, width, height} = card_view.getBoundingClientRect();
                     const effective_height = height
                         + Number.parseFloat(getComputedStyle(card_view).marginBottom);
@@ -161,9 +159,9 @@ export class CardView {
                     tilt.style.setProperty('--tilt-angle', `${angle}rad`);
                     tilt.style.setProperty('--tilt-azimuth', `${azimuth}deg`);
                 },
-                onpointerenter: () => this.focus(card),
+                onpointerenter: () => DeckView.focus(card),
                 onpointerleave: () => {
-                    this.unfocus(card);
+                    DeckView.unfocus(card);
                     tilt.style.setProperty('--tilt-angle', `0`);
                     tilt.style.setProperty('--tilt-azimuth', `0`);
                 },
@@ -192,28 +190,5 @@ export class CardView {
                 ),
             ),
         );
-        elements.push(card_view);
-        CardView.renderings.set(card, elements);
-        return card_view;
-    }
-
-    static focus(card: DeckCard) {
-        CardView.renderings.get(card)
-            ?.forEach(element => element.classList.add('focus'));
-    }
-
-    static unfocus(card: DeckCard) {
-        CardView.renderings.get(card)
-            ?.forEach(element => element.classList.remove('focus'));
-    }
-
-    static select(card: DeckCard) {
-        CardView.renderings.get(card)
-            ?.forEach(element => element.classList.add('select'));
-    }
-
-    static deselect(card: DeckCard) {
-        CardView.renderings.get(card)
-            ?.forEach(element => element.classList.remove('select'));
     }
 }

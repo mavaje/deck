@@ -1426,8 +1426,8 @@ var init_card_view = __esm({
   "ui/card-view.ts"() {
     init_xml();
     init_skeleton();
-    CardView = class _CardView {
-      static renderings = /* @__PURE__ */ new WeakMap();
+    init_deck_view();
+    CardView = class {
       static render(card, face_id = card.display_face_id, id = null, is_duplicate = false, on_click = null) {
         const card_class = /* @__PURE__ */ new Set(["card"]);
         if (is_duplicate) card_class.add("duplicate");
@@ -1538,12 +1538,11 @@ var init_card_view = __esm({
           }));
         });
         let tilt = null;
-        const elements = _CardView.renderings.get(card) ?? [];
-        const card_view = HTML.div(
+        return HTML.div(
           {
             id,
             class: [...card_class],
-            onpointermove: (_, { x, y }) => {
+            onpointermove: (card_view, { x, y }) => {
               const { top, left, width, height } = card_view.getBoundingClientRect();
               const effective_height = height + Number.parseFloat(getComputedStyle(card_view).marginBottom);
               const dx = x - (left + 24) - width / 2;
@@ -1553,9 +1552,9 @@ var init_card_view = __esm({
               tilt.style.setProperty("--tilt-angle", `${angle}rad`);
               tilt.style.setProperty("--tilt-azimuth", `${azimuth}deg`);
             },
-            onpointerenter: () => this.focus(card),
+            onpointerenter: () => DeckView.focus(card),
             onpointerleave: () => {
-              this.unfocus(card);
+              DeckView.unfocus(card);
               tilt.style.setProperty("--tilt-angle", `0`);
               tilt.style.setProperty("--tilt-azimuth", `0`);
             },
@@ -1584,21 +1583,6 @@ var init_card_view = __esm({
             )
           )
         );
-        elements.push(card_view);
-        _CardView.renderings.set(card, elements);
-        return card_view;
-      }
-      static focus(card) {
-        _CardView.renderings.get(card)?.forEach((element) => element.classList.add("focus"));
-      }
-      static unfocus(card) {
-        _CardView.renderings.get(card)?.forEach((element) => element.classList.remove("focus"));
-      }
-      static select(card) {
-        _CardView.renderings.get(card)?.forEach((element) => element.classList.add("select"));
-      }
-      static deselect(card) {
-        _CardView.renderings.get(card)?.forEach((element) => element.classList.remove("select"));
       }
     };
   }
@@ -1734,6 +1718,7 @@ var init_card_panel = __esm({
     init_deck_panel();
     init_panel();
     init_search();
+    init_deck_view();
     CardPanel = class extends Panel {
       static id = "card-panel";
       static SELECTED = null;
@@ -1860,14 +1845,17 @@ var init_card_panel = __esm({
         ]);
       }
       static open(card) {
-        CardView.deselect(this.SELECTED);
-        CardView.select(card);
+        DeckView.deselect(this.SELECTED);
+        DeckView.select(card);
         this.SELECTED = card;
         if (window.innerWidth < 960) {
           DeckPanel.close();
         }
         super.open();
         HTML.div({ id: this.id }, [
+          HTML.div({
+            id: "card-panel-card-container"
+          }, CardView.render(card, void 0, `card-panel-card`)),
           HTML.div({ id: "card-panel-row-0" }, [
             this.quantity_input(card),
             this.name_input(card)
@@ -1900,7 +1888,7 @@ var init_card_panel = __esm({
         ]);
       }
       static close() {
-        CardView.deselect(this.SELECTED);
+        DeckView.deselect(this.SELECTED);
         this.SELECTED = null;
         super.close();
       }
@@ -2726,14 +2714,15 @@ var init_deck_view = __esm({
     init_face_selector();
     init_group();
     init_card_panel();
-    DeckView = class {
+    DeckView = class _DeckView {
+      static card_views = /* @__PURE__ */ new WeakMap();
       static BY_BOARD = true;
       static GROUPING = CardClassifier;
       static ORDERING = CardClassifier;
       static FACE_SELECTOR = FaceSelector.front;
       static DECK_ELEMENT = HTML.div({ id: "deck" });
       static render(deck = Deck.current) {
-        CardView.renderings = /* @__PURE__ */ new WeakMap();
+        _DeckView.card_views = /* @__PURE__ */ new WeakMap();
         const show_boards = this.BY_BOARD && deck.some((card) => !card.board.is_default());
         return HTML.div(
           {
@@ -2773,7 +2762,7 @@ var init_deck_view = __esm({
             ...grouping.groups().map((group, j) => this.render_group(group, `${id}-group-${j}`, grouping)),
             this.render_group(new Group({
               name: this.GROUPING.ungrouped_name,
-              cards: cards.filter((card) => !CardView.renderings.has(card))
+              cards: cards.filter((card) => !_DeckView.card_views.has(card))
             }), `${id}-ungrouped`)
           )
         );
@@ -2832,6 +2821,9 @@ var init_deck_view = __esm({
                   () => CardPanel.open(card)
                 ));
               }
+              const card_views = _DeckView.card_views.get(card) ?? [];
+              card_views.push(...elements);
+              _DeckView.card_views.set(card, card_views);
               return elements;
             })
           )
@@ -2849,6 +2841,18 @@ var init_deck_view = __esm({
           return true;
         }
         return false;
+      }
+      static focus(card) {
+        _DeckView.card_views.get(card)?.forEach((element) => element.classList.add("focus"));
+      }
+      static unfocus(card) {
+        _DeckView.card_views.get(card)?.forEach((element) => element.classList.remove("focus"));
+      }
+      static select(card) {
+        _DeckView.card_views.get(card)?.forEach((element) => element.classList.add("select"));
+      }
+      static deselect(card) {
+        _DeckView.card_views.get(card)?.forEach((element) => element.classList.remove("select"));
       }
     };
   }
