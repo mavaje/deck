@@ -48,18 +48,20 @@
         <div id="card-panel" class="collapsed">
             <div id="card-panel-card-container"></div>
             <div>
-                <input
-                    id="quantity-input"
-                    type="number"
-                    min="0"
-                    max="99"
-                    style="width: 5ch"
-                >
+                <div class="input-group">
+                    <button id="quantity-decrement">-</button>
+                    <input
+                            id="quantity-input"
+                            type="number"
+                            min="0"
+                            max="99"
+                    >
+                    <button id="quantity-increment">+</button>
+                </div>
                 <input
                     id="name-input"
                     type="text"
                     placeholder="Card Name"
-                    style="flex: 1"
                 >
             </div>
             <div>
@@ -67,20 +69,18 @@
                     id="set-input"
                     type="text"
                     placeholder="Set"
-                    style="width: 5ch"
                 >
                 <input
                     id="collector-number-input"
                     type="text"
                     placeholder="Num."
-                    style="width: 5ch"
                 >
-                <span id="print-search" class="text-button">
-                    Find prints
-                </span>
+                <select id="language-input"></select>
             </div>
             <div>
-                <select id="language-input"></select>
+                <button id="print-search">
+                    Find prints
+                </button>
             </div>
             <div>
                 <select id="board-input"></select>

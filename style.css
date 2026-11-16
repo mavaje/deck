@@ -44,27 +44,44 @@ input[type=file] {
     display: none;
 }
 
-button,
 input,
 select {
     margin: 4px;
     padding: 4px 8px;
-    background-color: black;
+    background-color: #0000007f;
     color: white;
     border-radius: 4px;
-    font-weight: bold;
     border: 2px solid #ffffff7f;
     outline: none;
+    caret-color: var(--theme);
+    transition-property: background-color, border-color, box-shadow, text-shadow;
+}
+
+select {
+    padding: 4px 4px;
     cursor: pointer;
-    transition-property: background-color, border-color, box-shadow;
 }
 
 input::placeholder {
     color: #ffffff7f;
 }
 
-button:hover,
-button:focus-visible,
+input[type=checkbox] {
+    accent-color: var(--theme);
+    margin: 4px;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type=number] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
 input:hover,
 input:focus-visible,
 select:hover,
@@ -72,10 +89,9 @@ select:focus-visible {
     border-color: white;
     background-color: rgba(var(--theme-rgb) / 25%);
     box-shadow: 0 0 4px 1px var(--theme), inset 0 0 4px 1px var(--theme);
-    caret-color: var(--theme);
+    text-shadow: 0 0 2px var(--theme);
 }
 
-button.error,
 input.error,
 select.error {
     border-color: white;
@@ -84,36 +100,61 @@ select.error {
     caret-color: var(--error);
 }
 
-select {
-    padding: 4px 4px;
-}
-
-input[type=checkbox] {
-    accent-color: var(--theme);
+button {
     margin: 4px;
-}
-
-.text-button {
-    padding: 4px;
-    color: #ffffffbf;
-    cursor: pointer;
-    transition-property: color, text-shadow;
-    user-select: none;
-}
-
-.text-button:hover {
+    padding: 4px 8px;
     color: white;
-    text-shadow:
-        0 0 1px var(--theme),
-        0 0 2px var(--theme),
-        0 0 4px var(--theme),
-        0 0 8px var(--theme);
+    background-color: transparent;
+    border: 2px solid #ffffff5f;
+    border-radius: 4px;
+    cursor: pointer;
+    transition-property: color, border-color, background-color, box-shadow, text-shadow;
+    user-select: none;
+    font-weight: bold;
+    white-space: nowrap;
 }
 
-.text-button[disabled] {
-    color: #ffffff7f;
+button:hover:not(:disabled) {
+    border-color: white;
+    background-color: rgba(var(--theme-rgb) / 25%);
+    box-shadow: 0 0 4px 1px var(--theme), inset 0 0 4px 1px var(--theme);
+    text-shadow: 0 0 2px var(--theme);
+}
+
+button:disabled {
+    color: #ffffff3f;
+    border-color: #ffffff1f;
     text-shadow: none;
     cursor: default;
+}
+
+.input-group {
+    margin: 4px;
+    display: flex;
+    background-color: #0000007f;
+    border: 2px solid #ffffff7f;
+    border-radius: 4px;
+}
+
+.input-group > * {
+    margin: -2px -1px;
+    border-radius: 0;
+}
+
+.input-group > :first-child {
+    border-top-left-radius: 4px;
+    border-bottom-left-radius: 4px;
+}
+
+.input-group > :last-child {
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+}
+
+.input-group > :disabled,
+.input-group > :not(:hover):not(:focus-visible) {
+    background-color: transparent;
+    border-color: transparent;
 }
 
 #background {
@@ -267,6 +308,24 @@ input[type=checkbox] {
 
 #card-panel-card-container:has(.card.double:not(.landscape)) {
     height: calc(49 * var(--card-scale));
+}
+
+#quantity-input {
+    width: 2ch;
+    text-align: center;
+}
+
+#name-input {
+    flex: 1;
+}
+
+#set-input,
+#collector-number-input {
+    width: 5ch;
+}
+
+#print-search {
+    flex: 0;
 }
 
 #deck-cards {
@@ -674,30 +733,29 @@ input[type=checkbox] {
 
 .card-face.foil:after,
 .card-face.etched:after {
-    --foil-scale: calc(35 * var(--card-scale));
-
     content: '';
     position: absolute;
     width: 100%;
     height: 100%;
-    mix-blend-mode: overlay;
-    background-size: var(--foil-scale) var(--foil-scale);
+    background-size: 256px 256px;
     border-radius: var(--card-radius);
-    opacity: 25%;
-    animation: foil-animation 4s linear infinite;
-
+    animation: foil-animation 8s linear infinite;
 }
 
 @keyframes foil-animation {
-    100% { background-position: var(--foil-scale) 0 }
+    100% { background-position: 256px 256px }
 }
 
 .card-face.foil:after {
     background-image: url(public/filter/foil.svg);
+    opacity: 20%;
+    mix-blend-mode: overlay;
 }
 
 .card-face.etched:after {
     background-image: url(public/filter/foil.svg);
+    opacity: 15%;
+    mix-blend-mode: luminosity;
 }
 
 #deck-cards.show-quantity .card.ghost:not(:hover) .count {

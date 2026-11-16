@@ -59,6 +59,18 @@ export class CardPanel extends Panel {
             }),
         });
 
+        HTML.button({
+            id: 'quantity-decrement',
+            disabled: card.quantity <= 0,
+            onclick: () => edit_card_field(card, 'quantity', card.quantity - 1),
+        });
+
+        HTML.button({
+            id: 'quantity-increment',
+            disabled: card.quantity >= 99,
+            onclick: () => edit_card_field(card, 'quantity', card.quantity + 1),
+        });
+
         HTML.input({
             id: 'name-input',
             value: card.name || '',
@@ -82,12 +94,22 @@ export class CardPanel extends Panel {
         HTML.input({
             id: 'collector-number-input',
             class: card.invalid_collector_number() ? 'error' : '-error',
-            value: card.collector_number,
+            value: card.collector_number ?? '',
             ...this.input_event_listeners((value) => {
                 edit_card_field(card, 'collector_number', value || null);
                 return value.toUpperCase();
             }),
         });
+
+        HTML.select({
+            id: 'language-input',
+            class: card.invalid_language() ? 'error' : '-error',
+            value: card.language.code(),
+            onchange: ({value}) => {
+                edit_card_field(card, 'language', Language.match(value));
+            },
+        }, Language.all().map(language =>
+            HTML.option({value: language.code()}, language.name)));
 
         HTML.span({
             id: 'print-search',
@@ -100,16 +122,6 @@ export class CardPanel extends Panel {
                 Search.run(query);
             },
         });
-
-        HTML.select({
-            id: 'language-input',
-            class: card.invalid_language() ? 'error' : '-error',
-            value: card.language.code(),
-            onchange: ({value}) => {
-                edit_card_field(card, 'language', Language.match(value));
-            },
-        }, Language.all().map(language =>
-            HTML.option({value: language.code()}, language.name)));
 
         HTML.select({
             id: 'board-input',

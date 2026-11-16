@@ -66,11 +66,19 @@ export function set_card_printing_action(
     card: DeckCard,
     printing: Card,
 ): Action {
-    const original = card.card;
+    const {name, set, collector_number, language, card: sf_card} = card;
     card.hydrate_printing(printing);
     return {
         name: `Set card printing to ${printing.set.toUpperCase()}:${printing.collector_number}`,
-        reverse: () => set_card_printing_action(card, original),
+        reverse: () => {
+            // const printing = card.card;
+            Object.assign(card, {name, set, collector_number, language});
+            card.hydrate(sf_card);
+            return {
+                name: 'Reverted card printing',
+                reverse: () => set_card_printing_action(card, printing),
+            };
+        },
     };
 }
 

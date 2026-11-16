@@ -86,7 +86,8 @@ function create_element<T extends string>(
 
     Object.entries(attributes).forEach(([key, value]) => {
         if (is_nullish(value) || value === false) {
-            element.removeAttribute(value);
+            element.removeAttribute(key);
+            return;
         }
 
         key = key.replaceAll('_', '-');

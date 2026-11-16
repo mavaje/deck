@@ -108,6 +108,7 @@ export class CardView {
             }
 
             const urls: string[] = [];
+            const face_class: Set<string> = new Set();
             if (face_id === 0 || card.is_double_faced()) {
                 const face = card.faces()[face_id];
                 urls.push(...face.image_urls());
@@ -119,6 +120,9 @@ export class CardView {
                     name ||= `[${card.set.toUpperCase()}:${card.collector_number}]`;
                 }
                 urls.push(data_url(skeleton(name)));
+                if (!card.finish.is_default()) {
+                    face_class.add(card.finish.name.toLowerCase());
+                }
             } else if (card.has_alternative_back()) {
                 const back_url = card.back_image_url();
                 if (back_url) {
@@ -133,7 +137,7 @@ export class CardView {
                 class: [
                     'card-face',
                     ['front', 'back'][face_id],
-                    !card.finish.is_default() && card.finish.name.toLowerCase(),
+                    ...face_class,
                 ],
                 style: {
                     background_image: urls

@@ -74,7 +74,8 @@ function create_element(tag, parameters, namespace) {
   }
   Object.entries(attributes).forEach(([key, value]) => {
     if (is_nullish(value) || value === false) {
-      element.removeAttribute(value);
+      element.removeAttribute(key);
+      return;
     }
     key = key.replaceAll("_", "-");
     switch (key) {
@@ -1347,11 +1348,18 @@ function edit_card_field(card, field, value) {
   log_action(edit_card_field_action(card, field, value));
 }
 function set_card_printing_action(card, printing) {
-  const original = card.card;
+  const { name, set, collector_number, language, card: sf_card } = card;
   card.hydrate_printing(printing);
   return {
     name: `Set card printing to ${printing.set.toUpperCase()}:${printing.collector_number}`,
-    reverse: () => set_card_printing_action(card, original)
+    reverse: () => {
+      Object.assign(card, { name, set, collector_number, language });
+      card.hydrate(sf_card);
+      return {
+        name: "Reverted card printing",
+        reverse: () => set_card_printing_action(card, printing)
+      };
+    }
   };
 }
 function set_card_printing(card, printing) {
@@ -1512,6 +1520,7 @@ var init_card_view = __esm({
             return;
           }
           const urls = [];
+          const face_class = /* @__PURE__ */ new Set();
           if (face_id2 === 0 || card.is_double_faced()) {
             const face = card.faces()[face_id2];
             urls.push(...face.image_urls());
@@ -1520,6 +1529,9 @@ var init_card_view = __esm({
               name ||= `[${card.set.toUpperCase()}:${card.collector_number}]`;
             }
             urls.push(data_url(skeleton(name)));
+            if (!card.finish.is_default()) {
+              face_class.add(card.finish.name.toLowerCase());
+            }
           } else if (card.has_alternative_back()) {
             const back_url = card.back_image_url();
             if (back_url) {
@@ -1533,7 +1545,7 @@ var init_card_view = __esm({
             class: [
               "card-face",
               ["front", "back"][face_id2],
-              !card.finish.is_default() && card.finish.name.toLowerCase()
+              ...face_class
             ],
             style: {
               background_image: urls.map((url) => `url(${url})`).join(", ")
@@ -1759,6 +1771,16 @@ var init_card_panel = __esm({
             return `${quantity}`;
           })
         });
+        HTML.button({
+          id: "quantity-decrement",
+          disabled: card.quantity <= 0,
+          onclick: () => edit_card_field(card, "quantity", card.quantity - 1)
+        });
+        HTML.button({
+          id: "quantity-increment",
+          disabled: card.quantity >= 99,
+          onclick: () => edit_card_field(card, "quantity", card.quantity + 1)
+        });
         HTML.input({
           id: "name-input",
           value: card.name || "",
@@ -1780,12 +1802,20 @@ var init_card_panel = __esm({
         HTML.input({
           id: "collector-number-input",
           class: card.invalid_collector_number() ? "error" : "-error",
-          value: card.collector_number,
+          value: card.collector_number ?? "",
           ...this.input_event_listeners((value) => {
             edit_card_field(card, "collector_number", value || null);
             return value.toUpperCase();
           })
         });
+        HTML.select({
+          id: "language-input",
+          class: card.invalid_language() ? "error" : "-error",
+          value: card.language.code(),
+          onchange: ({ value }) => {
+            edit_card_field(card, "language", Language.match(value));
+          }
+        }, Language.all().map((language) => HTML.option({ value: language.code() }, language.name)));
         HTML.span({
           id: "print-search",
           disabled: !card.name,
@@ -1797,14 +1827,6 @@ var init_card_panel = __esm({
             Search.run(query);
           }
         });
-        HTML.select({
-          id: "language-input",
-          class: card.invalid_language() ? "error" : "-error",
-          value: card.language.code(),
-          onchange: ({ value }) => {
-            edit_card_field(card, "language", Language.match(value));
-          }
-        }, Language.all().map((language) => HTML.option({ value: language.code() }, language.name)));
         HTML.select({
           id: "board-input",
           value: card.board.code(),
