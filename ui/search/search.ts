@@ -18,7 +18,6 @@ export class Search extends Panel {
 
         HTML.input({
             id: 'search-query',
-            placeholder: 'Search',
             onkeypress: (input, {key}) => {
                 if (key === 'Enter') {
                     this.run();

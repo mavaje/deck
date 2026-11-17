@@ -1321,17 +1321,14 @@ var init_face = __esm({
 function undo() {
   const action = HISTORY.pop();
   if (action) FUTURE.push(action.reverse());
-  console.log(HISTORY.map(({ name }) => name));
 }
 function redo() {
   const action = FUTURE.pop();
   if (action) HISTORY.push(action.reverse());
-  console.log(HISTORY.map(({ name }) => name));
 }
 function log_action(action) {
   HISTORY.push(action);
   FUTURE.splice(0, FUTURE.length);
-  console.log(HISTORY.map(({ name }) => name));
 }
 function edit_card_field_action(card, field, new_value) {
   const old_value = card[field];
@@ -1686,7 +1683,6 @@ var init_search = __esm({
         });
         HTML.input({
           id: "search-query",
-          placeholder: "Search",
           onkeypress: (input, { key }) => {
             if (key === "Enter") {
               this.run();
