@@ -36,6 +36,10 @@ body {
     flex-direction: column;
 }
 
+.hidden {
+    display: none;
+}
+
 label {
     margin: 4px;
 }
@@ -82,12 +86,20 @@ input[type=number] {
     appearance: textfield;
 }
 
-input:hover,
 input:focus-visible,
-select:hover,
-select:focus-visible {
+select:focus-visible,
+button:focus-visible {
     border-color: white;
     background-color: rgba(var(--theme-rgb) / 25%);
+    box-shadow: 0 0 4px 1px var(--theme), inset 0 0 4px 1px var(--theme);
+    text-shadow: 0 0 2px var(--theme);
+}
+
+input:hover,
+select:hover,
+button:hover {
+    border-color: white;
+    background-color: rgba(var(--theme-rgb) / 50%);
     box-shadow: 0 0 4px 1px var(--theme), inset 0 0 4px 1px var(--theme);
     text-shadow: 0 0 2px var(--theme);
 }
@@ -97,7 +109,13 @@ select.error {
     border-color: white;
     background-color: rgba(var(--error-rgb) / 25%);
     box-shadow: 0 0 4px 1px var(--error), inset 0 0 4px 1px var(--error);
+    text-shadow: 0 0 2px var(--error);
     caret-color: var(--error);
+}
+
+input.error:hover,
+select.error:hover {
+    background-color: rgba(var(--error-rgb) / 50%);
 }
 
 button {
@@ -105,20 +123,14 @@ button {
     padding: 4px 8px;
     color: white;
     background-color: transparent;
-    border: 2px solid #ffffff5f;
+    border: 2px solid #ffffff3f;
     border-radius: 4px;
     cursor: pointer;
     transition-property: color, border-color, background-color, box-shadow, text-shadow;
     user-select: none;
     font-weight: bold;
     white-space: nowrap;
-}
-
-button:hover:not(:disabled) {
-    border-color: white;
-    background-color: rgba(var(--theme-rgb) / 25%);
-    box-shadow: 0 0 4px 1px var(--theme), inset 0 0 4px 1px var(--theme);
-    text-shadow: 0 0 2px var(--theme);
+    outline: none;
 }
 
 button:disabled {
@@ -155,6 +167,45 @@ button:disabled {
 .input-group > :not(:hover):not(:focus-visible) {
     background-color: transparent;
     border-color: transparent;
+}
+
+.dropdown {
+    position: absolute;
+    border: 2px solid white;
+    border-radius: 4px;
+    background-color: #0000003f;
+    backdrop-filter: blur(4px);
+    box-shadow: 0 0 4px 1px var(--theme), inset 0 0 4px 1px var(--theme);
+    opacity: 0;
+    transition-property: opacity;
+}
+
+.dropdown.open {
+    opacity: 100%;
+}
+
+.dropdown .option {
+    padding: 4px 8px;
+    cursor: pointer;
+    transition-property: background-color, text-shadow;
+}
+
+.dropdown .option.selected {
+    background-color: rgba(var(--theme-rgb) / 25%);
+    text-shadow: 0 0 2px var(--theme);
+}
+
+.dropdown .option.discouraged {
+    color: #ffffff7f;
+}
+
+.dropdown .option.disabled {
+    color: #ffffff3f;
+}
+
+.dropdown .option:hover {
+    background-color: rgba(var(--theme-rgb) / 50%);
+    text-shadow: 0 0 2px var(--theme);
 }
 
 #background {
@@ -311,6 +362,15 @@ button:disabled {
     height: calc(49 * var(--card-scale));
 }
 
+#card-panel > div:has(label) > label {
+    width: 25%;
+    text-align: end;
+}
+
+#card-panel > div:has(label) > input {
+    flex: 1;
+}
+
 #quantity-input {
     width: 2ch;
     text-align: center;
@@ -321,8 +381,9 @@ button:disabled {
 }
 
 #set-input,
-#collector-number-input {
-    width: 5ch;
+#collector-number-input,
+#language-input {
+    width: 3ch;
 }
 
 #print-search {

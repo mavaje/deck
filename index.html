@@ -48,48 +48,69 @@
         <div id="card-panel" class="collapsed">
             <div id="card-panel-card-container"></div>
             <div>
+                <label for="quantity-input">Quantity</label>
                 <div class="input-group">
                     <button id="quantity-decrement">-</button>
                     <input
-                            id="quantity-input"
-                            type="number"
-                            min="0"
-                            max="99"
+                        id="quantity-input"
+                        type="number"
+                        min="0"
+                        max="99"
                     >
                     <button id="quantity-increment">+</button>
                 </div>
+            </div>
+            <div>
+                <label for="name-input">Name</label>
                 <input
                     id="name-input"
                     type="text"
-                    placeholder="Card Name"
                 >
             </div>
             <div>
+                <label for="set-input">Print</label>
                 <input
                     id="set-input"
                     type="text"
                     placeholder="Set"
                 >
+                <label for="collector-number-input" class="hidden">Collector Number</label>
                 <input
                     id="collector-number-input"
                     type="text"
                     placeholder="Num."
                 >
-                <select id="language-input"></select>
-            </div>
-            <div>
+                <label for="language-input" class="hidden">Language</label>
+                <input
+                    id="language-input"
+                    type="text"
+                    placeholder="Lang."
+                >
                 <button id="print-search">
                     Find prints
                 </button>
             </div>
             <div>
-                <select id="board-input"></select>
+                <label for="board-input">Zone</label>
+                <input
+                    id="board-input"
+                    type="text"
+                >
             </div>
             <div>
-                <select id="finish-input"></select>
+                <label for="finish-input">Finish</label>
+                <input
+                    id="finish-input"
+                    type="text"
+                >
             </div>
             <div>
-                <select id="condition-input"></select>
+                <label for="condition-input">Condition</label>
+                <input
+                    id="condition-input"
+                    type="text"
+                    placeholder="Unspecified"
+                >
             </div>
         </div>
     </div>

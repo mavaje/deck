@@ -68,6 +68,8 @@ export class Board extends Designation {
     }
 
     can_include(card: DeckCard): boolean {
+        if (!this.card_types) return true;
+
         return this.card_types.some(type => {
             const [card_type, subtype] = type.split(' - ');
             return card.is_card_type(card_type)

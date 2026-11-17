@@ -397,6 +397,7 @@ var init_board = __esm({
         return new RegExp(`^(${normalise(code).replaceAll(" ", ".?").replaceAll(/s$/g, "s?")})({top})?$`, "i");
       }
       can_include(card) {
+        if (!this.card_types) return true;
         return this.card_types.some((type) => {
           const [card_type, subtype] = type.split(" - ");
           return card.is_card_type(card_type) && (!subtype || card.is_type(subtype));
@@ -1748,6 +1749,68 @@ var init_search = __esm({
   }
 });
 
+// ui/dropdown.ts
+var Dropdown;
+var init_dropdown = __esm({
+  "ui/dropdown.ts"() {
+    init_xml();
+    Dropdown = class {
+      constructor(id, options) {
+        this.options = options;
+        this.element = HTML.div({ id, class: "dropdown" }, options.map((option) => HTML.div({
+          class: [
+            "option",
+            option.selected ? "selected" : "-selected",
+            option.discouraged ? "discouraged" : "-discouraged",
+            option.disabled ? "disabled" : "-disabled"
+          ],
+          onclick: !option.disabled && (() => option.on_click())
+        }, option.value)));
+      }
+      options;
+      element;
+      closing_timeout = null;
+      event_listeners() {
+        return {
+          onfocus: (target) => this.open(target),
+          onclick: (target) => this.open(target),
+          onblur: () => this.close(),
+          onkeydown: (target, { key }) => {
+            let index = this.options.findIndex(({ selected }) => selected);
+            if (index >= 0) {
+              switch (key) {
+                case "ArrowUp":
+                  index = (index + this.options.length - 1) % this.options.length;
+                  this.options[index].on_click();
+                  this.open(target);
+                  return;
+                case "ArrowDown":
+                  index = (index + 1) % this.options.length;
+                  this.options[index].on_click();
+                  this.open(target);
+                  return;
+              }
+              console.log(key);
+            }
+          }
+        };
+      }
+      open(target) {
+        const { offsetTop, offsetHeight, offsetLeft } = target;
+        this.element.style.top = `${offsetTop + offsetHeight + 8}px`;
+        this.element.style.left = `${offsetLeft}px`;
+        target.parentElement.append(this.element);
+        setTimeout(() => this.element.classList.add("open"));
+        clearTimeout(this.closing_timeout);
+      }
+      close() {
+        this.element.classList.remove("open");
+        this.closing_timeout = setTimeout(() => this.element.remove(), 200);
+      }
+    };
+  }
+});
+
 // ui/deck/card-panel.ts
 var CardPanel;
 var init_card_panel = __esm({
@@ -1765,21 +1828,10 @@ var init_card_panel = __esm({
     init_panel();
     init_search();
     init_deck_view();
+    init_dropdown();
     CardPanel = class extends Panel {
       static id = "card-panel";
       static SELECTED = null;
-      static input_event_listeners(on_change) {
-        return {
-          onchange: (input) => {
-            input.value = on_change(input.value);
-          },
-          onkeypress: (input, { key }) => {
-            if (key === "Enter") {
-              input.blur();
-            }
-          }
-        };
-      }
       static open(card) {
         DeckView.deselect(this.SELECTED);
         DeckView.select(card);
@@ -1792,15 +1844,21 @@ var init_card_panel = __esm({
           { id: "card-panel-card-container" },
           CardView.render(card, void 0, `card-panel-card`)
         );
+        const onkeypress = (input, { key }) => {
+          if (key === "Enter") {
+            input.blur();
+          }
+        };
         HTML.input({
           id: "quantity-input",
           value: card.quantity,
-          ...this.input_event_listeners((value) => {
-            let quantity = Number.parseInt(value);
+          onchange: (input) => {
+            let quantity = Number.parseInt(input.value);
             if (is_nullish(quantity)) quantity = 1;
             edit_card_field(card, "quantity", quantity);
-            return `${quantity}`;
-          })
+            input.value = `${quantity}`;
+          },
+          onkeypress
         });
         HTML.button({
           id: "quantity-decrement",
@@ -1815,38 +1873,45 @@ var init_card_panel = __esm({
         HTML.input({
           id: "name-input",
           value: card.name || "",
-          ...this.input_event_listeners((value) => {
-            edit_card_field(card, "name", value || null);
-            return value;
-          })
+          onchange: (input) => edit_card_field(card, "name", input.value || null),
+          onkeypress
         });
         HTML.input({
           id: "set-input",
           class: card.invalid_set() ? "error" : "-error",
           value: card.set?.toUpperCase() || "",
-          ...this.input_event_listeners((value) => {
-            value = API.SETS.normalise(value);
-            edit_card_field(card, "set", value || null);
-            return value.toUpperCase();
-          })
+          onchange: (input) => {
+            const set = API.SETS.normalise(input.value);
+            edit_card_field(card, "set", set || null);
+            input.value = set.toUpperCase();
+          },
+          onkeypress
         });
         HTML.input({
           id: "collector-number-input",
           class: card.invalid_collector_number() ? "error" : "-error",
           value: card.collector_number ?? "",
-          ...this.input_event_listeners((value) => {
-            edit_card_field(card, "collector_number", value || null);
-            return value.toUpperCase();
-          })
+          onchange: (input) => edit_card_field(card, "collector_number", input.value || null),
+          onkeypress
         });
-        HTML.select({
+        HTML.input({
           id: "language-input",
           class: card.invalid_language() ? "error" : "-error",
-          value: card.language.code(),
+          value: card.language.code().toUpperCase(),
           onchange: ({ value }) => {
-            edit_card_field(card, "language", Language.match(value));
-          }
-        }, Language.all().map((language) => HTML.option({ value: language.code() }, language.name)));
+            const language = Language.match(value) ?? Language.DEFAULT;
+            edit_card_field(card, "language", language);
+          },
+          onkeypress,
+          ...new Dropdown(
+            "language-options",
+            Language.all().map((language) => ({
+              value: `${language.code().toUpperCase()} - ${language.name}`,
+              on_click: () => edit_card_field(card, "language", language),
+              selected: card.language === language
+            }))
+          ).event_listeners()
+        });
         HTML.span({
           id: "print-search",
           disabled: !card.name,
@@ -1858,30 +1923,58 @@ var init_card_panel = __esm({
             Search.run(query);
           }
         });
-        HTML.select({
+        HTML.input({
           id: "board-input",
-          value: card.board.code(),
+          value: card.board.name,
           onchange: ({ value }) => {
-            edit_card_field(card, "board", Board.match(value));
-          }
-        }, Board.all().map((board) => HTML.option({ value: board.code() }, board.name)));
-        HTML.select({
+            const board = Board.match(value) ?? Board.DEFAULT;
+            edit_card_field(card, "board", board);
+          },
+          onkeypress,
+          ...new Dropdown(
+            "board-options",
+            Board.all().map((board) => ({
+              value: board.name,
+              on_click: () => edit_card_field(card, "board", board),
+              selected: card.board === board,
+              discouraged: !board.can_include(card)
+            }))
+          ).event_listeners()
+        });
+        HTML.input({
           id: "finish-input",
-          value: card.finish.code(),
+          value: card.finish.name,
           onchange: ({ value }) => {
-            edit_card_field(card, "finish", Finish.match(value));
-          }
-        }, Finish.all().map((finish) => HTML.option({ value: finish.code() }, finish.name)));
-        HTML.select({
+            const finish = Finish.match(value) ?? Finish.DEFAULT;
+            edit_card_field(card, "finish", finish);
+          },
+          onkeypress,
+          ...new Dropdown(
+            "finish-options",
+            Finish.all().map((finish) => ({
+              value: finish.name,
+              on_click: () => edit_card_field(card, "finish", finish),
+              selected: card.finish === finish,
+              discouraged: card.card && !card.card.finishes.includes(finish.sf_finish())
+            }))
+          ).event_listeners()
+        });
+        HTML.input({
           id: "condition-input",
-          value: card.condition?.code() ?? "",
+          value: card.condition?.name ?? "",
           onchange: ({ value }) => {
             edit_card_field(card, "condition", Condition.match(value));
-          }
-        }, [
-          HTML.option({ value: "" }, "Unspecified"),
-          ...Condition.all().map((condition) => HTML.option({ value: condition.code() }, condition.name))
-        ]);
+          },
+          onkeypress,
+          ...new Dropdown(
+            "condition-options",
+            Condition.all().map((condition) => ({
+              value: condition.name,
+              on_click: () => edit_card_field(card, "condition", condition),
+              selected: card.condition === condition
+            }))
+          ).event_listeners()
+        });
       }
       static close() {
         DeckView.deselect(this.SELECTED);

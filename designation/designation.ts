@@ -1,7 +1,5 @@
 import {normalise} from "../text";
 
-export type DesignationMap<T extends Designation = Designation> = T[] & Record<string, T>;
-
 export abstract class Designation {
 
     protected static allows_numeric_keys: boolean = false;

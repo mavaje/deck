@@ -1,4 +1,4 @@
-import {Attributes, HTML} from "../xml";
+import {HTML} from "../xml";
 import {DeckCard} from "../../deck-card";
 import {Language} from "../../designation/language";
 import {is_nullish} from "../../value";
@@ -12,27 +12,12 @@ import {DeckPanel} from "./deck-panel";
 import {Panel} from "../panel";
 import {Search} from "../search/search";
 import {DeckView} from "../deck-view";
+import {Dropdown} from "../dropdown";
 
 export class CardPanel extends Panel {
     static id: string = 'card-panel';
 
     static SELECTED: DeckCard = null;
-
-    private static input_event_listeners(
-        on_change: (value: string) => string,
-    ): Attributes<HTMLElementTagNameMap['input'], SVGElementEventMap> {
-        return {
-            onchange: input => {
-
-                input.value = on_change(input.value);
-            },
-            onkeypress: (input, {key}) => {
-                if (key === 'Enter') {
-                    input.blur();
-                }
-            },
-        };
-    }
 
     static open(card: DeckCard): void {
         DeckView.deselect(this.SELECTED);
@@ -48,15 +33,22 @@ export class CardPanel extends Panel {
             CardView.render(card, undefined, `card-panel-card`),
         );
 
+        const onkeypress: (input: HTMLInputElement, event: KeyboardEvent) => void = (input, {key}) => {
+            if (key === 'Enter') {
+                input.blur();
+            }
+        };
+
         HTML.input({
             id: 'quantity-input',
             value: card.quantity,
-            ...this.input_event_listeners(value => {
-                let quantity = Number.parseInt(value);
+            onchange: input => {
+                let quantity = Number.parseInt(input.value);
                 if (is_nullish(quantity)) quantity = 1;
                 edit_card_field(card, 'quantity', quantity);
-                return `${quantity}`;
-            }),
+                input.value = `${quantity}`;
+            },
+            onkeypress,
         });
 
         HTML.button({
@@ -74,42 +66,48 @@ export class CardPanel extends Panel {
         HTML.input({
             id: 'name-input',
             value: card.name || '',
-            ...this.input_event_listeners(value => {
-                edit_card_field(card, 'name', value || null);
-                return value;
-            }),
+            onchange: input => edit_card_field(card, 'name', input.value || null),
+            onkeypress,
         });
 
         HTML.input({
             id: 'set-input',
             class: card.invalid_set() ? 'error' : '-error',
             value: card.set?.toUpperCase() || '',
-            ...this.input_event_listeners((value) => {
-                value = API.SETS.normalise(value);
-                edit_card_field(card, 'set', value || null);
-                return value.toUpperCase();
-            }),
+            onchange: input => {
+                const set = API.SETS.normalise(input.value);
+                edit_card_field(card, 'set', set || null);
+                input.value = set.toUpperCase();
+            },
+            onkeypress,
         });
 
         HTML.input({
             id: 'collector-number-input',
             class: card.invalid_collector_number() ? 'error' : '-error',
             value: card.collector_number ?? '',
-            ...this.input_event_listeners((value) => {
-                edit_card_field(card, 'collector_number', value || null);
-                return value.toUpperCase();
-            }),
+            onchange: input => edit_card_field(card, 'collector_number', input.value || null),
+            onkeypress,
         });
 
-        HTML.select({
+        HTML.input({
             id: 'language-input',
             class: card.invalid_language() ? 'error' : '-error',
-            value: card.language.code(),
+            value: card.language.code().toUpperCase(),
             onchange: ({value}) => {
-                edit_card_field(card, 'language', Language.match(value));
+                const language = Language.match(value) ?? Language.DEFAULT;
+                edit_card_field(card, 'language', language);
             },
-        }, Language.all().map(language =>
-            HTML.option({value: language.code()}, language.name)));
+            onkeypress,
+            ...new Dropdown(
+                'language-options',
+                Language.all().map(language => ({
+                    value: `${language.code().toUpperCase()} - ${language.name}`,
+                    on_click: () => edit_card_field(card, 'language', language),
+                    selected: card.language === language,
+                })),
+            ).event_listeners(),
+        });
 
         HTML.span({
             id: 'print-search',
@@ -123,35 +121,60 @@ export class CardPanel extends Panel {
             },
         });
 
-        HTML.select({
+        HTML.input({
             id: 'board-input',
-            value: card.board.code(),
+            value: card.board.name,
             onchange: ({value}) => {
-                edit_card_field(card, 'board', Board.match(value));
+                const board = Board.match(value) ?? Board.DEFAULT;
+                edit_card_field(card, 'board', board);
             },
-        }, Board.all().map(board =>
-            HTML.option({value: board.code()}, board.name)));
+            onkeypress,
+            ...new Dropdown(
+                'board-options',
+                Board.all().map(board => ({
+                    value: board.name,
+                    on_click: () => edit_card_field(card, 'board', board),
+                    selected: card.board === board,
+                    discouraged: !board.can_include(card),
+                })),
+            ).event_listeners(),
+        });
 
-        HTML.select({
+        HTML.input({
             id: 'finish-input',
-            value: card.finish.code(),
+            value: card.finish.name,
             onchange: ({value}) => {
-                edit_card_field(card, 'finish', Finish.match(value));
+                const finish = Finish.match(value) ?? Finish.DEFAULT;
+                edit_card_field(card, 'finish', finish);
             },
-        }, Finish.all().map(finish =>
-            HTML.option({value: finish.code()}, finish.name)));
+            onkeypress,
+            ...new Dropdown(
+                'finish-options',
+                Finish.all().map(finish => ({
+                    value: finish.name,
+                    on_click: () => edit_card_field(card, 'finish', finish),
+                    selected: card.finish === finish,
+                    discouraged: card.card && !card.card.finishes.includes(finish.sf_finish()),
+                })),
+            ).event_listeners(),
+        });
 
-        HTML.select({
+        HTML.input({
             id: 'condition-input',
-            value: card.condition?.code() ?? '',
+            value: card.condition?.name ?? '',
             onchange: ({value}) => {
                 edit_card_field(card, 'condition', Condition.match(value));
             },
-        },[
-            HTML.option({value: ''}, 'Unspecified'),
-            ...Condition.all().map(condition =>
-                HTML.option({value: condition.code()}, condition.name)),
-        ]);
+            onkeypress,
+            ...new Dropdown(
+                'condition-options',
+                Condition.all().map(condition => ({
+                    value: condition.name,
+                    on_click: () => edit_card_field(card, 'condition', condition),
+                    selected: card.condition === condition,
+                })),
+            ).event_listeners(),
+        });
     }
 
     static close(): void {

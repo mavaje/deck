@@ -21,9 +21,9 @@ type XMLConstructor<
     ((attributes: Attributes<EL, EM>, children?: Child[]) => EL) &
     ((attributes: Attributes<EL, EM>, ...children: Child[]) => EL);
 
-type HTMLConstructor<T extends keyof HTMLElementTagNameMap> = XMLConstructor<HTMLElementTagNameMap[T], SVGElementEventMap>;
+type HTMLConstructor<T extends keyof HTMLElementTagNameMap> = XMLConstructor<HTMLElementTagNameMap[T], HTMLElementEventMap>;
 
-type SVGConstructor<T extends keyof SVGElementTagNameMap> = XMLConstructor<SVGElementTagNameMap[T], HTMLElementEventMap>;
+type SVGConstructor<T extends keyof SVGElementTagNameMap> = XMLConstructor<SVGElementTagNameMap[T], SVGElementEventMap>;
 
 const EVENT_LISTENERS: WeakMap<Element, Record<string, any>> = new WeakMap();
 
