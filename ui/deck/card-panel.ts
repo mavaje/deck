@@ -3,7 +3,7 @@ import {DeckCard} from "../../deck-card";
 import {Language} from "../../designation/language";
 import {is_nullish} from "../../value";
 import {API} from "../../scryfall/api";
-import {edit_card_field} from "../../history/history";
+import {edit_card_field, edit_card_name} from "../../history/history";
 import {Board} from "../../designation/board";
 import {Finish} from "../../designation/finish";
 import {Condition} from "../../designation/condition";
@@ -66,8 +66,21 @@ export class CardPanel extends Panel {
         HTML.input({
             id: 'name-input',
             value: card.name || '',
-            onchange: input => edit_card_field(card, 'name', input.value || null),
+            onchange: input => edit_card_name(card, input.value || null),
             onkeypress,
+            ...new Dropdown(
+                'name-options',
+                card.all_names(true).flatMap((name, id) => {
+                    const names: [number, string][] = id === 0 && card.is_layout('split', 'double_faced_token')
+                        ? [[null, card.card_name(true)], [id, name]]
+                        : [[id, name]];
+                    return names.map(([id, name]) => ({
+                        value: name,
+                        on_select: () => edit_card_name(card, name, id),
+                        selected: card.name === name,
+                    }));
+                }),
+            ).event_listeners(),
         });
 
         HTML.input({
@@ -94,27 +107,24 @@ export class CardPanel extends Panel {
             id: 'language-input',
             class: card.invalid_language() ? 'error' : '-error',
             value: card.language.code().toUpperCase(),
-            onchange: ({value}) => {
-                const language = Language.match(value) ?? Language.DEFAULT;
-                edit_card_field(card, 'language', language);
-            },
+            readonly: true,
             onkeypress,
             ...new Dropdown(
                 'language-options',
                 Language.all().map(language => ({
                     value: `${language.code().toUpperCase()} - ${language.name}`,
-                    on_click: () => edit_card_field(card, 'language', language),
+                    on_select: () => edit_card_field(card, 'language', language),
                     selected: card.language === language,
                 })),
             ).event_listeners(),
         });
 
-        HTML.span({
+        HTML.button({
             id: 'print-search',
             disabled: !card.name,
             onclick: () => {
                 if (!card.name) return;
-                let query = `!"${card.name}" unique:prints`;
+                let query = `!"${card.card_name(false)}" unique:prints`;
                 if (!card.language.is_default()) query += ` lang:${card.language}`;
                 if (card.card) query += ` oracleid:${card.card.oracle_id}`;
                 Search.run(query);
@@ -123,36 +133,32 @@ export class CardPanel extends Panel {
 
         HTML.input({
             id: 'board-input',
+            class: card.board.can_include(card) ? '-error' : 'error',
             value: card.board.name,
-            onchange: ({value}) => {
-                const board = Board.match(value) ?? Board.DEFAULT;
-                edit_card_field(card, 'board', board);
-            },
+            readonly: true,
             onkeypress,
             ...new Dropdown(
                 'board-options',
-                Board.all().map(board => ({
-                    value: board.name,
-                    on_click: () => edit_card_field(card, 'board', board),
-                    selected: card.board === board,
-                    discouraged: !board.can_include(card),
-                })),
+                Board.all()
+                    .filter(board => board.can_include(card))
+                    .map(board => ({
+                        value: board.name,
+                        on_select: () => edit_card_field(card, 'board', board),
+                        selected: card.board === board,
+                    })),
             ).event_listeners(),
         });
 
         HTML.input({
             id: 'finish-input',
             value: card.finish.name,
-            onchange: ({value}) => {
-                const finish = Finish.match(value) ?? Finish.DEFAULT;
-                edit_card_field(card, 'finish', finish);
-            },
+            readonly: true,
             onkeypress,
             ...new Dropdown(
                 'finish-options',
                 Finish.all().map(finish => ({
                     value: finish.name,
-                    on_click: () => edit_card_field(card, 'finish', finish),
+                    on_select: () => edit_card_field(card, 'finish', finish),
                     selected: card.finish === finish,
                     discouraged: card.card && !card.card.finishes.includes(finish.sf_finish()),
                 })),
@@ -162,17 +168,23 @@ export class CardPanel extends Panel {
         HTML.input({
             id: 'condition-input',
             value: card.condition?.name ?? '',
-            onchange: ({value}) => {
-                edit_card_field(card, 'condition', Condition.match(value));
-            },
+            readonly: true,
             onkeypress,
             ...new Dropdown(
                 'condition-options',
-                Condition.all().map(condition => ({
-                    value: condition.name,
-                    on_click: () => edit_card_field(card, 'condition', condition),
-                    selected: card.condition === condition,
-                })),
+                [
+                    {
+                        value: 'Unspecified',
+                        on_select: () => edit_card_field(card, 'condition', null),
+                        selected: !card.condition,
+                        discouraged: true,
+                    },
+                    ...Condition.all().map(condition => ({
+                        value: condition.name,
+                        on_select: () => edit_card_field(card, 'condition', condition),
+                        selected: card.condition === condition,
+                    })),
+                ],
             ).event_listeners(),
         });
     }

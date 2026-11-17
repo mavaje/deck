@@ -13,19 +13,24 @@ const FUTURE: Action[] = [];
 function undo(): void {
     const action = HISTORY.pop();
     if (action) FUTURE.push(action.reverse());
-    // console.log(HISTORY.map(({name}) => name));
+    console.log(HISTORY.map(({name}) => name));
 }
 
 function redo(): void {
     const action = FUTURE.pop();
     if (action) HISTORY.push(action.reverse());
-    // console.log(HISTORY.map(({name}) => name));
+    console.log(HISTORY.map(({name}) => name));
 }
 
 function log_action(action: Action): void {
     HISTORY.push(action);
     FUTURE.splice(0, FUTURE.length);
-    // console.log(HISTORY.map(({name}) => name));
+    console.log(HISTORY.map(({name}) => name));
+}
+
+export function reset_history(): void {
+    HISTORY.splice(0, HISTORY.length);
+    FUTURE.splice(0, FUTURE.length);
 }
 
 function edit_card_field_action<
@@ -52,31 +57,6 @@ function edit_card_field_action<
     };
 }
 
-function edit_card_name_action(
-    card: DeckCard,
-    new_name: string,
-): Action {
-    const {name, set, collector_number, language} = card;
-    card.name = new_name;
-    card.set = null;
-    card.collector_number = null;
-    card.language = Language.DEFAULT;
-    card.reload();
-    card.render_hooks();
-    return {
-        name: `Set card name to ${new_name}`,
-        reverse: () => {
-            Object.assign(card, {name, set, collector_number, language});
-            card.reload();
-            card.render_hooks();
-            return {
-                name: `Revert card name`,
-                reverse: () => edit_card_name_action(card, new_name),
-            };
-        },
-    };
-}
-
 export function edit_card_field<
     K extends keyof DeckCard
 >(
@@ -85,9 +65,55 @@ export function edit_card_field<
     value: DeckCard[K],
 ): void {
     if (card[field] === value) return;
-    log_action(field === 'name'
-        ? edit_card_name_action(card, value as string)
-        : edit_card_field_action(card, field, value));
+    log_action(edit_card_field_action(card, field, value));
+}
+
+function edit_card_name_action(
+    card: DeckCard,
+    new_name: string,
+    new_face_id: number,
+): Action {
+    const has_name = !card.has_name(new_name);
+    const {name, set, collector_number, language, display_face_id} = card;
+    card.name = new_name;
+    card.display_face_id = new_face_id;
+    if (has_name) {
+        card.set = null;
+        card.collector_number = null;
+        card.language = Language.DEFAULT;
+        card.display_face_id = null;
+        card.reload();
+    }
+    card.render_hooks();
+    return {
+        name: `Set card name to ${new_name} (${new_face_id})`,
+        reverse: () => {
+            card.name = name;
+            card.display_face_id = display_face_id;
+            if (has_name) {
+                Object.assign(card, {set, collector_number, language});
+                card.reload();
+            }
+            card.render_hooks();
+            return {
+                name: `Revert card name`,
+                reverse: () => edit_card_name_action(card, new_name, new_face_id),
+            };
+        },
+    };
+}
+
+export function edit_card_name(
+    card: DeckCard,
+    value: string,
+    display_face_id: number = card.display_face_id,
+): void {
+    if (card.name === value
+        && card.display_face_id === display_face_id
+    ) {
+        return;
+    }
+    log_action(edit_card_name_action(card, value, display_face_id));
 }
 
 export function set_card_printing_action(

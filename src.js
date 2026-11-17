@@ -1321,13 +1321,20 @@ var init_face = __esm({
 function undo() {
   const action = HISTORY.pop();
   if (action) FUTURE.push(action.reverse());
+  console.log(HISTORY.map(({ name }) => name));
 }
 function redo() {
   const action = FUTURE.pop();
   if (action) HISTORY.push(action.reverse());
+  console.log(HISTORY.map(({ name }) => name));
 }
 function log_action(action) {
   HISTORY.push(action);
+  FUTURE.splice(0, FUTURE.length);
+  console.log(HISTORY.map(({ name }) => name));
+}
+function reset_history() {
+  HISTORY.splice(0, HISTORY.length);
   FUTURE.splice(0, FUTURE.length);
 }
 function edit_card_field_action(card, field, new_value) {
@@ -1347,30 +1354,45 @@ function edit_card_field_action(card, field, new_value) {
     reverse: () => edit_card_field_action(card, field, old_value)
   };
 }
-function edit_card_name_action(card, new_name) {
-  const { name, set, collector_number, language } = card;
+function edit_card_field(card, field, value) {
+  if (card[field] === value) return;
+  log_action(edit_card_field_action(card, field, value));
+}
+function edit_card_name_action(card, new_name, new_face_id) {
+  const has_name = !card.has_name(new_name);
+  const { name, set, collector_number, language, display_face_id } = card;
   card.name = new_name;
-  card.set = null;
-  card.collector_number = null;
-  card.language = Language.DEFAULT;
-  card.reload();
+  card.display_face_id = new_face_id;
+  if (has_name) {
+    card.set = null;
+    card.collector_number = null;
+    card.language = Language.DEFAULT;
+    card.display_face_id = null;
+    card.reload();
+  }
   card.render_hooks();
   return {
-    name: `Set card name to ${new_name}`,
+    name: `Set card name to ${new_name} (${new_face_id})`,
     reverse: () => {
-      Object.assign(card, { name, set, collector_number, language });
-      card.reload();
+      card.name = name;
+      card.display_face_id = display_face_id;
+      if (has_name) {
+        Object.assign(card, { set, collector_number, language });
+        card.reload();
+      }
       card.render_hooks();
       return {
         name: `Revert card name`,
-        reverse: () => edit_card_name_action(card, new_name)
+        reverse: () => edit_card_name_action(card, new_name, new_face_id)
       };
     }
   };
 }
-function edit_card_field(card, field, value) {
-  if (card[field] === value) return;
-  log_action(field === "name" ? edit_card_name_action(card, value) : edit_card_field_action(card, field, value));
+function edit_card_name(card, value, display_face_id = card.display_face_id) {
+  if (card.name === value && card.display_face_id === display_face_id) {
+    return;
+  }
+  log_action(edit_card_name_action(card, value, display_face_id));
 }
 function set_card_printing_action(card, printing) {
   const { name, set, collector_number, language, finish, card: sf_card } = card;
@@ -1760,7 +1782,7 @@ var init_dropdown = __esm({
             option.discouraged ? "discouraged" : "-discouraged",
             option.disabled ? "disabled" : "-disabled"
           ],
-          onclick: !option.disabled && (() => option.on_click())
+          onclick: !option.disabled && (() => option.on_select())
         }, option.value)));
       }
       options;
@@ -1771,33 +1793,40 @@ var init_dropdown = __esm({
           onfocus: (target) => this.open(target),
           onclick: (target) => this.open(target),
           onblur: () => this.close(),
-          onkeydown: (target, { key }) => {
+          onkeydown: (target, event) => {
             let index = this.options.findIndex(({ selected }) => selected);
-            if (index >= 0) {
-              switch (key) {
-                case "ArrowUp":
-                  index = (index + this.options.length - 1) % this.options.length;
-                  this.options[index].on_click();
-                  this.open(target);
-                  return;
-                case "ArrowDown":
-                  index = (index + 1) % this.options.length;
-                  this.options[index].on_click();
-                  this.open(target);
-                  return;
-              }
-              console.log(key);
+            switch (event.key) {
+              case "ArrowUp":
+                index = index < 0 ? this.options.length - 1 : (index + this.options.length - 1) % this.options.length;
+                this.options[index].on_select();
+                this.open(target, true);
+                event.preventDefault();
+                return;
+              case "ArrowDown":
+                index = index < 0 ? 0 : (index + 1) % this.options.length;
+                this.options[index].on_select();
+                this.open(target, true);
+                event.preventDefault();
+                return;
+            }
+            if (event.key !== "Enter") {
+              this.open(target);
             }
           }
         };
       }
-      open(target) {
+      open(target, instant = false) {
+        if (this.options.length < 2) return;
         const { offsetTop, offsetHeight, offsetLeft } = target;
         this.element.style.top = `${offsetTop + offsetHeight + 8}px`;
         this.element.style.left = `${offsetLeft}px`;
         target.parentElement.append(this.element);
-        setTimeout(() => this.element.classList.add("open"));
         clearTimeout(this.closing_timeout);
+        if (instant) {
+          this.element.classList.add("open");
+        } else {
+          setTimeout(() => this.element.classList.add("open"));
+        }
       }
       close() {
         this.element.classList.remove("open");
@@ -1869,8 +1898,19 @@ var init_card_panel = __esm({
         HTML.input({
           id: "name-input",
           value: card.name || "",
-          onchange: (input) => edit_card_field(card, "name", input.value || null),
-          onkeypress
+          onchange: (input) => edit_card_name(card, input.value || null),
+          onkeypress,
+          ...new Dropdown(
+            "name-options",
+            card.all_names(true).flatMap((name, id) => {
+              const names = id === 0 && card.is_layout("split", "double_faced_token") ? [[null, card.card_name(true)], [id, name]] : [[id, name]];
+              return names.map(([id2, name2]) => ({
+                value: name2,
+                on_select: () => edit_card_name(card, name2, id2),
+                selected: card.name === name2
+              }));
+            })
+          ).event_listeners()
         });
         HTML.input({
           id: "set-input",
@@ -1894,26 +1934,23 @@ var init_card_panel = __esm({
           id: "language-input",
           class: card.invalid_language() ? "error" : "-error",
           value: card.language.code().toUpperCase(),
-          onchange: ({ value }) => {
-            const language = Language.match(value) ?? Language.DEFAULT;
-            edit_card_field(card, "language", language);
-          },
+          readonly: true,
           onkeypress,
           ...new Dropdown(
             "language-options",
             Language.all().map((language) => ({
               value: `${language.code().toUpperCase()} - ${language.name}`,
-              on_click: () => edit_card_field(card, "language", language),
+              on_select: () => edit_card_field(card, "language", language),
               selected: card.language === language
             }))
           ).event_listeners()
         });
-        HTML.span({
+        HTML.button({
           id: "print-search",
           disabled: !card.name,
           onclick: () => {
             if (!card.name) return;
-            let query = `!"${card.name}" unique:prints`;
+            let query = `!"${card.card_name(false)}" unique:prints`;
             if (!card.language.is_default()) query += ` lang:${card.language}`;
             if (card.card) query += ` oracleid:${card.card.oracle_id}`;
             Search.run(query);
@@ -1921,35 +1958,29 @@ var init_card_panel = __esm({
         });
         HTML.input({
           id: "board-input",
+          class: card.board.can_include(card) ? "-error" : "error",
           value: card.board.name,
-          onchange: ({ value }) => {
-            const board = Board.match(value) ?? Board.DEFAULT;
-            edit_card_field(card, "board", board);
-          },
+          readonly: true,
           onkeypress,
           ...new Dropdown(
             "board-options",
-            Board.all().map((board) => ({
+            Board.all().filter((board) => board.can_include(card)).map((board) => ({
               value: board.name,
-              on_click: () => edit_card_field(card, "board", board),
-              selected: card.board === board,
-              discouraged: !board.can_include(card)
+              on_select: () => edit_card_field(card, "board", board),
+              selected: card.board === board
             }))
           ).event_listeners()
         });
         HTML.input({
           id: "finish-input",
           value: card.finish.name,
-          onchange: ({ value }) => {
-            const finish = Finish.match(value) ?? Finish.DEFAULT;
-            edit_card_field(card, "finish", finish);
-          },
+          readonly: true,
           onkeypress,
           ...new Dropdown(
             "finish-options",
             Finish.all().map((finish) => ({
               value: finish.name,
-              on_click: () => edit_card_field(card, "finish", finish),
+              on_select: () => edit_card_field(card, "finish", finish),
               selected: card.finish === finish,
               discouraged: card.card && !card.card.finishes.includes(finish.sf_finish())
             }))
@@ -1958,17 +1989,23 @@ var init_card_panel = __esm({
         HTML.input({
           id: "condition-input",
           value: card.condition?.name ?? "",
-          onchange: ({ value }) => {
-            edit_card_field(card, "condition", Condition.match(value));
-          },
+          readonly: true,
           onkeypress,
           ...new Dropdown(
             "condition-options",
-            Condition.all().map((condition) => ({
-              value: condition.name,
-              on_click: () => edit_card_field(card, "condition", condition),
-              selected: card.condition === condition
-            }))
+            [
+              {
+                value: "Unspecified",
+                on_select: () => edit_card_field(card, "condition", null),
+                selected: !card.condition,
+                discouraged: true
+              },
+              ...Condition.all().map((condition) => ({
+                value: condition.name,
+                on_select: () => edit_card_field(card, "condition", condition),
+                selected: card.condition === condition
+              }))
+            ]
           ).event_listeners()
         });
       }
@@ -2319,7 +2356,15 @@ var init_deck_card = __esm({
         return super.card_name(printed) ?? this.name;
       }
       all_names(printed = true) {
-        return (this.faces().map((face) => face.card_name(printed)).filter(Boolean).join(" // ") || this.name).split(/\s*\/+\s*/g);
+        return (this.faces().map((face) => face.card_name(printed)).filter(Boolean).join(" // ") || this.name)?.split(/\s*\/+\s*/g) ?? [];
+      }
+      has_name(name) {
+        return [
+          this.card_name(false),
+          this.card_name(true),
+          ...this.all_names(false),
+          ...this.all_names(true)
+        ].includes(name);
       }
       deck_list_name() {
         return this.main_face(true).card_name(true) || this.name;
@@ -2524,13 +2569,16 @@ var init_deck = __esm({
     init_card_list();
     init_tag();
     init_deck_view();
+    init_history();
     Deck = class _Deck extends CardList {
       static current = new _Deck();
       raw;
+      title;
       format = null;
       game = null;
-      static parse(input, exclude_boards = []) {
+      static parse(input, title, exclude_boards = []) {
         const deck = new _Deck();
+        deck.title = title;
         deck.raw = input;
         let group_board = Board.DEFAULT;
         let group_tag = null;
@@ -2564,11 +2612,12 @@ var init_deck = __esm({
         });
         return deck;
       }
-      static async load_current(input) {
+      static async load_current(input, title) {
+        reset_history();
         let invalid_boards = [];
         do {
           Tag.clear();
-          _Deck.current = _Deck.parse(input, invalid_boards);
+          _Deck.current = _Deck.parse(input, title, invalid_boards);
           DeckView.render();
           await _Deck.current.load(() => DeckView.render());
           invalid_boards = Board.all().filter((board) => {
@@ -4022,18 +4071,25 @@ var init_deck_panel = __esm({
       ];
       static initialise() {
         HTML.button({
-          id: "deck-panel-close",
-          onclick: () => this.close()
+          id: "deck-collapse",
+          onclick: () => this.toggle()
         });
         HTML.button({
           id: "deck-upload-button",
           onclick: () => file_input.click()
         });
+        HTML.h2({
+          id: "deck-title",
+          contenteditable: true,
+          onchange: (element) => Deck.current.title = element.innerText
+        });
         const file_input = HTML.input({
           id: "deck-file-input",
           oninput: (input) => {
             const file = input.files[0];
-            file.text().then((input2) => Deck.load_current(input2)).then((deck) => {
+            const [title] = file.name.split(".");
+            HTML.h2({ id: "deck-title" }, title);
+            file.text().then((input2) => Deck.load_current(input2, title)).then((deck) => {
               DeckCard.CACHE.dump();
               console.log(deck.to_string());
             });

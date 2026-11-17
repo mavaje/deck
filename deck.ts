@@ -7,6 +7,7 @@ import {CardList} from "./card-list";
 import {Tag} from "./designation/tag";
 import {DeckView} from "./ui/deck-view";
 import {Game} from "./game";
+import {reset_history} from "./history/history";
 
 export class Deck extends CardList {
 
@@ -14,11 +15,14 @@ export class Deck extends CardList {
 
     raw?: string;
 
+    title?: string;
+
     format: Format = null;
     game: Game = null;
 
-    static parse(input: string, exclude_boards: Board[] = []) {
+    static parse(input: string, title?: string, exclude_boards: Board[] = []) {
         const deck = new Deck();
+        deck.title = title;
         deck.raw = input;
 
         let group_board: Board = Board.DEFAULT;
@@ -62,12 +66,14 @@ export class Deck extends CardList {
         return deck;
     }
 
-    static async load_current(input: string): Promise<Deck> {
+    static async load_current(input: string, title?: string): Promise<Deck> {
+        reset_history();
+
         let invalid_boards: Board[] = [];
 
         do {
             Tag.clear();
-            Deck.current = Deck.parse(input, invalid_boards);
+            Deck.current = Deck.parse(input, title, invalid_boards);
             DeckView.render();
             await Deck.current.load(() => DeckView.render());
 

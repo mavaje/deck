@@ -435,7 +435,16 @@ export class DeckCard extends Face {
             .map(face => face.card_name(printed))
             .filter(Boolean)
             .join(' // ') || this.name)
-            .split(/\s*\/+\s*/g);
+            ?.split(/\s*\/+\s*/g) ?? [];
+    }
+
+    has_name(name: string): boolean {
+        return [
+            this.card_name(false),
+            this.card_name(true),
+            ...this.all_names(false),
+            ...this.all_names(true),
+        ].includes(name);
     }
 
     deck_list_name(): string {

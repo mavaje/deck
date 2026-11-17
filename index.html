@@ -24,18 +24,9 @@
         <div id="search-results" class="collapsed">
         </div>
     </div>
-    <div id="divider"></div>
+    <div class="divider"></div>
     <div id="deck">
         <div id="deck-panel">
-            <div>
-                <button id="deck-panel-close">x</button>
-            </div>
-            <div>
-                <input id="deck-file-input" type="file">
-                <button id="deck-upload-button">Import</button>
-
-                <button id="deck-download-button">Export</button>
-            </div>
             <div>
                 <input id="by-board" type="checkbox" checked>
                 <label for="by-board">By Board</label>
@@ -118,6 +109,17 @@
                 >
             </div>
         </div>
+    </div>
+    <div class="divider"></div>
+    <div id="deck-info">
+        <button id="deck-collapse">+</button>
+
+        <h2 id="deck-title">Deck</h2>
+
+        <input id="deck-file-input" type="file">
+        <button id="deck-upload-button">Import</button>
+
+        <button id="deck-download-button">Export</button>
     </div>
 </div>
 </body>

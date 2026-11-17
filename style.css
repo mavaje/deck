@@ -36,8 +36,20 @@ body {
     flex-direction: column;
 }
 
+.light {
+    color: #ffffff7f;
+}
+
 .hidden {
     display: none;
+}
+
+.divider {
+    flex: 0 0 2px;
+    align-self: stretch;
+    background-color: white;
+    box-shadow: 0 0 8px 2px var(--theme);
+    z-index: 6;
 }
 
 label {
@@ -63,6 +75,10 @@ select {
 
 select {
     padding: 4px 4px;
+    cursor: pointer;
+}
+
+input[readonly] {
     cursor: pointer;
 }
 
@@ -135,7 +151,9 @@ button {
 
 button:disabled {
     color: #ffffff3f;
+    background-color: transparent;
     border-color: #ffffff1f;
+    box-shadow: none;
     text-shadow: none;
     cursor: default;
 }
@@ -288,14 +306,6 @@ button:disabled {
 #search-results.searching .stack:nth-child(4) .card {opacity: 10%;}
 #search-results.searching .stack:nth-child(5) .card {opacity: 5%;}
 
-#divider {
-    flex: 0 0 2px;
-    align-self: stretch;
-    background-color: white;
-    box-shadow: 0 0 8px 2px var(--theme);
-    z-index: 6;
-}
-
 #deck {
     flex: 1;
     display: flex;
@@ -388,6 +398,19 @@ button:disabled {
 
 #print-search {
     flex: 0;
+}
+
+#deck-info {
+    display: flex;
+    align-items: center;
+    padding: 4px;
+    background-color: #0000007f;
+    backdrop-filter: blur(4px);
+}
+
+#deck-title {
+    flex: 1;
+    margin: 0 4px;
 }
 
 #deck-cards {
@@ -566,7 +589,7 @@ button:disabled {
 }
 
 .card:last-of-type {
-    margin-bottom: 0;
+    margin-bottom: 0 !important;
 }
 
 .card.double {

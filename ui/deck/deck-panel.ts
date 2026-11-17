@@ -56,8 +56,8 @@ export class DeckPanel extends Panel {
 
     static initialise() {
         HTML.button({
-            id: 'deck-panel-close',
-            onclick: () => this.close(),
+            id: 'deck-collapse',
+            onclick: () => this.toggle(),
         });
 
         HTML.button({
@@ -65,12 +65,22 @@ export class DeckPanel extends Panel {
             onclick: () => file_input.click(),
         });
 
+        HTML.h2({
+            id: 'deck-title',
+            contenteditable: true,
+            onchange: element => Deck.current.title = element.innerText,
+        });
+
         const file_input = HTML.input({
             id: 'deck-file-input',
             oninput: input => {
                 const file = input.files[0];
+                const [title] = file.name.split('.');
+
+                HTML.h2({id: 'deck-title'}, title);
+
                 file.text()
-                    .then(input => Deck.load_current(input))
+                    .then(input => Deck.load_current(input, title))
                     .then(deck => {
                         DeckCard.CACHE.dump();
                         console.log(deck.to_string());

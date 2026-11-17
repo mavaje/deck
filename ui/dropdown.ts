@@ -2,7 +2,7 @@ import {Attributes, HTML} from "./xml";
 
 export type DropdownOption = {
     value?: string;
-    on_click?: () => void;
+    on_select?: () => void;
     selected?: boolean;
     discouraged?: boolean;
     disabled?: boolean;
@@ -24,7 +24,7 @@ export class Dropdown {
                 option.discouraged ? 'discouraged' : '-discouraged',
                 option.disabled ? 'disabled' : '-disabled',
             ],
-            onclick: !option.disabled && (() => option.on_click()),
+            onclick: !option.disabled && (() => option.on_select()),
         }, option.value)));
     }
 
@@ -33,34 +33,45 @@ export class Dropdown {
             onfocus: target => this.open(target),
             onclick: target => this.open(target),
             onblur: () => this.close(),
-            onkeydown: (target, {key}) => {
+            onkeydown: (target, event) => {
                 let index = this.options.findIndex(({selected}) => selected);
-                if (index >= 0) {
-                    switch (key) {
-                        case 'ArrowUp':
-                            index = (index + this.options.length - 1) % this.options.length;
-                            this.options[index].on_click();
-                            this.open(target);
-                            return;
-                        case 'ArrowDown':
-                            index = (index + 1) % this.options.length;
-                            this.options[index].on_click();
-                            this.open(target);
-                            return;
-                    }
-                    console.log(key);
+                switch (event.key) {
+                    case 'ArrowUp':
+                        index = index < 0
+                            ? this.options.length - 1
+                            : (index + this.options.length - 1) % this.options.length;
+                        this.options[index].on_select();
+                        this.open(target, true);
+                        event.preventDefault();
+                        return;
+                    case 'ArrowDown':
+                        index = index < 0
+                            ? 0
+                            : (index + 1) % this.options.length;
+                        this.options[index].on_select();
+                        this.open(target, true);
+                        event.preventDefault();
+                        return;
+                }
+                if (event.key !== 'Enter') {
+                    this.open(target);
                 }
             }
         }
     }
 
-    open(target: HTMLElement) {
+    open(target: HTMLElement, instant: boolean = false): Dropdown {
+        if (this.options.length < 2) return;
         const {offsetTop, offsetHeight, offsetLeft} = target;
         this.element.style.top = `${offsetTop + offsetHeight + 8}px`;
         this.element.style.left = `${offsetLeft}px`;
         target.parentElement.append(this.element);
-        setTimeout(() => this.element.classList.add('open'));
         clearTimeout(this.closing_timeout);
+        if (instant) {
+            this.element.classList.add('open');
+        } else {
+            setTimeout(() => this.element.classList.add('open'));
+        }
     }
 
     close() {
