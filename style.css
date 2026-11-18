@@ -383,13 +383,9 @@ button:disabled {
     height: calc(49 * var(--card-scale));
 }
 
-#card-panel > div:has(label) > label {
+#card-panel > div > label {
     width: 25%;
     text-align: end;
-}
-
-#card-panel > div:has(label) > input {
-    flex: 1;
 }
 
 #quantity-input {
@@ -409,6 +405,12 @@ button:disabled {
 
 #print-search {
     flex: 0;
+}
+
+#board-input,
+#finish-input,
+#condition-input {
+    width: 16ch;
 }
 
 #deck-info {
@@ -841,24 +843,24 @@ button:disabled {
     position: absolute;
     width: 100%;
     height: 100%;
-    background-size: 512px 512px;
+    background-size: 256px 256px;
     border-radius: var(--card-radius);
-    animation: foil-animation 8s linear infinite;
+    animation: foil-animation 12s linear infinite;
 }
 
 @keyframes foil-animation {
-    100% { background-position: 512px 512px }
+    100% { background-position: 256px 256px }
 }
 
 .card-face.foil:after {
     background-image: url(public/filter/foil.svg);
-    opacity: 20%;
+    opacity: 25%;
     mix-blend-mode: overlay;
 }
 
 .card-face.etched:after {
     background-image: url(public/filter/etched.svg);
-    opacity: 30%;
+    opacity: 50%;
     mix-blend-mode: overlay;
 }
 
