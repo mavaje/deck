@@ -1,18 +1,14 @@
-export class Game {
+import {Designation} from "./designation/designation";
+
+export class Game extends Designation {
     public static paper = new Game('Paper');
-    public static mtgo = new Game('Magic Online', 'mtgo');
+    public static mtgo = new Game('Magic Online', ['mtgo']);
     public static arena = new Game('Arena');
 
-
     constructor(
-        public name: string,
-        public code: string = name.toLowerCase().replaceAll(/\s/g, ''),
-    ) {}
-
-    static all(): Record<string, Game> {
-        return Object.fromEntries(
-            Object.entries(this)
-                .filter(([_, value]) => value instanceof this)
-        );
+        name: string,
+        codes: string[] = [name.toLowerCase().replaceAll(/\s/g, '')],
+    ) {
+        super(name, codes);
     }
 }

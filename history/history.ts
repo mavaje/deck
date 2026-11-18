@@ -16,9 +16,8 @@ export class History {
             const reverse = action.reverse();
             reverse.execute();
             this.future.push(reverse);
+            Storage.store_deck();
         }
-        Storage.store_deck();
-        console.log(this.past);
     }
 
     static redo(): void {
@@ -27,16 +26,22 @@ export class History {
             const reverse = action.reverse();
             reverse.execute();
             this.past.push(reverse);
+            Storage.store_deck();
         }
-        Storage.store_deck();
-        console.log(this.past);
+    }
+
+    static shift(backwards: boolean = false) {
+        if (backwards) {
+            this.redo();
+        } else {
+            this.undo();
+        }
     }
 
     static record(action: Action) {
         this.past.push(action);
         this.future = [];
         Storage.store_deck();
-        console.log(this.past);
     }
 }
 
@@ -45,19 +50,11 @@ window.addEventListener('keydown', (event: KeyboardEvent) => {
     if (event.ctrlKey || event.metaKey) {
         switch (event.key) {
             case 'y':
-                if (event.shiftKey) {
-                    History.undo();
-                } else {
-                    History.redo();
-                }
+                History.shift(!event.shiftKey);
                 event.preventDefault();
                 break;
             case 'z':
-                if (event.shiftKey) {
-                    History.redo();
-                } else {
-                    History.undo();
-                }
+                History.shift(event.shiftKey);
                 event.preventDefault();
                 break;
         }

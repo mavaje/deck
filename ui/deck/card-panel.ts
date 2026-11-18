@@ -178,7 +178,6 @@ export class CardPanel extends Panel {
                         value: 'Unspecified',
                         on_select: () => EditCardField.do(card, 'condition', null),
                         selected: !card.condition,
-                        discouraged: true,
                     },
                     ...Condition.all().map(condition => ({
                         value: condition.name,

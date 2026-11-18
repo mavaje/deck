@@ -14,7 +14,7 @@ export class API {
     public static SETS = new SetCache();
 
     static {
-        setTimeout(() => this.SETS.load().then(() => this.SETS.dump()));
+        setTimeout(() => this.SETS.load());
     }
 
     private static url(path: string, parameters: object = {}): string {

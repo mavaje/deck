@@ -12,7 +12,6 @@ export abstract class Action {
 
     do(): void {
         if (!this.is_noop()) {
-            console.log(`Doing `, this);
             this.execute();
             History.record(this);
         }

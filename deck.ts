@@ -6,8 +6,8 @@ import {Board} from "./designation/board";
 import {CardList} from "./card-list";
 import {Tag} from "./designation/tag";
 import {DeckView} from "./ui/deck-view";
-import {Game} from "./game";
 import {History} from "./history/history";
+import {Game} from "./game";
 
 export type JSONDeck = {
     title: string;
@@ -108,8 +108,8 @@ export class Deck extends CardList {
     static async load_from_json(deck: JSONDeck): Promise<Deck> {
         Deck.current = new Deck();
         Deck.current.title = deck.title;
-        Deck.current.format = null; // Format.match(deck.format);
-        Deck.current.game = null; // Game.match(deck.game);
+        Deck.current.format = Format.match(deck.format);
+        Deck.current.game = Game.match(deck.game);
         deck.tags.forEach(tag => Tag.match_or_new(tag.name, tag.hex));
         Deck.current.push(...deck.cards.map((card, id) => DeckCard.from_json(card, id)));
 
@@ -201,8 +201,8 @@ export class Deck extends CardList {
     json(): JSONDeck {
         return {
             title: this.title || null,
-            format: this.format?.code ?? null,
-            game: this.game?.code ?? null,
+            format: this.format?.code() ?? null,
+            game: this.game?.code() ?? null,
             tags: Tag.all().map(tag => ({
                 name: tag.name,
                 hex: tag.hex,
