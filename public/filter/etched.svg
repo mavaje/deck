@@ -12,13 +12,13 @@
             spreadMethod="repeat"
             gradientUnits="userSpaceOnUse"
         >
-            <stop offset="0" stop-color="#ff0000"/>
-            <stop offset="0.167" stop-color="#ffff00"/>
-            <stop offset="0.333" stop-color="#00ff00"/>
-            <stop offset="0.5" stop-color="#00ffff"/>
-            <stop offset="0.667" stop-color="#0000ff"/>
-            <stop offset="0.833" stop-color="#ff00ff"/>
-            <stop offset="1" stop-color="#ff0000"/>
+            <stop offset="0" stop-color="#363636"/>
+            <stop offset="0.167" stop-color="#ededed"/>
+            <stop offset="0.333" stop-color="#b6b6b6"/>
+            <stop offset="0.5" stop-color="#c9c9c9"/>
+            <stop offset="0.667" stop-color="#121212"/>
+            <stop offset="0.833" stop-color="#494949"/>
+            <stop offset="1" stop-color="#363636"/>
         </linearGradient>
     </defs>
     <rect
@@ -27,6 +27,5 @@
         width="2"
         height="2"
         fill="url(#gradient)"
-        style="filter: grayscale()"
     />
 </svg>

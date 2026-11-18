@@ -2121,21 +2121,6 @@ var init_card_panel = __esm({
           onchange: (input) => EditCardField.do(card, "collector_number", input.value || null),
           onkeypress
         });
-        HTML.input({
-          id: "language-input",
-          class: card.invalid_language() ? "error" : "-error",
-          value: card.language.code().toUpperCase(),
-          readonly: true,
-          onkeypress,
-          ...new Dropdown(
-            "language-options",
-            Language.all().map((language) => ({
-              value: `${language.code().toUpperCase()} - ${language.name}`,
-              on_select: () => EditCardField.do(card, "language", language),
-              selected: card.language === language
-            }))
-          ).event_listeners()
-        });
         HTML.button({
           id: "print-search",
           disabled: !card.name,
@@ -2146,6 +2131,21 @@ var init_card_panel = __esm({
             if (card.card) query += ` oracleid:${card.card.oracle_id}`;
             Search.run(query);
           }
+        });
+        HTML.input({
+          id: "language-input",
+          class: card.invalid_language() ? "error" : "-error",
+          value: card.language.name,
+          readonly: true,
+          onkeypress,
+          ...new Dropdown(
+            "language-options",
+            Language.all().map((language) => ({
+              value: language.name,
+              on_select: () => EditCardField.do(card, "language", language),
+              selected: card.language === language
+            }))
+          ).event_listeners()
         });
         HTML.input({
           id: "board-input",
