@@ -14,6 +14,18 @@ import {Face} from "./face";
 import {DeckView} from "./ui/deck-view";
 import {CardPanel} from "./ui/deck/card-panel";
 
+export type JSONCard = {
+    qty: number;
+    name: string;
+    set: string;
+    cn: string;
+    lang: string;
+    finish: string;
+    condition: string;
+    board: string;
+    tags: string[];
+};
+
 export class DeckCard extends Face {
 
     static CACHE = new Cache<Card>();
@@ -185,6 +197,7 @@ export class DeckCard extends Face {
     static from_card(card: Card, exact: boolean = false): DeckCard {
         const deck_card = new DeckCard({
             card,
+            language: Language.match(card.lang) ?? Language.DEFAULT,
             finish: Finish.first_for_card(card) ?? Finish.DEFAULT,
         });
 
@@ -196,6 +209,21 @@ export class DeckCard extends Face {
         }
 
         return deck_card;
+    }
+
+    static from_json(json: JSONCard, id?: number): DeckCard {
+        return new DeckCard({
+            id,
+            quantity: json.qty,
+            name: json.name,
+            set: json.set,
+            collector_number: json.cn,
+            language: Language.match(json.lang),
+            finish: Finish.match(json.finish),
+            condition: Condition.match(json.condition),
+            board: Board.match(json.board),
+            tags: new Set(json.tags.map(tag => Tag.match_or_new(tag))),
+        });
     }
 
     cache_keys(): string[] {
@@ -665,6 +693,20 @@ export class DeckCard extends Face {
 
     toString() {
         return this.to_string();
+    }
+
+    json(): JSONCard {
+        return {
+            qty: this.quantity,
+            name: this.name || null,
+            set: this.set || null,
+            cn: this.collector_number || null,
+            lang: this.language?.code() ?? null,
+            finish: this.finish?.code() ?? null,
+            condition: this.condition?.code() ?? null,
+            board: this.board?.code() ?? null,
+            tags: [...this.tags].map(tag => tag.name),
+        };
     }
 }
 

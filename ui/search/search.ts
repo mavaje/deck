@@ -5,7 +5,7 @@ import {CardView} from "../card-view";
 import {count_plural} from "../../text";
 import {Panel} from "../panel";
 import {CardPanel} from "../deck/card-panel";
-import {set_card_printing} from "../../history/history";
+import {SetCardPrinting} from "../../history/set-card-printing";
 
 export class Search extends Panel {
     static id: string = 'search-results';
@@ -67,7 +67,7 @@ export class Search extends Panel {
                                 false,
                                 () => {
                                     if (card.card.oracle_id === CardPanel.SELECTED?.card?.oracle_id) {
-                                        set_card_printing(CardPanel.SELECTED, card.card);
+                                        SetCardPrinting.do(CardPanel.SELECTED, card.card);
                                     }
                                 },
                             ),

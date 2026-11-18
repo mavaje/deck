@@ -7,7 +7,8 @@ export class Board extends Designation {
     static conspiracy = new Board('Conspiracy', ['conspiracy'], [0], null, ['Conspiracy']);
     static hero = new Board('Hero', ['hero'], 1, 1, ['Hero']);
     static commander = new Board('Commander', ['cmdr', 'commanders', 'brawlers', 'oathbreakers']);
-    static companion = new Board('Companion', ['cmpn', 'companions']);
+    static companion = new Board('Companion', ['cmpn', 'companions'])
+        .with_filter(card => card.has_keyword('Companion'));
     static deck = new Board('Deck', ['main', 'main board', 'main deck']);
     static sideboard = new Board('Sideboard', ['sb', 'side board', 'side']);
     static stickers = new Board('Sticker Deck', ['stickers'], [10], 1, ['Stickers']);
@@ -33,6 +34,8 @@ export class Board extends Designation {
         this.sideboard,
     ];
 
+    filters: ((card: DeckCard) => boolean)[] = [];
+
     constructor(
         public name: string,
         public codes: string[],
@@ -41,6 +44,14 @@ export class Board extends Designation {
         public card_types: string[] = null,
     ) {
         super(name, codes);
+
+        if (this.card_types) {
+            this.filters.push(card => this.card_types.some(type => {
+                const [card_type, subtype] = type.split(' - ');
+                return card.is_card_type(card_type)
+                    && (!subtype || card.is_type(subtype));
+            }));
+        }
     }
 
     is_default(): boolean {
@@ -68,18 +79,21 @@ export class Board extends Designation {
     }
 
     can_include(card: DeckCard): boolean {
-        if (!this.card_types) return true;
+        return this.filters.every(filter => filter(card));
+    }
 
-        return this.card_types.some(type => {
-            const [card_type, subtype] = type.split(' - ');
-            return card.is_card_type(card_type)
-                && (!subtype || card.is_type(subtype));
-        });
+    with_filter(filter: (card: DeckCard) => boolean): this {
+        this.filters.push(filter);
+        return this;
+    }
+
+    has_filter(): boolean {
+        return this.filters.length > 0;
     }
 
     static default_for(card: DeckCard): Board {
         for (const board of this.all()) {
-            if (board.card_types && board.can_include(card)) {
+            if (board.has_filter() && board.can_include(card)) {
                 return board;
             }
         }

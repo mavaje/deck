@@ -306,6 +306,7 @@ var init_designation = __esm({
         return this.code();
       }
       static match(input, exclude_card_names = false) {
+        if (!input) return null;
         if (!this.allows_numeric_keys && !Number.isNaN(Number.parseInt(input))) return null;
         const map = this.map();
         if (map[input]) return map[input];
@@ -352,6 +353,12 @@ var init_board = __esm({
         this.cards = cards;
         this.copy_limit = copy_limit;
         this.card_types = card_types;
+        if (this.card_types) {
+          this.filters.push((card) => this.card_types.some((type) => {
+            const [card_type, subtype] = type.split(" - ");
+            return card.is_card_type(card_type) && (!subtype || card.is_type(subtype));
+          }));
+        }
       }
       name;
       codes;
@@ -362,7 +369,7 @@ var init_board = __esm({
       static conspiracy = new _Board("Conspiracy", ["conspiracy"], [0], null, ["Conspiracy"]);
       static hero = new _Board("Hero", ["hero"], 1, 1, ["Hero"]);
       static commander = new _Board("Commander", ["cmdr", "commanders", "brawlers", "oathbreakers"]);
-      static companion = new _Board("Companion", ["cmpn", "companions"]);
+      static companion = new _Board("Companion", ["cmpn", "companions"]).with_filter((card) => card.has_keyword("Companion"));
       static deck = new _Board("Deck", ["main", "main board", "main deck"]);
       static sideboard = new _Board("Sideboard", ["sb", "side board", "side"]);
       static stickers = new _Board("Sticker Deck", ["stickers"], [10], 1, ["Stickers"]);
@@ -384,6 +391,7 @@ var init_board = __esm({
         this.deck,
         this.sideboard
       ];
+      filters = [];
       is_default() {
         return this === _Board.DEFAULT;
       }
@@ -397,15 +405,18 @@ var init_board = __esm({
         return new RegExp(`^(${normalise(code).replaceAll(" ", ".?").replaceAll(/s$/g, "s?")})({top})?$`, "i");
       }
       can_include(card) {
-        if (!this.card_types) return true;
-        return this.card_types.some((type) => {
-          const [card_type, subtype] = type.split(" - ");
-          return card.is_card_type(card_type) && (!subtype || card.is_type(subtype));
-        });
+        return this.filters.every((filter) => filter(card));
+      }
+      with_filter(filter) {
+        this.filters.push(filter);
+        return this;
+      }
+      has_filter() {
+        return this.filters.length > 0;
       }
       static default_for(card) {
         for (const board of this.all()) {
-          if (board.card_types && board.can_include(card)) {
+          if (board.has_filter() && board.can_include(card)) {
             return board;
           }
         }
@@ -1317,136 +1328,6 @@ var init_face = __esm({
   }
 });
 
-// history/history.ts
-function undo() {
-  const action = HISTORY.pop();
-  if (action) FUTURE.push(action.reverse());
-  console.log(HISTORY.map(({ name }) => name));
-}
-function redo() {
-  const action = FUTURE.pop();
-  if (action) HISTORY.push(action.reverse());
-  console.log(HISTORY.map(({ name }) => name));
-}
-function log_action(action) {
-  HISTORY.push(action);
-  FUTURE.splice(0, FUTURE.length);
-  console.log(HISTORY.map(({ name }) => name));
-}
-function reset_history() {
-  HISTORY.splice(0, HISTORY.length);
-  FUTURE.splice(0, FUTURE.length);
-}
-function edit_card_field_action(card, field, new_value) {
-  const old_value = card[field];
-  card[field] = new_value;
-  if ([
-    "name",
-    "set",
-    "collector_number",
-    "language"
-  ].includes(field)) {
-    card.reload();
-  }
-  card.render_hooks();
-  return {
-    name: `Set card ${field} to ${new_value}`,
-    reverse: () => edit_card_field_action(card, field, old_value)
-  };
-}
-function edit_card_field(card, field, value) {
-  if (card[field] === value) return;
-  log_action(edit_card_field_action(card, field, value));
-}
-function edit_card_name_action(card, new_name, new_face_id) {
-  const has_name = !card.has_name(new_name);
-  const { name, set, collector_number, language, display_face_id } = card;
-  card.name = new_name;
-  card.display_face_id = new_face_id;
-  if (has_name) {
-    card.set = null;
-    card.collector_number = null;
-    card.language = Language.DEFAULT;
-    card.display_face_id = null;
-    card.reload();
-  }
-  card.render_hooks();
-  return {
-    name: `Set card name to ${new_name} (${new_face_id})`,
-    reverse: () => {
-      card.name = name;
-      card.display_face_id = display_face_id;
-      if (has_name) {
-        Object.assign(card, { set, collector_number, language });
-        card.reload();
-      }
-      card.render_hooks();
-      return {
-        name: `Revert card name`,
-        reverse: () => edit_card_name_action(card, new_name, new_face_id)
-      };
-    }
-  };
-}
-function edit_card_name(card, value, display_face_id = card.display_face_id) {
-  if (card.name === value && card.display_face_id === display_face_id) {
-    return;
-  }
-  log_action(edit_card_name_action(card, value, display_face_id));
-}
-function set_card_printing_action(card, printing) {
-  const { name, set, collector_number, language, finish, card: sf_card } = card;
-  card.hydrate_printing(printing);
-  return {
-    name: `Set card printing to ${printing.set.toUpperCase()}:${printing.collector_number}`,
-    reverse: () => {
-      Object.assign(card, { name, set, collector_number, language, finish });
-      card.hydrate(sf_card);
-      return {
-        name: "Reverted card printing",
-        reverse: () => set_card_printing_action(card, printing)
-      };
-    }
-  };
-}
-function set_card_printing(card, printing) {
-  if (printing.id === card.card?.id && printing.name === card.card_name() && printing.set === card.set && printing.collector_number === card.collector_number && printing.lang === card.language.code() && printing.finishes.includes(card.finish.sf_finish())) {
-    return;
-  }
-  log_action(set_card_printing_action(card, printing));
-}
-var HISTORY, FUTURE;
-var init_history = __esm({
-  "history/history.ts"() {
-    init_language();
-    HISTORY = [];
-    FUTURE = [];
-    window.addEventListener("keydown", (event) => {
-      if (event.target instanceof HTMLInputElement) return;
-      if (event.ctrlKey || event.metaKey) {
-        switch (event.key) {
-          case "y":
-            if (event.shiftKey) {
-              undo();
-            } else {
-              redo();
-            }
-            event.preventDefault();
-            break;
-          case "z":
-            if (event.shiftKey) {
-              redo();
-            } else {
-              undo();
-            }
-            event.preventDefault();
-            break;
-        }
-      }
-    });
-  }
-});
-
 // ui/skeleton.ts
 function skeleton(name) {
   return SVG.svg({
@@ -1684,6 +1565,184 @@ var init_panel = __esm({
   }
 });
 
+// storage.ts
+var storage_exports = {};
+__export(storage_exports, {
+  Storage: () => Storage
+});
+var Storage;
+var init_storage = __esm({
+  "storage.ts"() {
+    init_deck();
+    Storage = class {
+      static store_deck() {
+        window.localStorage.setItem("deck", JSON.stringify(Deck.current.json()));
+      }
+      static async load_deck() {
+        const json = window.localStorage.getItem("deck");
+        if (json) await Deck.load_from_json(JSON.parse(json));
+      }
+    };
+  }
+});
+
+// history/history.ts
+var History;
+var init_history = __esm({
+  "history/history.ts"() {
+    init_storage();
+    History = class {
+      static past = [];
+      static future = [];
+      static reset() {
+        this.past = [];
+        this.future = [];
+      }
+      static undo() {
+        const action = this.past.pop();
+        if (action) {
+          const reverse = action.reverse();
+          reverse.execute();
+          this.future.push(reverse);
+        }
+        Storage.store_deck();
+        console.log(this.past);
+      }
+      static redo() {
+        const action = this.future.pop();
+        if (action) {
+          const reverse = action.reverse();
+          reverse.execute();
+          this.past.push(reverse);
+        }
+        Storage.store_deck();
+        console.log(this.past);
+      }
+      static record(action) {
+        this.past.push(action);
+        this.future = [];
+        Storage.store_deck();
+        console.log(this.past);
+      }
+    };
+    window.addEventListener("keydown", (event) => {
+      if (event.target instanceof HTMLInputElement) return;
+      if (event.ctrlKey || event.metaKey) {
+        switch (event.key) {
+          case "y":
+            if (event.shiftKey) {
+              History.undo();
+            } else {
+              History.redo();
+            }
+            event.preventDefault();
+            break;
+          case "z":
+            if (event.shiftKey) {
+              History.redo();
+            } else {
+              History.undo();
+            }
+            event.preventDefault();
+            break;
+        }
+      }
+    });
+  }
+});
+
+// history/action.ts
+var Action;
+var init_action = __esm({
+  "history/action.ts"() {
+    init_history();
+    Action = class {
+      is_noop() {
+        return false;
+      }
+      do() {
+        if (!this.is_noop()) {
+          console.log(`Doing `, this);
+          this.execute();
+          History.record(this);
+        }
+      }
+      static do(...parameters) {
+        new this(...parameters).do();
+      }
+    };
+  }
+});
+
+// history/set-card-printing.ts
+var SetCardPrinting, RevertCardPrinting;
+var init_set_card_printing = __esm({
+  "history/set-card-printing.ts"() {
+    init_action();
+    SetCardPrinting = class extends Action {
+      constructor(card, printing) {
+        super();
+        this.card = card;
+        this.printing = printing;
+      }
+      card;
+      printing;
+      old_values;
+      message() {
+        const { set, collector_number } = this.printing;
+        return `Set card printing to ${set}:${collector_number}`;
+      }
+      execute() {
+        const { card, printing } = this;
+        this.old_values = {
+          name: card.name,
+          set: card.set,
+          collector_number: card.collector_number,
+          language: card.language,
+          finish: card.finish,
+          card: card.card
+        };
+        card.hydrate_printing(printing);
+      }
+      reverse() {
+        return new RevertCardPrinting(
+          this.card,
+          this.old_values
+        );
+      }
+      is_noop() {
+        const { card, printing } = this;
+        return printing.id === card.card?.id && printing.name === card.card_name() && printing.set === card.set && printing.collector_number === card.collector_number && printing.lang === card.language.code() && printing.finishes.includes(card.finish.sf_finish());
+      }
+    };
+    RevertCardPrinting = class extends Action {
+      constructor(card, values) {
+        super();
+        this.card = card;
+        this.values = values;
+      }
+      card;
+      values;
+      old_printing;
+      message() {
+        return `Revert card printing`;
+      }
+      execute() {
+        const { card, values } = this;
+        this.old_printing = card.card;
+        Object.assign(card, values);
+        card.hydrate();
+      }
+      reverse() {
+        return new SetCardPrinting(
+          this.card,
+          this.old_printing
+        );
+      }
+    };
+  }
+});
+
 // ui/search/search.ts
 var Search;
 var init_search = __esm({
@@ -1695,7 +1754,7 @@ var init_search = __esm({
     init_text();
     init_panel();
     init_card_panel();
-    init_history();
+    init_set_card_printing();
     Search = class extends Panel {
       static id = "search-results";
       static initialise() {
@@ -1750,7 +1809,7 @@ var init_search = __esm({
                   false,
                   () => {
                     if (card.card.oracle_id === CardPanel.SELECTED?.card?.oracle_id) {
-                      set_card_printing(CardPanel.SELECTED, card.card);
+                      SetCardPrinting.do(CardPanel.SELECTED, card.card);
                     }
                   }
                 )
@@ -1836,6 +1895,142 @@ var init_dropdown = __esm({
   }
 });
 
+// history/edit-card-field.ts
+var EditCardField;
+var init_edit_card_field = __esm({
+  "history/edit-card-field.ts"() {
+    init_action();
+    EditCardField = class _EditCardField extends Action {
+      constructor(card, field, value) {
+        super();
+        this.card = card;
+        this.field = field;
+        this.value = value;
+      }
+      card;
+      field;
+      value;
+      old_value;
+      message() {
+        return `Set card ${this.field} to ${this.value}`;
+      }
+      execute() {
+        const { card, field, value } = this;
+        this.old_value = card[field];
+        card[field] = value;
+        if ([
+          "name",
+          "set",
+          "collector_number",
+          "language"
+        ].includes(field)) {
+          card.reload();
+        }
+        card.render_hooks();
+      }
+      reverse() {
+        return new _EditCardField(
+          this.card,
+          this.field,
+          this.old_value
+        );
+      }
+      is_noop() {
+        return this.value === this.old_value;
+      }
+    };
+  }
+});
+
+// history/edit-card-name.ts
+var EditCardName, RevertCardName;
+var init_edit_card_name = __esm({
+  "history/edit-card-name.ts"() {
+    init_action();
+    init_language();
+    EditCardName = class extends Action {
+      constructor(card, name, face_id = card.display_face_id) {
+        super();
+        this.card = card;
+        this.name = name;
+        this.face_id = face_id;
+      }
+      card;
+      name;
+      face_id;
+      old_values;
+      reset_card;
+      message() {
+        return `Set card name to ${this.name} (${this.face_id})`;
+      }
+      execute() {
+        const { card, name, face_id } = this;
+        this.reset_card = !card.has_name(name);
+        this.old_values = {
+          name: card.name,
+          set: card.set,
+          collector_number: card.collector_number,
+          language: card.language,
+          display_face_id: card.display_face_id
+        };
+        card.name = name;
+        card.display_face_id = face_id;
+        if (this.reset_card) {
+          card.set = null;
+          card.collector_number = null;
+          card.language = Language.DEFAULT;
+          card.display_face_id = null;
+          card.reload();
+        }
+        card.render_hooks();
+      }
+      reverse() {
+        return new RevertCardName(
+          this.card,
+          this.old_values,
+          this.reset_card,
+          this.name,
+          this.face_id
+        );
+      }
+      is_noop() {
+        return this.name === this.card.name && this.face_id === this.card.display_face_id;
+      }
+    };
+    RevertCardName = class extends Action {
+      constructor(card, values, was_reset, old_name, old_face_id) {
+        super();
+        this.card = card;
+        this.values = values;
+        this.was_reset = was_reset;
+        this.old_name = old_name;
+        this.old_face_id = old_face_id;
+      }
+      card;
+      values;
+      was_reset;
+      old_name;
+      old_face_id;
+      message() {
+        return `Revert card name`;
+      }
+      execute() {
+        const { card, values, was_reset } = this;
+        Object.assign(card, values);
+        if (was_reset) card.reload();
+        card.render_hooks();
+      }
+      reverse() {
+        return new EditCardName(
+          this.card,
+          this.old_name,
+          this.old_face_id
+        );
+      }
+    };
+  }
+});
+
 // ui/deck/card-panel.ts
 var CardPanel;
 var init_card_panel = __esm({
@@ -1844,7 +2039,6 @@ var init_card_panel = __esm({
     init_language();
     init_value();
     init_api();
-    init_history();
     init_board();
     init_finish();
     init_condition();
@@ -1854,6 +2048,8 @@ var init_card_panel = __esm({
     init_search();
     init_deck_view();
     init_dropdown();
+    init_edit_card_field();
+    init_edit_card_name();
     CardPanel = class extends Panel {
       static id = "card-panel";
       static SELECTED = null;
@@ -1880,7 +2076,7 @@ var init_card_panel = __esm({
           onchange: (input) => {
             let quantity = Number.parseInt(input.value);
             if (is_nullish(quantity)) quantity = 1;
-            edit_card_field(card, "quantity", quantity);
+            EditCardField.do(card, "quantity", quantity);
             input.value = `${quantity}`;
           },
           onkeypress
@@ -1888,17 +2084,17 @@ var init_card_panel = __esm({
         HTML.button({
           id: "quantity-decrement",
           disabled: card.quantity <= 0,
-          onclick: () => edit_card_field(card, "quantity", card.quantity - 1)
+          onclick: () => EditCardField.do(card, "quantity", card.quantity - 1)
         });
         HTML.button({
           id: "quantity-increment",
           disabled: card.quantity >= 99,
-          onclick: () => edit_card_field(card, "quantity", card.quantity + 1)
+          onclick: () => EditCardField.do(card, "quantity", card.quantity + 1)
         });
         HTML.input({
           id: "name-input",
           value: card.name || "",
-          onchange: (input) => edit_card_name(card, input.value || null),
+          onchange: (input) => EditCardName.do(card, input.value || null),
           onkeypress,
           ...new Dropdown(
             "name-options",
@@ -1906,7 +2102,7 @@ var init_card_panel = __esm({
               const names = id === 0 && card.is_layout("split", "double_faced_token") ? [[null, card.card_name(true)], [id, name]] : [[id, name]];
               return names.map(([id2, name2]) => ({
                 value: name2,
-                on_select: () => edit_card_name(card, name2, id2),
+                on_select: () => EditCardName.do(card, name2, id2),
                 selected: card.name === name2
               }));
             })
@@ -1918,7 +2114,7 @@ var init_card_panel = __esm({
           value: card.set?.toUpperCase() || "",
           onchange: (input) => {
             const set = API.SETS.normalise(input.value);
-            edit_card_field(card, "set", set || null);
+            EditCardField.do(card, "set", set || null);
             input.value = set.toUpperCase();
           },
           onkeypress
@@ -1927,7 +2123,7 @@ var init_card_panel = __esm({
           id: "collector-number-input",
           class: card.invalid_collector_number() ? "error" : "-error",
           value: card.collector_number ?? "",
-          onchange: (input) => edit_card_field(card, "collector_number", input.value || null),
+          onchange: (input) => EditCardField.do(card, "collector_number", input.value || null),
           onkeypress
         });
         HTML.input({
@@ -1940,7 +2136,7 @@ var init_card_panel = __esm({
             "language-options",
             Language.all().map((language) => ({
               value: `${language.code().toUpperCase()} - ${language.name}`,
-              on_select: () => edit_card_field(card, "language", language),
+              on_select: () => EditCardField.do(card, "language", language),
               selected: card.language === language
             }))
           ).event_listeners()
@@ -1966,7 +2162,7 @@ var init_card_panel = __esm({
             "board-options",
             Board.all().filter((board) => board.can_include(card)).map((board) => ({
               value: board.name,
-              on_select: () => edit_card_field(card, "board", board),
+              on_select: () => EditCardField.do(card, "board", board),
               selected: card.board === board
             }))
           ).event_listeners()
@@ -1980,7 +2176,7 @@ var init_card_panel = __esm({
             "finish-options",
             Finish.all().map((finish) => ({
               value: finish.name,
-              on_select: () => edit_card_field(card, "finish", finish),
+              on_select: () => EditCardField.do(card, "finish", finish),
               selected: card.finish === finish,
               discouraged: card.card && !card.card.finishes.includes(finish.sf_finish())
             }))
@@ -1996,13 +2192,13 @@ var init_card_panel = __esm({
             [
               {
                 value: "Unspecified",
-                on_select: () => edit_card_field(card, "condition", null),
+                on_select: () => EditCardField.do(card, "condition", null),
                 selected: !card.condition,
                 discouraged: true
               },
               ...Condition.all().map((condition) => ({
                 value: condition.name,
-                on_select: () => edit_card_field(card, "condition", condition),
+                on_select: () => EditCardField.do(card, "condition", condition),
                 selected: card.condition === condition
               }))
             ]
@@ -2164,6 +2360,7 @@ var init_deck_card = __esm({
       static from_card(card, exact = false) {
         const deck_card = new _DeckCard({
           card,
+          language: Language.match(card.lang) ?? Language.DEFAULT,
           finish: Finish.first_for_card(card) ?? Finish.DEFAULT
         });
         deck_card.hydrate(card);
@@ -2172,6 +2369,20 @@ var init_deck_card = __esm({
           deck_card.collector_number = card.collector_number;
         }
         return deck_card;
+      }
+      static from_json(json, id) {
+        return new _DeckCard({
+          id,
+          quantity: json.qty,
+          name: json.name,
+          set: json.set,
+          collector_number: json.cn,
+          language: Language.match(json.lang),
+          finish: Finish.match(json.finish),
+          condition: Condition.match(json.condition),
+          board: Board.match(json.board),
+          tags: new Set(json.tags.map((tag) => Tag.match_or_new(tag)))
+        });
       }
       cache_keys() {
         const keys = [];
@@ -2505,6 +2716,19 @@ var init_deck_card = __esm({
       toString() {
         return this.to_string();
       }
+      json() {
+        return {
+          qty: this.quantity,
+          name: this.name || null,
+          set: this.set || null,
+          cn: this.collector_number || null,
+          lang: this.language?.code() ?? null,
+          finish: this.finish?.code() ?? null,
+          condition: this.condition?.code() ?? null,
+          board: this.board?.code() ?? null,
+          tags: [...this.tags].map((tag) => tag.name)
+        };
+      }
     };
     DeckCard.regenerate_line_regexp();
   }
@@ -2613,7 +2837,7 @@ var init_deck = __esm({
         return deck;
       }
       static async load_current(input, title) {
-        reset_history();
+        History.reset();
         let invalid_boards = [];
         do {
           Tag.clear();
@@ -2621,7 +2845,7 @@ var init_deck = __esm({
           DeckView.render();
           await _Deck.current.load(() => DeckView.render());
           invalid_boards = Board.all().filter((board) => {
-            if (!board.card_types) return false;
+            if (!board.has_filter()) return false;
             const cards = _Deck.current.board(board);
             return cards.length > 0 && cards.every((card) => !board.can_include(card));
           });
@@ -2630,6 +2854,19 @@ var init_deck = __esm({
           if (DeckView.set_background(_Deck.current[i])) break;
         }
         DeckCard.CACHE.dump();
+        return _Deck.current;
+      }
+      static async load_from_json(deck) {
+        _Deck.current = new _Deck();
+        _Deck.current.title = deck.title;
+        _Deck.current.format = null;
+        _Deck.current.game = null;
+        deck.tags.forEach((tag) => Tag.match_or_new(tag.name, tag.hex));
+        _Deck.current.push(...deck.cards.map((card, id) => DeckCard.from_json(card, id)));
+        await _Deck.current.load(() => DeckView.render());
+        for (let i = 0; i < _Deck.current.length; i++) {
+          if (DeckView.set_background(_Deck.current[i])) break;
+        }
         return _Deck.current;
       }
       async load(on_progress = null) {
@@ -2683,6 +2920,18 @@ var init_deck = __esm({
       }
       toString() {
         return this.to_string();
+      }
+      json() {
+        return {
+          title: this.title || null,
+          format: this.format?.code ?? null,
+          game: this.game?.code ?? null,
+          tags: Tag.all().map((tag) => ({
+            name: tag.name,
+            hex: tag.hex
+          })),
+          cards: this.map((card) => card.json())
+        };
       }
     };
   }
@@ -3014,7 +3263,7 @@ var init_deck_validator = __esm({
               });
             }
           }
-          if (board.card_types) {
+          if (board.has_filter()) {
             const wrong_type = board_cards.filter((card) => !board.can_include(card));
             if (wrong_type.count() > 0) {
               errors.push({
@@ -4081,7 +4330,15 @@ var init_deck_panel = __esm({
         HTML.h2({
           id: "deck-title",
           contenteditable: true,
-          onchange: (element) => Deck.current.title = element.innerText
+          onchange: (element) => {
+            Deck.current.title = element.innerText;
+          },
+          onkeypress: (element, event) => {
+            if (event.key === "Enter") {
+              element.blur();
+              event.preventDefault();
+            }
+          }
         });
         const file_input = HTML.input({
           id: "deck-file-input",
@@ -4149,12 +4406,16 @@ var require_main = __commonJS({
     Object.defineProperty(exports, "__esModule", { value: true });
     var initialise_ui_1 = (init_initialise_ui(), __toCommonJS(initialise_ui_exports));
     var deck_1 = (init_deck(), __toCommonJS(deck_exports));
+    var storage_1 = (init_storage(), __toCommonJS(storage_exports));
     (0, initialise_ui_1.initialise_ui)();
-    deck_1.Deck.load_current(`
-Lightning Bolt
-Grizzly Bears *F*
-Etali, Primal Conqueror *ET*
-`);
+    storage_1.Storage.load_deck();
+    if (deck_1.Deck.current.length === 0) {
+      deck_1.Deck.load_current(`
+        Lightning Bolt
+        Grizzly Bears *F*
+        Etali, Primal Conqueror *ET*
+    `);
+    }
   }
 });
 export default require_main();

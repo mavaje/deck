@@ -232,7 +232,7 @@ export class DeckValidator {
                 }
             }
 
-            if (board.card_types) {
+            if (board.has_filter()) {
                 const wrong_type = board_cards
                     .filter(card => !board.can_include(card));
 

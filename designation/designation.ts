@@ -47,6 +47,8 @@ export abstract class Designation {
     }
 
     static match<T extends typeof Designation>(this: T, input: string, exclude_card_names: boolean = false): InstanceType<T> {
+        if (!input) return null;
+
         if (!this.allows_numeric_keys && !Number.isNaN(Number.parseInt(input))) return null;
 
         const map = this.map();

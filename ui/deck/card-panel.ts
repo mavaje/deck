@@ -3,7 +3,6 @@ import {DeckCard} from "../../deck-card";
 import {Language} from "../../designation/language";
 import {is_nullish} from "../../value";
 import {API} from "../../scryfall/api";
-import {edit_card_field, edit_card_name} from "../../history/history";
 import {Board} from "../../designation/board";
 import {Finish} from "../../designation/finish";
 import {Condition} from "../../designation/condition";
@@ -13,6 +12,8 @@ import {Panel} from "../panel";
 import {Search} from "../search/search";
 import {DeckView} from "../deck-view";
 import {Dropdown} from "../dropdown";
+import {EditCardField} from "../../history/edit-card-field";
+import {EditCardName} from "../../history/edit-card-name";
 
 export class CardPanel extends Panel {
     static id: string = 'card-panel';
@@ -45,7 +46,7 @@ export class CardPanel extends Panel {
             onchange: input => {
                 let quantity = Number.parseInt(input.value);
                 if (is_nullish(quantity)) quantity = 1;
-                edit_card_field(card, 'quantity', quantity);
+                EditCardField.do(card, 'quantity', quantity);
                 input.value = `${quantity}`;
             },
             onkeypress,
@@ -54,19 +55,19 @@ export class CardPanel extends Panel {
         HTML.button({
             id: 'quantity-decrement',
             disabled: card.quantity <= 0,
-            onclick: () => edit_card_field(card, 'quantity', card.quantity - 1),
+            onclick: () => EditCardField.do(card, 'quantity', card.quantity - 1),
         });
 
         HTML.button({
             id: 'quantity-increment',
             disabled: card.quantity >= 99,
-            onclick: () => edit_card_field(card, 'quantity', card.quantity + 1),
+            onclick: () => EditCardField.do(card, 'quantity', card.quantity + 1),
         });
 
         HTML.input({
             id: 'name-input',
             value: card.name || '',
-            onchange: input => edit_card_name(card, input.value || null),
+            onchange: input => EditCardName.do(card, input.value || null),
             onkeypress,
             ...new Dropdown(
                 'name-options',
@@ -76,7 +77,7 @@ export class CardPanel extends Panel {
                         : [[id, name]];
                     return names.map(([id, name]) => ({
                         value: name,
-                        on_select: () => edit_card_name(card, name, id),
+                        on_select: () => EditCardName.do(card, name, id),
                         selected: card.name === name,
                     }));
                 }),
@@ -89,7 +90,7 @@ export class CardPanel extends Panel {
             value: card.set?.toUpperCase() || '',
             onchange: input => {
                 const set = API.SETS.normalise(input.value);
-                edit_card_field(card, 'set', set || null);
+                EditCardField.do(card, 'set', set || null);
                 input.value = set.toUpperCase();
             },
             onkeypress,
@@ -99,7 +100,7 @@ export class CardPanel extends Panel {
             id: 'collector-number-input',
             class: card.invalid_collector_number() ? 'error' : '-error',
             value: card.collector_number ?? '',
-            onchange: input => edit_card_field(card, 'collector_number', input.value || null),
+            onchange: input => EditCardField.do(card, 'collector_number', input.value || null),
             onkeypress,
         });
 
@@ -113,7 +114,7 @@ export class CardPanel extends Panel {
                 'language-options',
                 Language.all().map(language => ({
                     value: `${language.code().toUpperCase()} - ${language.name}`,
-                    on_select: () => edit_card_field(card, 'language', language),
+                    on_select: () => EditCardField.do(card, 'language', language),
                     selected: card.language === language,
                 })),
             ).event_listeners(),
@@ -143,7 +144,7 @@ export class CardPanel extends Panel {
                     .filter(board => board.can_include(card))
                     .map(board => ({
                         value: board.name,
-                        on_select: () => edit_card_field(card, 'board', board),
+                        on_select: () => EditCardField.do(card, 'board', board),
                         selected: card.board === board,
                     })),
             ).event_listeners(),
@@ -158,7 +159,7 @@ export class CardPanel extends Panel {
                 'finish-options',
                 Finish.all().map(finish => ({
                     value: finish.name,
-                    on_select: () => edit_card_field(card, 'finish', finish),
+                    on_select: () => EditCardField.do(card, 'finish', finish),
                     selected: card.finish === finish,
                     discouraged: card.card && !card.card.finishes.includes(finish.sf_finish()),
                 })),
@@ -175,13 +176,13 @@ export class CardPanel extends Panel {
                 [
                     {
                         value: 'Unspecified',
-                        on_select: () => edit_card_field(card, 'condition', null),
+                        on_select: () => EditCardField.do(card, 'condition', null),
                         selected: !card.condition,
                         discouraged: true,
                     },
                     ...Condition.all().map(condition => ({
                         value: condition.name,
-                        on_select: () => edit_card_field(card, 'condition', condition),
+                        on_select: () => EditCardField.do(card, 'condition', condition),
                         selected: card.condition === condition,
                     })),
                 ],

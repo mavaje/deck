@@ -158,6 +158,17 @@ button:disabled {
     cursor: default;
 }
 
+[contenteditable] {
+    transition-property: text-shadow;
+    caret-color: var(--theme);
+    outline: none;
+}
+
+[contenteditable]:hover,
+[contenteditable]:focus-visible {
+    text-shadow: 0 0 4px var(--theme);
+}
+
 .input-group {
     margin: 4px;
     display: flex;
@@ -406,6 +417,14 @@ button:disabled {
     padding: 4px;
     background-color: #0000007f;
     backdrop-filter: blur(4px);
+    transition-property: background-color;
+}
+
+#deck-info:has(
+    [contenteditable]:hover,
+    [contenteditable]:focus-visible
+) {
+    background-color: rgba(var(--theme-rgb) / 25%);
 }
 
 #deck-title {

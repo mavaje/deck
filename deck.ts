@@ -1,4 +1,4 @@
-import {DeckCard} from "./deck-card";
+import {DeckCard, JSONCard} from "./deck-card";
 import {Format} from "./format";
 import {API} from "./scryfall/api";
 import {ColorSet} from "./color-set";
@@ -7,7 +7,18 @@ import {CardList} from "./card-list";
 import {Tag} from "./designation/tag";
 import {DeckView} from "./ui/deck-view";
 import {Game} from "./game";
-import {reset_history} from "./history/history";
+import {History} from "./history/history";
+
+export type JSONDeck = {
+    title: string;
+    format: string;
+    game: string;
+    tags: {
+        name: string;
+        hex?: string;
+    }[];
+    cards: JSONCard[];
+}
 
 export class Deck extends CardList {
 
@@ -67,7 +78,7 @@ export class Deck extends CardList {
     }
 
     static async load_current(input: string, title?: string): Promise<Deck> {
-        reset_history();
+        History.reset();
 
         let invalid_boards: Board[] = [];
 
@@ -79,7 +90,7 @@ export class Deck extends CardList {
 
             invalid_boards = Board.all()
                 .filter(board => {
-                    if (!board.card_types) return false;
+                    if (!board.has_filter()) return false;
                     const cards = Deck.current.board(board);
                     return cards.length > 0
                         && cards.every(card => !board.can_include(card));
@@ -89,7 +100,25 @@ export class Deck extends CardList {
         for (let i = 0; i < Deck.current.length; i++) {
             if (DeckView.set_background(Deck.current[i])) break;
         }
+
         DeckCard.CACHE.dump();
+        return Deck.current;
+    }
+
+    static async load_from_json(deck: JSONDeck): Promise<Deck> {
+        Deck.current = new Deck();
+        Deck.current.title = deck.title;
+        Deck.current.format = null; // Format.match(deck.format);
+        Deck.current.game = null; // Game.match(deck.game);
+        deck.tags.forEach(tag => Tag.match_or_new(tag.name, tag.hex));
+        Deck.current.push(...deck.cards.map((card, id) => DeckCard.from_json(card, id)));
+
+        await Deck.current.load(() => DeckView.render());
+
+        for (let i = 0; i < Deck.current.length; i++) {
+            if (DeckView.set_background(Deck.current[i])) break;
+        }
+
         return Deck.current;
     }
 
@@ -167,5 +196,18 @@ export class Deck extends CardList {
 
     toString(): string {
         return this.to_string();
+    }
+
+    json(): JSONDeck {
+        return {
+            title: this.title || null,
+            format: this.format?.code ?? null,
+            game: this.game?.code ?? null,
+            tags: Tag.all().map(tag => ({
+                name: tag.name,
+                hex: tag.hex,
+            })),
+            cards: this.map(card => card.json()),
+        };
     }
 }

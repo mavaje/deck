@@ -68,7 +68,15 @@ export class DeckPanel extends Panel {
         HTML.h2({
             id: 'deck-title',
             contenteditable: true,
-            onchange: element => Deck.current.title = element.innerText,
+            onchange: element => {
+                Deck.current.title = element.innerText;
+            },
+            onkeypress: (element, event) => {
+                if (event.key === 'Enter') {
+                    element.blur();
+                    event.preventDefault();
+                }
+            },
         });
 
         const file_input = HTML.input({
