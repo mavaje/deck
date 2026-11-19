@@ -12,8 +12,10 @@ import {Panel} from "../panel";
 import {Search} from "../search/search";
 import {DeckView} from "../deck-view";
 import {Dropdown} from "../dropdown";
-import {EditCardField} from "../../history/edit-card-field";
 import {EditCardName} from "../../history/edit-card-name";
+import {Deck} from "../../deck";
+import {DeleteCard} from "../../history/delete-card";
+import {EditCardFields} from "../../history/edit-card-fields";
 
 export class CardPanel extends Panel {
     static id: string = 'card-panel';
@@ -46,7 +48,7 @@ export class CardPanel extends Panel {
             onchange: input => {
                 let quantity = Number.parseInt(input.value);
                 if (is_nullish(quantity)) quantity = 1;
-                EditCardField.do(card, 'quantity', quantity);
+                EditCardFields.do(card, {quantity});
                 input.value = `${quantity}`;
             },
             onkeypress,
@@ -55,13 +57,13 @@ export class CardPanel extends Panel {
         HTML.button({
             id: 'quantity-decrement',
             disabled: card.quantity <= 0,
-            onclick: () => EditCardField.do(card, 'quantity', card.quantity - 1),
+            onclick: () => EditCardFields.do(card, {quantity: card.quantity - 1}),
         });
 
         HTML.button({
             id: 'quantity-increment',
             disabled: card.quantity >= 99,
-            onclick: () => EditCardField.do(card, 'quantity', card.quantity + 1),
+            onclick: () => EditCardFields.do(card, {quantity: card.quantity + 1}),
         });
 
         HTML.input({
@@ -71,26 +73,21 @@ export class CardPanel extends Panel {
             onkeypress,
             ...new Dropdown(
                 'name-options',
-                card.all_names(true).flatMap((name, id) => {
-                    const names: [number, string][] = id === 0 && card.is_layout('split', 'double_faced_token')
-                        ? [[null, card.card_name(true)], [id, name]]
-                        : [[id, name]];
-                    return names.map(([id, name]) => ({
-                        value: name,
-                        on_select: () => EditCardName.do(card, name, id),
-                        selected: card.name === name,
-                    }));
-                }),
+                card.selectable_names(true).flatMap(([id, name]) => ({
+                    value: name,
+                    on_select: () => EditCardName.do(card, name, id),
+                    selected: card.name === name,
+                })),
             ).event_listeners(),
         });
 
         HTML.input({
             id: 'set-input',
-            class: card.invalid_set() ? 'error' : '-error',
+            class: card.invalid_set() && 'error',
             value: card.set?.toUpperCase() || '',
             onchange: input => {
                 const set = API.SETS.normalise(input.value);
-                EditCardField.do(card, 'set', set || null);
+                EditCardFields.do(card, {set: set || null});
                 input.value = set.toUpperCase();
             },
             onkeypress,
@@ -98,14 +95,14 @@ export class CardPanel extends Panel {
 
         HTML.input({
             id: 'collector-number-input',
-            class: card.invalid_collector_number() ? 'error' : '-error',
+            class: card.invalid_collector_number() && 'error',
             value: card.collector_number ?? '',
-            onchange: input => EditCardField.do(card, 'collector_number', input.value || null),
+            onchange: input => EditCardFields.do(card, {collector_number: input.value || null}),
             onkeypress,
         });
 
         HTML.button({
-            id: 'print-search',
+            id: 'print-search-button',
             disabled: !card.name,
             onclick: () => {
                 if (!card.name) return;
@@ -116,9 +113,15 @@ export class CardPanel extends Panel {
             },
         });
 
+        HTML.button({
+            id: 'print-clear-button',
+            disabled: !card.set,
+            onclick: () => EditCardFields.do(card, {set: null, collector_number: null}),
+        });
+
         HTML.input({
             id: 'language-input',
-            class: card.invalid_language() ? 'error' : '-error',
+            class: card.invalid_language() && 'error',
             value: card.language.name,
             readonly: true,
             onkeypress,
@@ -126,27 +129,9 @@ export class CardPanel extends Panel {
                 'language-options',
                 Language.all().map(language => ({
                     value: language.name,
-                    on_select: () => EditCardField.do(card, 'language', language),
+                    on_select: () => EditCardFields.do(card, {language}),
                     selected: card.language === language,
                 })),
-            ).event_listeners(),
-        });
-
-        HTML.input({
-            id: 'board-input',
-            class: card.board.can_include(card) ? '-error' : 'error',
-            value: card.board.name,
-            readonly: true,
-            onkeypress,
-            ...new Dropdown(
-                'board-options',
-                Board.all()
-                    .filter(board => board.can_include(card))
-                    .map(board => ({
-                        value: board.name,
-                        on_select: () => EditCardField.do(card, 'board', board),
-                        selected: card.board === board,
-                    })),
             ).event_listeners(),
         });
 
@@ -159,7 +144,7 @@ export class CardPanel extends Panel {
                 'finish-options',
                 Finish.all().map(finish => ({
                     value: finish.name,
-                    on_select: () => EditCardField.do(card, 'finish', finish),
+                    on_select: () => EditCardFields.do(card, {finish}),
                     selected: card.finish === finish,
                     discouraged: card.card && !card.card.finishes.includes(finish.sf_finish()),
                 })),
@@ -176,17 +161,40 @@ export class CardPanel extends Panel {
                 [
                     {
                         value: 'Unspecified',
-                        on_select: () => EditCardField.do(card, 'condition', null),
+                        on_select: () => EditCardFields.do(card, {condition: null}),
                         selected: !card.condition,
                         discouraged: true,
                     },
                     ...Condition.all().map(condition => ({
                         value: condition.name,
-                        on_select: () => EditCardField.do(card, 'condition', condition),
+                        on_select: () => EditCardFields.do(card, {condition}),
                         selected: card.condition === condition,
                     })),
                 ],
             ).event_listeners(),
+        });
+
+        HTML.input({
+            id: 'board-input',
+            class: !card.board.can_include(card) && 'error',
+            value: card.board.name,
+            readonly: true,
+            onkeypress,
+            ...new Dropdown(
+                'board-options',
+                Board.all()
+                    .filter(board => board.can_include(card))
+                    .map(board => ({
+                        value: board.name,
+                        on_select: () => EditCardFields.do(card, {board}),
+                        selected: card.board === board,
+                    })),
+            ).event_listeners(),
+        });
+
+        HTML.button({
+            id: 'delete-card-button',
+            onclick: () => DeleteCard.do(Deck.current, card),
         });
     }
 

@@ -39,6 +39,10 @@ export class Face<T extends Card | CardFace = Card | CardFace> {
             || [this];
     }
 
+    oracle_id(): string {
+        return this.card?.oracle_id ?? this.faces()[0]?.face?.oracle_id;
+    }
+
     off_battlefield_overrides(): Partial<Card> {
         const match = this.oracle()?.match(/(^|\n)~ is also a (?<type_line>\w+(,? \w+)*)\./i)
             ?? this.oracle()?.match(/(^|\n)As long as ~ isn't on the battlefield, it's a ((?<power>\d+)\/(?<toughness>\d+) )?(?<type_line>\w+( \w+)*) in addition to its other types\./i);
@@ -197,6 +201,13 @@ export class Face<T extends Card | CardFace = Card | CardFace> {
         ]);
     }
 
+    has_main_face(): boolean {
+        if (!this.card) return true;
+        if (!this.card.type_line) return false;
+        if (!this.card.type_line.includes('Token')) return !this.is_layout('split');
+        return false;
+    }
+
     infer_mana_cost(): number {
         let mana_value = null;
         if (this.face?.mana_cost) {
@@ -265,7 +276,7 @@ export class Face<T extends Card | CardFace = Card | CardFace> {
     }
 
     oracle(): string {
-        return this.is_card() && this.is_layout('split')
+        return this.is_card() && !this.has_main_face()
             ? this.faces().map(face => face.oracle()).join('\n')
             : this.face?.oracle_text
                 ?.replaceAll(this.card_name(), '~')

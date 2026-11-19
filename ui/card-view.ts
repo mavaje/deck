@@ -12,7 +12,7 @@ export class CardView {
         is_duplicate: boolean = false,
         on_click: () => any = null,
     ): HTMLDivElement {
-        const card_class: Set<string> = new Set(['card']);
+        const card_class: Set<string> = new Set(['card', 'fade-in']);
         if (is_duplicate) card_class.add('duplicate');
         if (card.quantity < 1) card_class.add('ghost');
         if (DeckView.errors.some(error => error.cards?.includes(card))) card_class.add('error');
@@ -149,6 +149,7 @@ export class CardView {
         });
 
         let tilt: HTMLDivElement = null;
+        let remove_timeout: number = null;
         return HTML.div(
             {
                 id,
@@ -174,6 +175,14 @@ export class CardView {
                     event.stopPropagation();
                     on_click();
                 }),
+                onremove: card_view => {
+                    card_view.classList.add('fade-out');
+                    remove_timeout = setTimeout(() => card_view.remove(), 200);
+                },
+                onrefresh: card_view => {
+                    card_view.classList.remove('fade-out');
+                    clearTimeout(remove_timeout);
+                },
             },
             HTML.div({class: 'trigger'}),
             HTML.div(

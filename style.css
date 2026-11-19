@@ -44,6 +44,32 @@ body {
     display: none;
 }
 
+.fade-in {
+    animation: fade-in 0.2s ease;
+}
+
+@keyframes fade-in {
+    from {
+        height: 0;
+        margin-top: 0;
+        margin-bottom: 0;
+        opacity: 0;
+    }
+}
+
+.fade-out {
+    animation: fade-out 0.2s ease;
+}
+
+@keyframes fade-out {
+    to {
+        height: 0;
+        margin-top: 0;
+        margin-bottom: 0;
+        opacity: 0;
+    }
+}
+
 .divider {
     flex: 0 0 2px;
     align-self: stretch;
@@ -121,7 +147,9 @@ button:hover {
 }
 
 input.error,
-select.error {
+select.error,
+button.danger:focus-visible,
+button.danger:hover {
     border-color: white;
     background-color: rgba(var(--error-rgb) / 25%);
     box-shadow: 0 0 4px 1px var(--error), inset 0 0 4px 1px var(--error);
@@ -130,7 +158,8 @@ select.error {
 }
 
 input.error:hover,
-select.error:hover {
+select.error:hover,
+button.danger:hover {
     background-color: rgba(var(--error-rgb) / 50%);
 }
 
@@ -185,14 +214,24 @@ button:disabled {
 .input-group > :disabled,
 .input-group > :not(:hover):not(:focus-visible) {
     background-color: transparent;
-    border-color: transparent;
+    border-color: transparent #ffffff1f;
+}
+
+.input-group > :disabled:first-child,
+.input-group > :not(:hover):not(:focus-visible):first-child {
+    border-left-color: transparent;
+}
+
+.input-group > :disabled:last-child,
+.input-group > :not(:hover):not(:focus-visible):last-child {
+    border-right-color: transparent;
 }
 
 .dropdown {
     position: absolute;
     border: 2px solid white;
     border-radius: 4px;
-    background-color: #0000003f;
+    background-color: #0000007f;
     backdrop-filter: blur(4px);
     box-shadow: 0 0 4px 1px var(--theme), inset 0 0 4px 1px var(--theme);
     opacity: 0;
@@ -255,6 +294,10 @@ button:disabled {
     padding: 4px;
     background-color: #0000007f;
     backdrop-filter: blur(4px);
+}
+
+#search-query {
+    flex: 1;
 }
 
 #search-status {
@@ -396,8 +439,12 @@ button:disabled {
     width: 7ch;
 }
 
-#print-search {
+#print-search-button {
     flex: 0;
+}
+
+div:has(> #delete-card-button) {
+    align-self: end;
 }
 
 #deck-info {
@@ -810,20 +857,6 @@ button:disabled {
     transform: translateZ(-1px) rotateX(180deg);
 }
 
-.label,
-.card {
-    animation: fade-in 0.4s ease;
-}
-
-@keyframes fade-in {
-    from {
-        height: 0;
-        margin-top: 0;
-        margin-bottom: 0;
-        opacity: 0;
-    }
-}
-
 .card-face.foil:after,
 .card-face.etched:after {
     content: '';
@@ -832,6 +865,8 @@ button:disabled {
     height: 100%;
     background-size: 256px 256px;
     border-radius: var(--card-radius);
+    opacity: 25%;
+    mix-blend-mode: overlay;
     animation: foil-animation 12s linear infinite;
 }
 
@@ -841,14 +876,10 @@ button:disabled {
 
 .card-face.foil:after {
     background-image: url(public/filter/foil.svg);
-    opacity: 25%;
-    mix-blend-mode: overlay;
 }
 
 .card-face.etched:after {
     background-image: url(public/filter/etched.svg);
-    opacity: 40%;
-    mix-blend-mode: overlay;
 }
 
 #deck-cards.show-quantity .card.ghost:not(:hover) .count {

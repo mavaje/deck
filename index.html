@@ -40,11 +40,13 @@
                 <select id="order-by"></select>
             </div>
         </div>
-        <div id="deck-cards" class="compact show-quantity"></div>
+        <div id="deck-cards" class="-compact -show-quantity"></div>
         <div id="card-panel" class="collapsed">
             <div id="card-panel-card-container"></div>
             <div>
-                <label for="quantity-input">Quantity</label>
+                <label for="quantity-input">
+                    Quantity
+                </label>
                 <div class="input-group">
                     <button id="quantity-decrement">-</button>
                     <input
@@ -57,45 +59,60 @@
                 </div>
             </div>
             <div>
-                <label for="name-input">Name</label>
+                <label for="name-input">
+                    Name
+                </label>
                 <input
                     id="name-input"
                     type="text"
                 >
             </div>
             <div>
-                <label for="set-input">Print</label>
+                <label for="set-input">
+                    Print
+                </label>
                 <input
                     id="set-input"
                     type="text"
                     placeholder="Set"
                 >
-                <label for="collector-number-input" class="hidden">Collector Number</label>
+                <label for="collector-number-input" class="hidden">
+                    Collector Number
+                </label>
                 <input
                     id="collector-number-input"
                     type="text"
                     placeholder="Number"
                 >
-                <button id="print-search">
-                    Find prints
+                <button id="print-search-button">
+                    Search
+                </button>
+                <button id="print-clear-button">
+                    Unset
                 </button>
             </div>
             <div>
-                <label for="language-input">Language</label>
+                <label for="language-input">
+                    Language
+                </label>
                 <input
                     id="language-input"
                     type="text"
                 >
             </div>
             <div>
-                <label for="finish-input">Finish</label>
+                <label for="finish-input">
+                    Finish
+                </label>
                 <input
                     id="finish-input"
                     type="text"
                 >
             </div>
             <div>
-                <label for="condition-input">Condition</label>
+                <label for="condition-input">
+                    Condition
+                </label>
                 <input
                     id="condition-input"
                     type="text"
@@ -103,11 +120,18 @@
                 >
             </div>
             <div>
-                <label for="board-input">Zone</label>
+                <label for="board-input">
+                    Zone
+                </label>
                 <input
                     id="board-input"
                     type="text"
                 >
+            </div>
+            <div>
+                <button id="delete-card-button" class="danger">
+                    Delete
+                </button>
             </div>
         </div>
     </div>

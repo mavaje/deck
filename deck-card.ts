@@ -246,14 +246,16 @@ export class DeckCard extends Face {
 
     can_bulk_load(): boolean {
         return [
-            !this.card,
-            this.identifier(),
             !/^y\d\d$/i.test(this.set),
+            this.language.is_default(),
+            this.identifier(),
+            !this.card,
         ].every(Boolean);
     }
 
     identifier(): Identifier {
         const {set, collector_number} = this;
+
         if (set && collector_number) {
             return {set, collector_number};
         }
@@ -279,35 +281,45 @@ export class DeckCard extends Face {
         this.load_from_cache();
 
         const {name, set, collector_number, language} = this;
+        let card: Card = this.card;
 
         const is_alchemy_set = /^y\d\d$/i.test(set);
 
         if (set && collector_number && !is_alchemy_set) {
-            this.card ??= await API.card(set, collector_number, language.code());
-            this.card ??= await API.card(set, collector_number);
+            if (!language.is_default()) {
+                card ??= await API.card(set, collector_number, language.code());
+            }
+            card ??= await API.card(set, collector_number);
         }
 
         if (name) {
             if (/^_{6,}$/.test(name) && !set) {
-                this.card ??= await API.random_card(`include:extras name:'${name}'`);
+                card ??= await API.random_card(`include:extras name:'${name}'`);
             }
 
             if (is_alchemy_set) {
-                this.card ??= await API.random_card(`st:alchemy name:'${name}'`);
+                card ??= await API.random_card(`st:alchemy name:'${name}'`);
             } else if (set && !collector_number) {
-                this.card ??= await API.card_named(name, set);
+                card ??= await API.card_named(name, set);
             }
 
-            this.card ??= await API.card_named(name);
+            card ??= await API.card_named(name);
 
-            if (this.card && this.card.lang !== language.code() && !language.is_default()) {
-                let query = `oracle_id:${this.card.oracle_id} lang:${language}`;
+            if (card && card.lang !== language.code() && !language.is_default()) {
+                let query = `oracle_id:${card.oracle_id} lang:${language}`;
                 if (set && !is_alchemy_set) query += ` set:${set}`;
-                this.card = await API.random_card(query) ?? this.card;
+                card = await API.random_card(query) ?? card;
             }
         }
 
-        return this.hydrate().cache();
+        if (Object.entries({name, set, collector_number, language})
+            .some(([key, field]) => this[key] !== field)
+        ) {
+            console.log('changed while loading');
+            return;
+        }
+
+        return this.hydrate(card).cache();
     }
 
     async reload(): Promise<this> {
@@ -412,7 +424,7 @@ export class DeckCard extends Face {
             'art_series': true,
         }[this.card?.layout] ?? false;
         const face = display ? this.display_face_id : null;
-        return (face !== null || !this.is_layout('split'))
+        return (face !== null || this.has_main_face())
             && this.faces()[face ?? 0]
             || this;
     }
@@ -464,6 +476,26 @@ export class DeckCard extends Face {
             .filter(Boolean)
             .join(' // ') || this.name)
             ?.split(/\s*\/+\s*/g) ?? [];
+    }
+
+    selectable_names(printed: boolean = true): [number, string][] {
+        const names: [number, string][] = [];
+
+        if (!this.has_main_face()) {
+            names.push([null, this.card_name(printed)]);
+        }
+
+        if (this.is_layout('adventure', 'prepare')) {
+            names.push([0, this.main_face(false).card_name(printed)]);
+        } else {
+            this.all_names(printed).forEach((name, id) => {
+                if (!names.some(([_, n]) => n === name)) {
+                    names.push([id, name]);
+                }
+            });
+        }
+
+        return names;
     }
 
     has_name(name: string): boolean {
@@ -682,7 +714,7 @@ export class DeckCard extends Face {
                 .replace(/^(name)\??$/i, (_, name) =>
                     preserve_case(this.deck_list_name(), name))
                 .replace(/^(\/+\s*)(back)$/i, (_, slash, back) =>
-                    this.is_type('split') ? ''
+                    !this.has_main_face() ? ''
                         : this.all_names().slice(1).map(face => slash + preserve_case(face, back)).join(''))
                 .replace(/^(set)(\?)?$/i, (_, set, opt) =>
                     opt && !(this.card?.set ?? this.set) ? '' : preserve_case(this.card?.set ?? this.set, set))

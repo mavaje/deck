@@ -25,6 +25,16 @@ export class Search extends Panel {
                 }
             },
         });
+
+        HTML.input({
+            id: 'search-results',
+            onwheel: (input, event) => {
+                if (event.deltaX === 0) {
+                    input.scrollLeft += event.deltaY;
+                    event.preventDefault();
+                }
+            },
+        });
     }
 
     static open() {
@@ -54,7 +64,7 @@ export class Search extends Panel {
         const card_list = await API.card_search(query);
         if (card_list) {
             HTML.div({id: 'search-status'}, `Found ${count_plural(card_list.total_cards, 'card')}`);
-            HTML.div({id: 'search-results', class: '-searching'}, HTML.div(
+            HTML.div({id: 'search-results', class: []}, HTML.div(
                 {class: 'groups'},
                 card_list.data
                     .map(card => DeckCard.from_card(card, true))
@@ -66,7 +76,7 @@ export class Search extends Panel {
                                 `search-result-${i}`,
                                 false,
                                 () => {
-                                    if (card.card.oracle_id === CardPanel.SELECTED?.card?.oracle_id) {
+                                    if (card.oracle_id() === CardPanel.SELECTED?.oracle_id()) {
                                         SetCardPrinting.do(CardPanel.SELECTED, card.card);
                                     }
                                 },
@@ -77,7 +87,7 @@ export class Search extends Panel {
         } else {
             this.close();
             HTML.div({id: 'search-status'}, 'No cards found');
-            HTML.div({id: 'search-results', class: '-searching'}, []);
+            HTML.div({id: 'search-results', class: []}, []);
         }
     }
 }

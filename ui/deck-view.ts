@@ -61,7 +61,7 @@ export class DeckView {
             },
             board && HTML.div({
                 id: `${id}-label`,
-                class: 'label',
+                class: ['label', 'fade-in'],
             }, HTML.div(
                 HTML.span({style: {font_weight: 'bold'}}, board.name),
                 ` (${cards.count()})`,
@@ -106,7 +106,7 @@ export class DeckView {
             group.name && HTML.div(
                 {
                     id: `${id}-label`,
-                    class: 'label',
+                    class: ['label', 'fade-in'],
                     style: {
                         '--gradient': group.color && `linear-gradient(to right in oklab, ${
                             group.color.map((c, i, {length}) => `${c} ${{0: '4px', [length - 1]: 'calc(100% - 4px)'}[i] ?? ''}`).join(',')

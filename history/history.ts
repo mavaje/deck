@@ -14,6 +14,7 @@ export class History {
         const action = this.past.pop();
         if (action) {
             const reverse = action.reverse();
+            console.log('undid', action.message(), 'by', reverse.message());
             reverse.execute();
             this.future.push(reverse);
             Storage.store_deck();
@@ -24,6 +25,7 @@ export class History {
         const action = this.future.pop();
         if (action) {
             const reverse = action.reverse();
+            console.log('redid', reverse.message(), ', undoing', action.message());
             reverse.execute();
             this.past.push(reverse);
             Storage.store_deck();

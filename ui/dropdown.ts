@@ -20,9 +20,9 @@ export class Dropdown {
         this.element = HTML.div({id, class: 'dropdown'}, options.map(option => HTML.div({
             class: [
                 'option',
-                option.selected ? 'selected' : '-selected',
-                option.discouraged ? 'discouraged' : '-discouraged',
-                option.disabled ? 'disabled' : '-disabled',
+                option.selected && 'selected',
+                option.discouraged && 'discouraged',
+                option.disabled && 'disabled',
             ],
             onclick: !option.disabled && (() => option.on_select()),
         }, option.value)));
@@ -61,7 +61,10 @@ export class Dropdown {
     }
 
     open(target: HTMLElement, instant: boolean = false): Dropdown {
-        if (this.options.length < 2) return;
+        if (this.options.length < 2
+            || this.element.classList.contains('opening')
+            || this.element.classList.contains('open')
+        ) return;
         const {offsetTop, offsetHeight, offsetLeft} = target;
         this.element.style.top = `${offsetTop + offsetHeight + 8}px`;
         this.element.style.left = `${offsetLeft}px`;
@@ -70,7 +73,11 @@ export class Dropdown {
         if (instant) {
             this.element.classList.add('open');
         } else {
-            setTimeout(() => this.element.classList.add('open'));
+            this.element.classList.add('opening');
+            setTimeout(() => {
+                this.element.classList.remove('opening');
+                this.element.classList.add('open')
+            });
         }
     }
 

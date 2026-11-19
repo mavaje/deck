@@ -12,13 +12,13 @@
             spreadMethod="repeat"
             gradientUnits="userSpaceOnUse"
         >
-            <stop offset="0" stop-color="#363636"/>
-            <stop offset="0.167" stop-color="#ededed"/>
-            <stop offset="0.333" stop-color="#b6b6b6"/>
-            <stop offset="0.5" stop-color="#c9c9c9"/>
-            <stop offset="0.667" stop-color="#121212"/>
-            <stop offset="0.833" stop-color="#494949"/>
-            <stop offset="1" stop-color="#363636"/>
+            <stop offset="0" stop-color="#000000"/>
+            <stop offset="0.167" stop-color="#bfbfbf"/>
+            <stop offset="0.333" stop-color="#7f7f7f"/>
+            <stop offset="0.5" stop-color="#ffffff"/>
+            <stop offset="0.667" stop-color="#3f3f3f"/>
+            <stop offset="0.833" stop-color="#7f7f7f"/>
+            <stop offset="1" stop-color="#000000"/>
         </linearGradient>
     </defs>
     <rect

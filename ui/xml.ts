@@ -7,6 +7,8 @@ export type Attributes<
     class?: string | string[];
     style?: Record<string, any>;
     ontimeout?: (element: EL) => any;
+    onremove?: (element: EL) => any;
+    onrefresh?: (element: EL) => any;
 } & {
     [K in keyof EM & string as `on${K}`]?: (element: EL, event: EM[K]) => any;
 } & Record<string, any>;
@@ -25,7 +27,7 @@ type HTMLConstructor<T extends keyof HTMLElementTagNameMap> = XMLConstructor<HTM
 
 type SVGConstructor<T extends keyof SVGElementTagNameMap> = XMLConstructor<SVGElementTagNameMap[T], SVGElementEventMap>;
 
-const EVENT_LISTENERS: WeakMap<Element, Record<string, any>> = new WeakMap();
+const EVENT_LISTENERS: WeakMap<Element, Record<string, (event: Event) => any>> = new WeakMap();
 
 function create_element<T extends string>(
     tag: T,
@@ -63,30 +65,54 @@ function create_element<T extends string>(
                 : document.createTextNode(String(child)));
 
         const new_set = new Set(new_children);
+        const ignore_children: Set<ChildNode> = new Set();
         for (const old_child of [...element.childNodes]) {
             if (!new_set.has(old_child)) {
-                old_child.remove();
+                const listeners = EVENT_LISTENERS.get(old_child as Element);
+                if (listeners?.remove) {
+                    listeners.remove(undefined);
+                    ignore_children.add(old_child);
+                } else {
+                    old_child.remove();
+                }
             }
         }
 
         let last_child: ChildNode = null;
         for (const new_child of new_children) {
             if (last_child) {
-                if (new_child !== last_child.nextSibling) {
-                    last_child.after(new_child);
+                let previous_child = last_child;
+                while (ignore_children.has(previous_child.nextSibling)) {
+                    previous_child = previous_child.nextSibling;
+                }
+                if (new_child !== previous_child.nextSibling) {
+                    previous_child.after(new_child);
                 }
             } else {
-                if (new_child !== element.childNodes[0]) {
-                    element.insertBefore(new_child, element.childNodes[0]);
+                let first_child = element.childNodes[0];
+                while (ignore_children.has(first_child)) {
+                    first_child = first_child.nextSibling;
+                }
+                if (new_child !== first_child) {
+                    element.insertBefore(new_child, first_child);
                 }
             }
             last_child = new_child;
         }
     }
 
+    const listeners = EVENT_LISTENERS.get(element) ?? {};
+    listeners.refresh?.(undefined);
+
     Object.entries(attributes).forEach(([key, value]) => {
         if (is_nullish(value) || value === false) {
-            element.removeAttribute(key);
+            if (key.startsWith('on')) {
+                const event = key.slice(2);
+                element.removeEventListener(event as any, listeners[event]);
+                delete listeners[event];
+            } else {
+                element.removeAttribute(key);
+            }
             return;
         }
 
@@ -95,12 +121,8 @@ function create_element<T extends string>(
         switch (key) {
             case 'class':
                 if (!Array.isArray(value)) value = value.split(/\s+/g);
-                element.className = '';
-                element.classList.add(...value
-                    .filter(c => c && c[0] !== '-'));
-                element.classList.remove(...value
-                    .filter(c => c[0] === '-' && c[1])
-                    .map(c => c.slice(1)));
+                value = value.filter(Boolean);
+                element.className = value.join(' ');
                 return;
 
             case 'style':
@@ -132,20 +154,22 @@ function create_element<T extends string>(
                             break;
 
                         default:
-                            const listeners = EVENT_LISTENERS.get(element) ?? {};
-                            if (listeners[event]) {
-                                element.removeEventListener(event, listeners[event]);
-                            }
                             const listener = (event: Event) => value(element, event);
+                            element.removeEventListener(event as any, listeners[event]);
                             element.addEventListener(event, listener);
                             listeners[event] = listener;
-                            EVENT_LISTENERS.set(element, listeners);
                     }
                 } else {
                     element.setAttribute(key, String(value));
                 }
         }
     });
+
+    if (Object.entries(listeners).length > 0) {
+        EVENT_LISTENERS.set(element, listeners);
+    } else {
+        EVENT_LISTENERS.delete(element);
+    }
 
     return element;
 }

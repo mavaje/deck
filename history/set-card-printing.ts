@@ -1,6 +1,7 @@
 import {Action} from "./action";
 import {DeckCard} from "../deck-card";
 import {Card} from "../scryfall/types";
+import {EditCardFields} from "./edit-card-fields";
 
 export class SetCardPrinting extends Action {
 
@@ -32,7 +33,7 @@ export class SetCardPrinting extends Action {
     }
 
     reverse(): Action {
-        return new RevertCardPrinting(
+        return new EditCardFields(
             this.card,
             this.old_values,
         );
@@ -46,35 +47,5 @@ export class SetCardPrinting extends Action {
             && printing.collector_number === card.collector_number
             && printing.lang === card.language.code()
             && printing.finishes.includes(card.finish.sf_finish());
-    }
-}
-
-class RevertCardPrinting extends Action {
-
-    private old_printing: Card;
-
-    constructor(
-        private card: DeckCard,
-        private values: Partial<DeckCard>,
-    ) {
-        super();
-    }
-
-    message(): string {
-        return `Revert card printing`;
-    }
-
-    execute(): void {
-        const {card, values} = this;
-        this.old_printing = card.card;
-        Object.assign(card, values);
-        card.hydrate();
-    }
-
-    reverse(): Action {
-        return new SetCardPrinting(
-            this.card,
-            this.old_printing,
-        );
     }
 }
