@@ -66,20 +66,19 @@ export class CardPanel extends Panel {
             onclick: () => EditCardFields.do(card, {quantity: card.quantity + 1}),
         });
 
-        HTML.input({
-            id: 'name-input',
-            value: card.name || '',
-            onchange: input => EditCardName.do(card, input.value || null),
-            onkeypress,
-            ...new Dropdown(
-                'name-options',
-                card.selectable_names(true).flatMap(([id, name]) => ({
-                    value: name,
-                    on_select: () => EditCardName.do(card, name, id),
-                    selected: card.name === name,
-                })),
-            ).event_listeners(),
-        });
+        new Dropdown(
+            {
+                id: 'name-input',
+                value: card.name || '',
+                onchange: input => EditCardName.do(card, input.value || null),
+                onkeypress,
+            },
+            ({label, value}) => EditCardName.do(card, label, value),
+            card.selectable_names(true).map(([id, name]) => ({
+                label: name,
+                value: id,
+            })),
+        );
 
         HTML.input({
             id: 'set-input',
@@ -119,78 +118,73 @@ export class CardPanel extends Panel {
             onclick: () => EditCardFields.do(card, {set: null, collector_number: null}),
         });
 
-        HTML.input({
-            id: 'language-input',
-            class: card.invalid_language() && 'error',
-            value: card.language.name,
-            readonly: true,
-            onkeypress,
-            ...new Dropdown(
-                'language-options',
-                Language.all().map(language => ({
-                    value: language.name,
-                    on_select: () => EditCardFields.do(card, {language}),
-                    selected: card.language === language,
+        new Dropdown(
+            {
+                id: 'language-input',
+                class: card.invalid_language() && 'error',
+                value: card.language.name,
+                readonly: true,
+                onkeypress,
+            },
+            ({value}) => EditCardFields.do(card, {language: value}),
+            Language.all().map(language => ({
+                label: language.name,
+                value: language,
+            })),
+        );
+
+        new Dropdown(
+            {
+                id: 'finish-input',
+                value: card.finish.name,
+                readonly: true,
+                onkeypress,
+            },
+            ({value}) => EditCardFields.do(card, {finish: value}),
+            Finish.all().map(finish => ({
+                label: finish.name,
+                value: finish,
+                discouraged: card.card && !card.card.finishes.includes(finish.sf_finish()),
+            })),
+        );
+
+        new Dropdown(
+            {
+                id: 'condition-input',
+                value: card.condition?.name || '',
+                readonly: true,
+                onkeypress,
+            },
+            ({value}) => EditCardFields.do(card, {condition: value}),
+            [
+                {
+                    label: 'Unspecified',
+                    value: null,
+                    discouraged: true,
+                },
+                ...Condition.all().map(condition => ({
+                    label: condition.name,
+                    value: condition,
                 })),
-            ).event_listeners(),
-        });
+            ],
+        );
 
-        HTML.input({
-            id: 'finish-input',
-            value: card.finish.name,
-            readonly: true,
-            onkeypress,
-            ...new Dropdown(
-                'finish-options',
-                Finish.all().map(finish => ({
-                    value: finish.name,
-                    on_select: () => EditCardFields.do(card, {finish}),
-                    selected: card.finish === finish,
-                    discouraged: card.card && !card.card.finishes.includes(finish.sf_finish()),
+        new Dropdown(
+            {
+                id: 'zone-input',
+                class: !card.zone.can_include(card) && 'error',
+                value: card.zone.name,
+                readonly: true,
+                onkeypress,
+            },
+            ({value}) => EditCardFields.do(card, {zone: value}),
+            Zone.all()
+                .filter(zone => zone.can_include(card))
+                .map(zone => ({
+                    label: zone.name,
+                    value: zone,
                 })),
-            ).event_listeners(),
-        });
-
-        HTML.input({
-            id: 'condition-input',
-            value: card.condition?.name ?? '',
-            readonly: true,
-            onkeypress,
-            ...new Dropdown(
-                'condition-options',
-                [
-                    {
-                        value: 'Unspecified',
-                        on_select: () => EditCardFields.do(card, {condition: null}),
-                        selected: !card.condition,
-                        discouraged: true,
-                    },
-                    ...Condition.all().map(condition => ({
-                        value: condition.name,
-                        on_select: () => EditCardFields.do(card, {condition}),
-                        selected: card.condition === condition,
-                    })),
-                ],
-            ).event_listeners(),
-        });
-
-        HTML.input({
-            id: 'zone-input',
-            class: !card.zone.can_include(card) && 'error',
-            value: card.zone.name,
-            readonly: true,
-            onkeypress,
-            ...new Dropdown(
-                'zone-options',
-                Zone.all()
-                    .filter(zone => zone.can_include(card))
-                    .map(zone => ({
-                        value: zone.name,
-                        on_select: () => EditCardFields.do(card, {zone: zone}),
-                        selected: card.zone === zone,
-                    })),
-            ).event_listeners(),
-        });
+        );
 
         HTML.button({
             id: 'delete-card',

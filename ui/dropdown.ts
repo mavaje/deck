@@ -1,31 +1,39 @@
 import {Attributes, HTML} from "./xml";
 
-export type DropdownOption = {
-    value?: string;
-    on_select?: () => void;
-    selected?: boolean;
+export type DropdownOption<T = any> = {
+    value?: T;
+    label?: string;
     discouraged?: boolean;
     disabled?: boolean;
 };
 
-export class Dropdown {
-    element: HTMLDivElement;
+export class Dropdown<T = any> {
+    input: HTMLInputElement;
+    dropdown: HTMLDivElement;
+
 
     private closing_timeout: number = null;
 
     constructor(
-        id: string,
-        private options: DropdownOption[],
+        attributes: Attributes<HTMLInputElement, HTMLElementEventMap>,
+        private on_select: (option: DropdownOption<T>) => any,
+        private options: DropdownOption<T>[],
     ) {
-        this.element = HTML.div({id, class: 'dropdown'}, options.map(option => HTML.div({
-            class: [
-                'option',
-                option.selected && 'selected',
-                option.discouraged && 'discouraged',
-                option.disabled && 'disabled',
-            ],
-            onclick: !option.disabled && (() => option.on_select()),
-        }, option.value)));
+        this.input = HTML.input({
+            ...attributes,
+            ...this.event_listeners(),
+        }, this.dropdown = HTML.div({
+            id: `${attributes.id}-dropdown`,
+            class: 'dropdown',
+        }, options.map(option => HTML.div({
+                class: [
+                    'option',
+                    option.label === attributes.value && 'selected',
+                    option.discouraged && 'discouraged',
+                    option.disabled && 'disabled',
+                ],
+                onclick: !option.disabled && (() => this.select(option)),
+            }, `${option.label ?? option.value}`))));
     }
 
     event_listeners(): Attributes<HTMLElement, HTMLElementEventMap> {
@@ -34,13 +42,14 @@ export class Dropdown {
             onclick: target => this.open(target),
             onblur: () => this.close(),
             onkeydown: (target, event) => {
-                let index = this.options.findIndex(({selected}) => selected);
+                let index = this.options
+                    .findIndex(({label}) => label === this.input.value);
                 switch (event.key) {
                     case 'ArrowUp':
                         index = index < 0
                             ? this.options.length - 1
                             : (index + this.options.length - 1) % this.options.length;
-                        this.options[index].on_select();
+                        this.select(this.options[index]);
                         this.open(target, true);
                         event.preventDefault();
                         return;
@@ -48,7 +57,7 @@ export class Dropdown {
                         index = index < 0
                             ? 0
                             : (index + 1) % this.options.length;
-                        this.options[index].on_select();
+                        this.select(this.options[index]);
                         this.open(target, true);
                         event.preventDefault();
                         return;
@@ -60,29 +69,34 @@ export class Dropdown {
         }
     }
 
+    select(option: DropdownOption<T>) {
+        this.input.value = option.label ?? `${option.value}`;
+        this.on_select(option);
+    }
+
     open(target: HTMLElement, instant: boolean = false): Dropdown {
         if (this.options.length < 2
-            || this.element.classList.contains('opening')
-            || this.element.classList.contains('open')
+            || this.dropdown.classList.contains('opening')
+            || this.dropdown.classList.contains('open')
         ) return;
         const {offsetTop, offsetHeight, offsetLeft} = target;
-        this.element.style.top = `${offsetTop + offsetHeight + 8}px`;
-        this.element.style.left = `${offsetLeft}px`;
-        target.parentElement.append(this.element);
+        this.dropdown.style.top = `${offsetTop + offsetHeight + 8}px`;
+        this.dropdown.style.left = `${offsetLeft}px`;
+        target.parentElement.append(this.dropdown);
         clearTimeout(this.closing_timeout);
         if (instant) {
-            this.element.classList.add('open');
+            this.dropdown.classList.add('open');
         } else {
-            this.element.classList.add('opening');
+            this.dropdown.classList.add('opening');
             setTimeout(() => {
-                this.element.classList.remove('opening');
-                this.element.classList.add('open')
+                this.dropdown.classList.remove('opening');
+                this.dropdown.classList.add('open')
             });
         }
     }
 
     close() {
-        this.element.classList.remove('open');
-        this.closing_timeout = setTimeout(() => this.element.remove(), 200);
+        this.dropdown.classList.remove('open');
+        this.closing_timeout = setTimeout(() => this.dropdown.remove(), 200);
     }
 }

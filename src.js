@@ -1853,7 +1853,7 @@ var init_search = __esm({
         super.close();
       }
       static async run(query) {
-        query = query.replaceAll(/^\s+|\s+$/, "").replaceAll(/\s+/, " ");
+        query = query.replaceAll(/^\s+|\s+$/g, "").replaceAll(/\s+/g, " ");
         HTML.input({ id: "search-query", value: query });
         if (!query) return;
         this.open();
@@ -1927,20 +1927,29 @@ var init_dropdown = __esm({
   "ui/dropdown.ts"() {
     init_xml();
     Dropdown = class {
-      constructor(id, options) {
+      constructor(attributes, on_select, options) {
+        this.on_select = on_select;
         this.options = options;
-        this.element = HTML.div({ id, class: "dropdown" }, options.map((option) => HTML.div({
+        this.input = HTML.input({
+          ...attributes,
+          ...this.event_listeners()
+        }, this.dropdown = HTML.div({
+          id: `${attributes.id}-dropdown`,
+          class: "dropdown"
+        }, options.map((option) => HTML.div({
           class: [
             "option",
-            option.selected && "selected",
+            option.label === attributes.value && "selected",
             option.discouraged && "discouraged",
             option.disabled && "disabled"
           ],
-          onclick: !option.disabled && (() => option.on_select())
-        }, option.value)));
+          onclick: !option.disabled && (() => this.select(option))
+        }, `${option.label ?? option.value}`))));
       }
+      on_select;
       options;
-      element;
+      input;
+      dropdown;
       closing_timeout = null;
       event_listeners() {
         return {
@@ -1948,17 +1957,17 @@ var init_dropdown = __esm({
           onclick: (target) => this.open(target),
           onblur: () => this.close(),
           onkeydown: (target, event) => {
-            let index = this.options.findIndex(({ selected }) => selected);
+            let index = this.options.findIndex(({ label }) => label === this.input.value);
             switch (event.key) {
               case "ArrowUp":
                 index = index < 0 ? this.options.length - 1 : (index + this.options.length - 1) % this.options.length;
-                this.options[index].on_select();
+                this.select(this.options[index]);
                 this.open(target, true);
                 event.preventDefault();
                 return;
               case "ArrowDown":
                 index = index < 0 ? 0 : (index + 1) % this.options.length;
-                this.options[index].on_select();
+                this.select(this.options[index]);
                 this.open(target, true);
                 event.preventDefault();
                 return;
@@ -1969,26 +1978,30 @@ var init_dropdown = __esm({
           }
         };
       }
+      select(option) {
+        this.input.value = option.label ?? `${option.value}`;
+        this.on_select(option);
+      }
       open(target, instant = false) {
-        if (this.options.length < 2 || this.element.classList.contains("opening") || this.element.classList.contains("open")) return;
+        if (this.options.length < 2 || this.dropdown.classList.contains("opening") || this.dropdown.classList.contains("open")) return;
         const { offsetTop, offsetHeight, offsetLeft } = target;
-        this.element.style.top = `${offsetTop + offsetHeight + 8}px`;
-        this.element.style.left = `${offsetLeft}px`;
-        target.parentElement.append(this.element);
+        this.dropdown.style.top = `${offsetTop + offsetHeight + 8}px`;
+        this.dropdown.style.left = `${offsetLeft}px`;
+        target.parentElement.append(this.dropdown);
         clearTimeout(this.closing_timeout);
         if (instant) {
-          this.element.classList.add("open");
+          this.dropdown.classList.add("open");
         } else {
-          this.element.classList.add("opening");
+          this.dropdown.classList.add("opening");
           setTimeout(() => {
-            this.element.classList.remove("opening");
-            this.element.classList.add("open");
+            this.dropdown.classList.remove("opening");
+            this.dropdown.classList.add("open");
           });
         }
       }
       close() {
-        this.element.classList.remove("open");
-        this.closing_timeout = setTimeout(() => this.element.remove(), 200);
+        this.dropdown.classList.remove("open");
+        this.closing_timeout = setTimeout(() => this.dropdown.remove(), 200);
       }
     };
   }
@@ -2232,20 +2245,19 @@ var init_card_panel = __esm({
           disabled: card.quantity >= 99,
           onclick: () => EditCardFields.do(card, { quantity: card.quantity + 1 })
         });
-        HTML.input({
-          id: "name-input",
-          value: card.name || "",
-          onchange: (input) => EditCardName.do(card, input.value || null),
-          onkeypress,
-          ...new Dropdown(
-            "name-options",
-            card.selectable_names(true).flatMap(([id, name]) => ({
-              value: name,
-              on_select: () => EditCardName.do(card, name, id),
-              selected: card.name === name
-            }))
-          ).event_listeners()
-        });
+        new Dropdown(
+          {
+            id: "name-input",
+            value: card.name || "",
+            onchange: (input) => EditCardName.do(card, input.value || null),
+            onkeypress
+          },
+          ({ label, value }) => EditCardName.do(card, label, value),
+          card.selectable_names(true).map(([id, name]) => ({
+            label: name,
+            value: id
+          }))
+        );
         HTML.input({
           id: "set-input",
           class: card.invalid_set() && "error",
@@ -2280,73 +2292,68 @@ var init_card_panel = __esm({
           disabled: !card.set,
           onclick: () => EditCardFields.do(card, { set: null, collector_number: null })
         });
-        HTML.input({
-          id: "language-input",
-          class: card.invalid_language() && "error",
-          value: card.language.name,
-          readonly: true,
-          onkeypress,
-          ...new Dropdown(
-            "language-options",
-            Language.all().map((language) => ({
-              value: language.name,
-              on_select: () => EditCardFields.do(card, { language }),
-              selected: card.language === language
+        new Dropdown(
+          {
+            id: "language-input",
+            class: card.invalid_language() && "error",
+            value: card.language.name,
+            readonly: true,
+            onkeypress
+          },
+          ({ value }) => EditCardFields.do(card, { language: value }),
+          Language.all().map((language) => ({
+            label: language.name,
+            value: language
+          }))
+        );
+        new Dropdown(
+          {
+            id: "finish-input",
+            value: card.finish.name,
+            readonly: true,
+            onkeypress
+          },
+          ({ value }) => EditCardFields.do(card, { finish: value }),
+          Finish.all().map((finish) => ({
+            label: finish.name,
+            value: finish,
+            discouraged: card.card && !card.card.finishes.includes(finish.sf_finish())
+          }))
+        );
+        new Dropdown(
+          {
+            id: "condition-input",
+            value: card.condition?.name || "",
+            readonly: true,
+            onkeypress
+          },
+          ({ value }) => EditCardFields.do(card, { condition: value }),
+          [
+            {
+              label: "Unspecified",
+              value: null,
+              discouraged: true
+            },
+            ...Condition.all().map((condition) => ({
+              label: condition.name,
+              value: condition
             }))
-          ).event_listeners()
-        });
-        HTML.input({
-          id: "finish-input",
-          value: card.finish.name,
-          readonly: true,
-          onkeypress,
-          ...new Dropdown(
-            "finish-options",
-            Finish.all().map((finish) => ({
-              value: finish.name,
-              on_select: () => EditCardFields.do(card, { finish }),
-              selected: card.finish === finish,
-              discouraged: card.card && !card.card.finishes.includes(finish.sf_finish())
-            }))
-          ).event_listeners()
-        });
-        HTML.input({
-          id: "condition-input",
-          value: card.condition?.name ?? "",
-          readonly: true,
-          onkeypress,
-          ...new Dropdown(
-            "condition-options",
-            [
-              {
-                value: "Unspecified",
-                on_select: () => EditCardFields.do(card, { condition: null }),
-                selected: !card.condition,
-                discouraged: true
-              },
-              ...Condition.all().map((condition) => ({
-                value: condition.name,
-                on_select: () => EditCardFields.do(card, { condition }),
-                selected: card.condition === condition
-              }))
-            ]
-          ).event_listeners()
-        });
-        HTML.input({
-          id: "zone-input",
-          class: !card.zone.can_include(card) && "error",
-          value: card.zone.name,
-          readonly: true,
-          onkeypress,
-          ...new Dropdown(
-            "zone-options",
-            Zone.all().filter((zone) => zone.can_include(card)).map((zone) => ({
-              value: zone.name,
-              on_select: () => EditCardFields.do(card, { zone }),
-              selected: card.zone === zone
-            }))
-          ).event_listeners()
-        });
+          ]
+        );
+        new Dropdown(
+          {
+            id: "zone-input",
+            class: !card.zone.can_include(card) && "error",
+            value: card.zone.name,
+            readonly: true,
+            onkeypress
+          },
+          ({ value }) => EditCardFields.do(card, { zone: value }),
+          Zone.all().filter((zone) => zone.can_include(card)).map((zone) => ({
+            label: zone.name,
+            value: zone
+          }))
+        );
         HTML.button({
           id: "delete-card",
           onclick: () => DeleteCard.do(Deck.CURRENT, card)
@@ -4598,13 +4605,6 @@ var init_deck_panel = __esm({
             file.text().then((input2) => Deck.load_current(input2, title)).then(() => DeckCard.CACHE.dump());
           }
         });
-        HTML.select({
-          id: "group-by",
-          onchange: (select) => {
-            DeckView.GROUPING = this.CARD_GROUPINGS[select.value];
-            DeckView.render();
-          }
-        }, this.CARD_GROUPINGS.map((grouping, i) => HTML.option({ value: i }, grouping.name)));
         HTML.input({
           id: "by-zone",
           onchange: (input) => {
@@ -4612,8 +4612,17 @@ var init_deck_panel = __esm({
             DeckView.render();
           }
         });
-        HTML.select({
+        HTML.input({
+          id: "group-by",
+          readonly: true,
+          onchange: (select) => {
+            DeckView.GROUPING = this.CARD_GROUPINGS[select.value];
+            DeckView.render();
+          }
+        }, this.CARD_GROUPINGS.map((grouping, i) => HTML.option({ value: i }, grouping.name)));
+        HTML.input({
           id: "order-by",
+          readonly: true,
           onchange: (select) => {
             DeckView.ORDERING = this.CARD_ORDERINGS[select.value];
             DeckView.render();

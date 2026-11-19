@@ -100,15 +100,6 @@ export class DeckPanel extends Panel {
             },
         });
 
-        HTML.select({
-            id: 'group-by',
-            onchange: select => {
-                DeckView.GROUPING = this.CARD_GROUPINGS[select.value];
-                DeckView.render();
-            },
-        }, this.CARD_GROUPINGS.map((grouping, i) =>
-            HTML.option({value: i}, grouping.name)));
-
         HTML.input({
             id: 'by-zone',
             onchange: input => {
@@ -117,8 +108,19 @@ export class DeckPanel extends Panel {
             },
         });
 
-        HTML.select({
+        HTML.input({
+            id: 'group-by',
+            readonly: true,
+            onchange: select => {
+                DeckView.GROUPING = this.CARD_GROUPINGS[select.value];
+                DeckView.render();
+            },
+        }, this.CARD_GROUPINGS.map((grouping, i) =>
+            HTML.option({value: i}, grouping.name)));
+
+        HTML.input({
             id: 'order-by',
+            readonly: true,
             onchange: select => {
                 DeckView.ORDERING = this.CARD_ORDERINGS[select.value];
                 DeckView.render();

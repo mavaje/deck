@@ -56,8 +56,8 @@ export class Search extends Panel {
 
     static async run(query: string): Promise<void> {
         query = query
-            .replaceAll(/^\s+|\s+$/, '')
-            .replaceAll(/\s+/, ' ');
+            .replaceAll(/^\s+|\s+$/g, '')
+            .replaceAll(/\s+/g, ' ');
         HTML.input({id: 'search-query', value: query});
         if (!query) return;
         this.open();
