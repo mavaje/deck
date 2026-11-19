@@ -315,7 +315,6 @@ export class DeckCard extends Face {
         if (Object.entries({name, set, collector_number, language})
             .some(([key, field]) => this[key] !== field)
         ) {
-            console.log('changed while loading');
             return;
         }
 
@@ -714,8 +713,11 @@ export class DeckCard extends Face {
                 .replace(/^(name)\??$/i, (_, name) =>
                     preserve_case(this.deck_list_name(), name))
                 .replace(/^(\/+\s*)(back)$/i, (_, slash, back) =>
-                    !this.has_main_face() ? ''
-                        : this.all_names().slice(1).map(face => slash + preserve_case(face, back)).join(''))
+                    !this.has_main_face() && this.display_face_id === null ? ''
+                        : this.all_names()
+                            .filter((_, i) => i !== (this.display_face_id ?? 0))
+                            .map(face => slash + preserve_case(face, back))
+                            .join(''))
                 .replace(/^(set)(\?)?$/i, (_, set, opt) =>
                     opt && !(this.card?.set ?? this.set) ? '' : preserve_case(this.card?.set ?? this.set, set))
             )

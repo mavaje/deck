@@ -61,8 +61,15 @@ export class DeckPanel extends Panel {
         });
 
         HTML.button({
-            id: 'deck-upload-button',
+            id: 'deck-upload',
             onclick: () => file_input.click(),
+        });
+
+        HTML.button({
+            id: 'deck-download',
+            onclick: () => {
+                console.log(Deck.CURRENT.to_string());
+            },
         });
 
         HTML.h2({
@@ -89,10 +96,7 @@ export class DeckPanel extends Panel {
 
                 file.text()
                     .then(input => Deck.load_current(input, title))
-                    .then(deck => {
-                        DeckCard.CACHE.dump();
-                        console.log(deck.to_string());
-                    });
+                    .then(() => DeckCard.CACHE.dump());
             },
         });
 

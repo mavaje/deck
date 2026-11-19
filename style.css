@@ -443,11 +443,11 @@ button:disabled {
     width: 7ch;
 }
 
-#print-search-button {
+#print-search {
     flex: 0;
 }
 
-div:has(> #delete-card-button) {
+div:has(> #delete-card) {
     align-self: end;
 }
 

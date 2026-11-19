@@ -8,6 +8,7 @@ import {Tag} from "./designation/tag";
 import {DeckView} from "./ui/deck-view";
 import {History} from "./history/history";
 import {Game} from "./game";
+import {CardPanel} from "./ui/deck/card-panel";
 
 export type JSONDeck = {
     title: string;
@@ -78,6 +79,7 @@ export class Deck extends CardList {
     }
 
     static async load_current(input: string, title?: string): Promise<Deck> {
+        CardPanel.close();
         History.reset();
 
         let invalid_boards: Board[] = [];
@@ -190,7 +192,7 @@ export class Deck extends CardList {
         return Board.all()
             .filter(board => this.board(board).length > 0)
             .map(board => `# ${board.name}\n`
-                + this.board(board).map(card => card.to_string(card_format)).join('\n') + '\n')
+                + this.board(board).map(card => card.to_string(card_format) + ` (${card.display_face_id})`).join('\n') + '\n')
             .join('\n');
     }
 

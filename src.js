@@ -1815,7 +1815,7 @@ var init_search = __esm({
     init_set_card_printing();
     Search = class extends Panel {
       static id = "search-results";
-      static HISTORY = [];
+      static HISTORY = /* @__PURE__ */ new Set();
       static HISTORY_INDEX = 0;
       static CURRENT_VALUE = "";
       static initialise() {
@@ -1827,7 +1827,7 @@ var init_search = __esm({
           id: "search-form",
           onsubmit: (_, event) => {
             event.preventDefault();
-            this.run(HTML.input({ id: "search-query" }).value.trim());
+            this.run(HTML.input({ id: "search-query" }).value);
           }
         });
         HTML.button({
@@ -1853,6 +1853,7 @@ var init_search = __esm({
         super.close();
       }
       static async run(query) {
+        query = query.replaceAll(/^\s+|\s+$/, "").replaceAll(/\s+/, " ");
         HTML.input({ id: "search-query", value: query });
         if (!query) return;
         this.open();
@@ -1866,31 +1867,28 @@ var init_search = __esm({
             )
           )
         ));
-        this.HISTORY.push(query);
-        console.log(this.HISTORY);
+        this.HISTORY.delete(query);
+        this.HISTORY.add(query);
         this.HISTORY_INDEX = 1;
         HTML.input({
           id: "search-query",
           oninput: (input) => {
-            console.log(this.HISTORY);
-            console.log(this.HISTORY_INDEX);
-            console.log(this.CURRENT_VALUE, "->", input.value);
             this.HISTORY_INDEX = 0;
             this.CURRENT_VALUE = input.value;
           },
           onkeydown: (input, event) => {
             switch (event.key) {
               case "ArrowUp":
-                if (this.HISTORY_INDEX < this.HISTORY.length) {
+                if (this.HISTORY_INDEX < this.HISTORY.size) {
                   this.HISTORY_INDEX++;
-                  input.value = this.HISTORY[this.HISTORY.length - this.HISTORY_INDEX];
+                  input.value = [...this.HISTORY][this.HISTORY.size - this.HISTORY_INDEX];
                 }
                 event.preventDefault();
                 return;
               case "ArrowDown":
                 if (this.HISTORY_INDEX > 0) {
                   this.HISTORY_INDEX--;
-                  input.value = this.HISTORY[this.HISTORY.length - this.HISTORY_INDEX] ?? this.CURRENT_VALUE;
+                  input.value = [...this.HISTORY][this.HISTORY.size - this.HISTORY_INDEX] ?? this.CURRENT_VALUE;
                 }
                 event.preventDefault();
                 return;
@@ -2267,7 +2265,7 @@ var init_card_panel = __esm({
           onkeypress
         });
         HTML.button({
-          id: "print-search-button",
+          id: "print-search",
           disabled: !card.name,
           onclick: () => {
             if (!card.name) return;
@@ -2278,7 +2276,7 @@ var init_card_panel = __esm({
           }
         });
         HTML.button({
-          id: "print-clear-button",
+          id: "print-clear",
           disabled: !card.set,
           onclick: () => EditCardFields.do(card, { set: null, collector_number: null })
         });
@@ -2350,7 +2348,7 @@ var init_card_panel = __esm({
           ).event_listeners()
         });
         HTML.button({
-          id: "delete-card-button",
+          id: "delete-card",
           onclick: () => DeleteCard.do(Deck.CURRENT, card)
         });
       }
@@ -2601,7 +2599,6 @@ var init_deck_card = __esm({
           }
         }
         if (Object.entries({ name, set, collector_number, language }).some(([key, field]) => this[key] !== field)) {
-          console.log("changed while loading");
           return;
         }
         return this.hydrate(card).cache();
@@ -2883,7 +2880,7 @@ var init_deck_card = __esm({
             } else {
               return full;
             }
-          }).replace(/^(name)\??$/i, (_, name) => preserve_case(this.deck_list_name(), name)).replace(/^(\/+\s*)(back)$/i, (_, slash, back) => !this.has_main_face() ? "" : this.all_names().slice(1).map((face) => slash + preserve_case(face, back)).join("")).replace(/^(set)(\?)?$/i, (_, set, opt) => opt && !(this.card?.set ?? this.set) ? "" : preserve_case(this.card?.set ?? this.set, set))
+          }).replace(/^(name)\??$/i, (_, name) => preserve_case(this.deck_list_name(), name)).replace(/^(\/+\s*)(back)$/i, (_, slash, back) => !this.has_main_face() && this.display_face_id === null ? "" : this.all_names().filter((_2, i) => i !== (this.display_face_id ?? 0)).map((face) => slash + preserve_case(face, back)).join("")).replace(/^(set)(\?)?$/i, (_, set, opt) => opt && !(this.card?.set ?? this.set) ? "" : preserve_case(this.card?.set ?? this.set, set))
         ).replaceAll(/\s+/g, " ").replaceAll(/^\s|\s$/g, "");
       }
       toString() {
@@ -3038,6 +3035,7 @@ var init_deck = __esm({
     init_deck_view();
     init_history();
     init_game();
+    init_card_panel();
     Deck = class _Deck extends CardList {
       static CURRENT = new _Deck();
       raw;
@@ -3081,6 +3079,7 @@ var init_deck = __esm({
         return deck;
       }
       static async load_current(input, title) {
+        CardPanel.close();
         History.reset();
         let invalid_boards = [];
         do {
@@ -3160,7 +3159,7 @@ var init_deck = __esm({
       }
       to_string(card_format) {
         return Board.all().filter((board) => this.board(board).length > 0).map((board) => `# ${board.name}
-` + this.board(board).map((card) => card.to_string(card_format)).join("\n") + "\n").join("\n");
+` + this.board(board).map((card) => card.to_string(card_format) + ` (${card.display_face_id})`).join("\n") + "\n").join("\n");
       }
       toString() {
         return this.to_string();
@@ -4568,8 +4567,15 @@ var init_deck_panel = __esm({
           onclick: () => this.toggle()
         });
         HTML.button({
-          id: "deck-upload-button",
+          id: "deck-upload",
           onclick: () => file_input.click()
+        });
+        HTML.button({
+          id: "deck-download",
+          onclick: () => {
+            console.log(Deck.CURRENT.to_string("Name"));
+            console.log(Deck.CURRENT.to_string("Name // Back"));
+          }
         });
         HTML.h2({
           id: "deck-title",
@@ -4592,7 +4598,6 @@ var init_deck_panel = __esm({
             HTML.h2({ id: "deck-title" }, title);
             file.text().then((input2) => Deck.load_current(input2, title)).then((deck) => {
               DeckCard.CACHE.dump();
-              console.log(deck.to_string());
             });
           }
         });

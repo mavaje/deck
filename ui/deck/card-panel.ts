@@ -102,7 +102,7 @@ export class CardPanel extends Panel {
         });
 
         HTML.button({
-            id: 'print-search-button',
+            id: 'print-search',
             disabled: !card.name,
             onclick: () => {
                 if (!card.name) return;
@@ -114,7 +114,7 @@ export class CardPanel extends Panel {
         });
 
         HTML.button({
-            id: 'print-clear-button',
+            id: 'print-clear',
             disabled: !card.set,
             onclick: () => EditCardFields.do(card, {set: null, collector_number: null}),
         });
@@ -193,7 +193,7 @@ export class CardPanel extends Panel {
         });
 
         HTML.button({
-            id: 'delete-card-button',
+            id: 'delete-card',
             onclick: () => DeleteCard.do(Deck.CURRENT, card),
         });
     }

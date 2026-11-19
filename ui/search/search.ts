@@ -10,7 +10,7 @@ import {SetCardPrinting} from "../../history/set-card-printing";
 export class Search extends Panel {
     static id: string = 'search-results';
 
-    static HISTORY: string[] = [];
+    static HISTORY = new Set<string>();
     static HISTORY_INDEX: number = 0;
     static CURRENT_VALUE: string = '';
 
@@ -24,7 +24,7 @@ export class Search extends Panel {
             id: 'search-form',
             onsubmit: (_, event) => {
                 event.preventDefault();
-                this.run(HTML.input({id: 'search-query'}).value.trim());
+                this.run(HTML.input({id: 'search-query'}).value);
             },
         });
 
@@ -55,6 +55,9 @@ export class Search extends Panel {
     }
 
     static async run(query: string): Promise<void> {
+        query = query
+            .replaceAll(/^\s+|\s+$/, '')
+            .replaceAll(/\s+/, ' ');
         HTML.input({id: 'search-query', value: query});
         if (!query) return;
         this.open();
@@ -69,8 +72,8 @@ export class Search extends Panel {
                 ),
         ));
 
-        this.HISTORY.push(query);
-        console.log(this.HISTORY);
+        this.HISTORY.delete(query);
+        this.HISTORY.add(query);
         this.HISTORY_INDEX = 1;
         HTML.input({
             id: 'search-query',
@@ -81,16 +84,16 @@ export class Search extends Panel {
             onkeydown: (input, event) => {
                 switch (event.key) {
                     case 'ArrowUp':
-                        if (this.HISTORY_INDEX < this.HISTORY.length) {
+                        if (this.HISTORY_INDEX < this.HISTORY.size) {
                             this.HISTORY_INDEX++;
-                            input.value = this.HISTORY[this.HISTORY.length - this.HISTORY_INDEX];
+                            input.value = [...this.HISTORY][this.HISTORY.size - this.HISTORY_INDEX];
                         }
                         event.preventDefault();
                         return;
                     case 'ArrowDown':
                         if (this.HISTORY_INDEX > 0) {
                             this.HISTORY_INDEX--;
-                            input.value = this.HISTORY[this.HISTORY.length - this.HISTORY_INDEX]
+                            input.value = [...this.HISTORY][this.HISTORY.size - this.HISTORY_INDEX]
                                 ?? this.CURRENT_VALUE;
                         }
                         event.preventDefault();
