@@ -10,20 +10,27 @@ import {SetCardPrinting} from "../../history/set-card-printing";
 export class Search extends Panel {
     static id: string = 'search-results';
 
+    static HISTORY: string[] = [];
+    static HISTORY_INDEX: number = 0;
+    static CURRENT_VALUE: string = '';
+
     static initialise() {
         HTML.button({
             id: 'search-collapse',
             onclick: () => this.toggle(),
         });
 
-        HTML.input({
-            id: 'search-query',
-            onkeypress: (input, {key}) => {
-                if (key === 'Enter') {
-                    this.run();
-                    input.blur();
-                }
+        HTML.form({
+            id: 'search-form',
+            onsubmit: (_, event) => {
+                event.preventDefault();
+                this.run(HTML.input({id: 'search-query'}).value.trim());
             },
+        });
+
+        HTML.button({
+            id: 'search-clear',
+            onclick: () => HTML.input({id: 'search-query', value: ''}),
         });
 
         HTML.input({
@@ -47,7 +54,7 @@ export class Search extends Panel {
         super.close();
     }
 
-    static async run(query: string = HTML.input({id: 'search-query'}).value): Promise<void> {
+    static async run(query: string): Promise<void> {
         HTML.input({id: 'search-query', value: query});
         if (!query) return;
         this.open();
@@ -57,10 +64,41 @@ export class Search extends Panel {
             [...Array(5)]
                 .map((_, i) =>
                     HTML.div({id: `search-stack-${i}`, class: 'stack'},
-                        CardView.render(DeckCard.empty(), null, `search-result-${i}`),
+                        CardView.render(DeckCard.empty(), `search-result-${i}`),
                     )
                 ),
         ));
+
+        this.HISTORY.push(query);
+        console.log(this.HISTORY);
+        this.HISTORY_INDEX = 1;
+        HTML.input({
+            id: 'search-query',
+            oninput: input => {
+                this.HISTORY_INDEX = 0;
+                this.CURRENT_VALUE = input.value;
+            },
+            onkeydown: (input, event) => {
+                switch (event.key) {
+                    case 'ArrowUp':
+                        if (this.HISTORY_INDEX < this.HISTORY.length) {
+                            this.HISTORY_INDEX++;
+                            input.value = this.HISTORY[this.HISTORY.length - this.HISTORY_INDEX];
+                        }
+                        event.preventDefault();
+                        return;
+                    case 'ArrowDown':
+                        if (this.HISTORY_INDEX > 0) {
+                            this.HISTORY_INDEX--;
+                            input.value = this.HISTORY[this.HISTORY.length - this.HISTORY_INDEX]
+                                ?? this.CURRENT_VALUE;
+                        }
+                        event.preventDefault();
+                        return;
+                }
+            },
+        });
+
         const card_list = await API.card_search(query);
         if (card_list) {
             HTML.div({id: 'search-status'}, `Found ${count_plural(card_list.total_cards, 'card')}`);
@@ -70,17 +108,11 @@ export class Search extends Panel {
                     .map(card => DeckCard.from_card(card, true))
                     .map((card, i) =>
                         HTML.div({id: `search-stack-${i}`, class: 'stack'},
-                            CardView.render(
-                                card,
-                                null,
-                                `search-result-${i}`,
-                                false,
-                                () => {
-                                    if (card.oracle_id() === CardPanel.SELECTED?.oracle_id()) {
-                                        SetCardPrinting.do(CardPanel.SELECTED, card.card);
-                                    }
-                                },
-                            ),
+                            CardView.render(card, `search-result-${i}`, () => {
+                                if (card.oracle_id() === CardPanel.SELECTED?.oracle_id()) {
+                                    SetCardPrinting.do(CardPanel.SELECTED, card.card);
+                                }
+                            }),
                         )
                     ),
             ));

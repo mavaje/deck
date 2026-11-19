@@ -33,7 +33,7 @@ export class CardPanel extends Panel {
 
         HTML.div(
             {id: 'card-panel-card-container'},
-            CardView.render(card, undefined, `card-panel-card`),
+            CardView.render(card, `card-panel-card`),
         );
 
         const onkeypress: (input: HTMLInputElement, event: KeyboardEvent) => void = (input, {key}) => {
@@ -194,7 +194,7 @@ export class CardPanel extends Panel {
 
         HTML.button({
             id: 'delete-card-button',
-            onclick: () => DeleteCard.do(Deck.current, card),
+            onclick: () => DeleteCard.do(Deck.CURRENT, card),
         });
     }
 

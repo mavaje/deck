@@ -34,7 +34,7 @@ export class DeckCard extends Face {
 
     static LINE_REGEXP: RegExp = null;
 
-    static bracket_words = new Set([
+    static BRACKET_WORDS = new Set([
         'Used',
         'Plane',
         'Summer',
@@ -69,7 +69,7 @@ export class DeckCard extends Face {
         this.LINE_REGEXP = new RegExp([
             '^',
             '((?<quantity>\\d{1,3})[x*×]?\\s)?',
-            `(?<name>[^([^#*]+?(\\s*\\((\d{4}|[^)]*[ '][^)]*|${[...this.bracket_words].join('|')})\\))?)?`,
+            `(?<name>[^([^#*]+?(\\s*\\((\d{4}|[^)]*[ '][^)]*|${[...this.BRACKET_WORDS].join('|')})\\))?)?`,
             '(?<set_num>\\([0-9A-Z]{3,5}\\)(\\s*[^)[(#*:\\s]+)?|\\([0-9A-Z]{3,5}:[^)[(#*:\\s]+\\))?',
             '(?<extra>([#*^[]).*)?',
             '$'
@@ -83,7 +83,7 @@ export class DeckCard extends Face {
             for (const match of matches) {
                 const word = match.groups.word;
                 if (word.match(/[A-Z]/i)) {
-                    this.bracket_words.add(word);
+                    this.BRACKET_WORDS.add(word);
                 }
             }
         });

@@ -69,7 +69,7 @@ export class DeckPanel extends Panel {
             id: 'deck-title',
             contenteditable: true,
             onchange: element => {
-                Deck.current.title = element.innerText;
+                Deck.CURRENT.title = element.innerText;
             },
             onkeypress: (element, event) => {
                 if (event.key === 'Enter') {

@@ -276,9 +276,9 @@ export class Face<T extends Card | CardFace = Card | CardFace> {
     }
 
     oracle(): string {
-        return this.is_card() && !this.has_main_face()
-            ? this.faces().map(face => face.oracle()).join('\n')
-            : this.face?.oracle_text
+        return (this.is_card() && !this.has_main_face()
+            ? (this.card.card_faces?.map(face => face.oracle_text).join('\n') ?? this.card.oracle_text)
+            : this.face?.oracle_text)
                 ?.replaceAll(this.card_name(), '~')
                 .replaceAll(this.card_name().split(',')[0], '~');
     }

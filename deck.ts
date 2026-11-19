@@ -22,7 +22,7 @@ export type JSONDeck = {
 
 export class Deck extends CardList {
 
-    static current: Deck = new Deck();
+    static CURRENT: Deck = new Deck();
 
     raw?: string;
 
@@ -84,42 +84,42 @@ export class Deck extends CardList {
 
         do {
             Tag.clear();
-            Deck.current = Deck.parse(input, title, invalid_boards);
+            Deck.CURRENT = Deck.parse(input, title, invalid_boards);
             DeckView.render();
-            await Deck.current.load(() => DeckView.render());
+            await Deck.CURRENT.load(() => DeckView.render());
 
             invalid_boards = Board.all()
                 .filter(board => {
                     if (!board.has_filter()) return false;
-                    const cards = Deck.current.board(board);
+                    const cards = Deck.CURRENT.board(board);
                     return cards.length > 0
                         && cards.every(card => !board.can_include(card));
                 });
         } while (invalid_boards.length > 0);
 
-        for (let i = 0; i < Deck.current.length; i++) {
-            if (DeckView.set_background(Deck.current[i])) break;
+        for (let i = 0; i < Deck.CURRENT.length; i++) {
+            if (DeckView.set_background(Deck.CURRENT[i])) break;
         }
 
         DeckCard.CACHE.dump();
-        return Deck.current;
+        return Deck.CURRENT;
     }
 
     static async load_from_json(deck: JSONDeck): Promise<Deck> {
-        Deck.current = new Deck();
-        Deck.current.title = deck.title;
-        Deck.current.format = Format.match(deck.format);
-        Deck.current.game = Game.match(deck.game);
+        Deck.CURRENT = new Deck();
+        Deck.CURRENT.title = deck.title;
+        Deck.CURRENT.format = Format.match(deck.format);
+        Deck.CURRENT.game = Game.match(deck.game);
         deck.tags.forEach(tag => Tag.match_or_new(tag.name, tag.hex));
-        Deck.current.push(...deck.cards.map((card, id) => DeckCard.from_json(card, id)));
+        Deck.CURRENT.push(...deck.cards.map((card, id) => DeckCard.from_json(card, id)));
 
-        await Deck.current.load(() => DeckView.render());
+        await Deck.CURRENT.load(() => DeckView.render());
 
-        for (let i = 0; i < Deck.current.length; i++) {
-            if (DeckView.set_background(Deck.current[i])) break;
+        for (let i = 0; i < Deck.CURRENT.length; i++) {
+            if (DeckView.set_background(Deck.CURRENT[i])) break;
         }
 
-        return Deck.current;
+        return Deck.CURRENT;
     }
 
     async load(on_progress: () => void = null): Promise<this> {

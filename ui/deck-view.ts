@@ -22,7 +22,7 @@ export class DeckView {
 
     static DECK_ELEMENT = HTML.div({id: 'deck'});
 
-    static render(deck: Deck = Deck.current): HTMLDivElement {
+    static render(deck: Deck = Deck.CURRENT): HTMLDivElement {
         this.errors = new DeckValidator(deck).validate();
 
         DeckView.card_views = new WeakMap();
@@ -146,10 +146,10 @@ export class DeckView {
                             const last_of_card = j === quantity - 1;
                             elements.push(CardView.render(
                                 card,
-                                grouping?.face_id(card, group.value),
                                 `${id}-card-${card.id}-${quantity - 1 - j}`,
-                                !last_of_card,
                                 () => CardPanel.open(card),
+                                grouping?.face_id(card, group.value),
+                                !last_of_card,
                             ));
                         }
 

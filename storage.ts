@@ -3,7 +3,7 @@ import {Deck} from "./deck";
 export class Storage {
 
     static store_deck(): void {
-        window.localStorage.setItem('deck', JSON.stringify(Deck.current.json()));
+        window.localStorage.setItem('deck', JSON.stringify(Deck.CURRENT.json()));
     }
 
     static async load_deck(): Promise<void> {

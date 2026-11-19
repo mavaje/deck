@@ -12,16 +12,10 @@ export class Panel {
     }
 
     static open(...args: any[]): void {
-        HTML.div({
-            id: this.id,
-            class: '-collapsed',
-        });
+        HTML.div({id: this.id}).classList.remove('collapsed');
     }
 
     static close(...args: any[]): void {
-        HTML.div({
-            id: this.id,
-            class: 'collapsed',
-        });
+        HTML.div({id: this.id}).classList.add('collapsed');
     }
 }

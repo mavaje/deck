@@ -1273,7 +1273,7 @@ var init_face = __esm({
         return this.face?.defense;
       }
       oracle() {
-        return this.is_card() && !this.has_main_face() ? this.faces().map((face) => face.oracle()).join("\n") : this.face?.oracle_text?.replaceAll(this.card_name(), "~").replaceAll(this.card_name().split(",")[0], "~");
+        return (this.is_card() && !this.has_main_face() ? this.card.card_faces?.map((face) => face.oracle_text).join("\n") ?? this.card.oracle_text : this.face?.oracle_text)?.replaceAll(this.card_name(), "~").replaceAll(this.card_name().split(",")[0], "~");
       }
       has_ability(ability) {
         if (!(ability instanceof RegExp)) ability = new RegExp(`(^|\\n)${ability}(\u2014| [d{(]|$)`, "i");
@@ -1401,12 +1401,14 @@ var init_card_view = __esm({
     init_xml();
     init_skeleton();
     init_deck_view();
+    init_card_panel();
     CardView = class {
-      static render(card, face_id = card.display_face_id, id = null, is_duplicate = false, on_click = null) {
+      static render(card, id = null, on_click = null, face_id = card.display_face_id, is_duplicate = false) {
         const card_class = /* @__PURE__ */ new Set(["card", "fade-in"]);
         if (is_duplicate) card_class.add("duplicate");
         if (card.quantity < 1) card_class.add("ghost");
         if (DeckView.errors.some((error) => error.cards?.includes(card))) card_class.add("error");
+        if (card === CardPanel.SELECTED) card_class.add("select");
         const faces = [];
         switch (card.layout()) {
           case "transform":
@@ -1449,11 +1451,16 @@ var init_card_view = __esm({
           card_class.add("landscape-front");
         }
         let faces_style = {};
+        let face_style = [];
         switch (card.card?.id) {
           // Hawkins National Laboratory // The Upside Down
           case "83a86763-c3fe-4cff-8b65-22cb329d112c":
             faces_style["--transform-initial"] = "rotateX(0deg)";
             faces_style["--transform-final"] = "rotateX(180deg)";
+            face_style[1] = {
+              "--specular-x": "calc(50% - var(--cursor-x) * 1px)",
+              "--specular-y": "calc(50% - var(--cursor-y) * 1px)"
+            };
             break;
         }
         switch (card.card?.oracle_id) {
@@ -1512,7 +1519,8 @@ var init_card_view = __esm({
               ...face_class
             ],
             style: {
-              background_image: urls.map((url) => `url(${url})`).join(", ")
+              background_image: urls.map((url) => `url(${url})`).join(", "),
+              ...face_style[face_id2] ?? {}
             }
           }));
         });
@@ -1525,18 +1533,14 @@ var init_card_view = __esm({
             onpointermove: (card_view, { x, y }) => {
               const { top, left, width, height } = card_view.getBoundingClientRect();
               const effective_height = height + Number.parseFloat(getComputedStyle(card_view).marginBottom);
-              const dx = x - (left + 24) - width / 2;
+              const dx = x - left - width / 2;
               const dy = y - top - effective_height / 2;
-              const angle = Math.atan2(dy, dx);
-              const azimuth = -10 * Math.min(Math.hypot(dx, dy) / 100, 1);
-              tilt.style.setProperty("--tilt-angle", `${angle}rad`);
-              tilt.style.setProperty("--tilt-azimuth", `${azimuth}deg`);
+              tilt.style.setProperty("--cursor-x", `${dx}`);
+              tilt.style.setProperty("--cursor-y", `${dy}`);
             },
             onpointerenter: () => DeckView.focus(card),
             onpointerleave: () => {
               DeckView.unfocus(card);
-              tilt.style.setProperty("--tilt-angle", `0`);
-              tilt.style.setProperty("--tilt-azimuth", `0`);
             },
             onclick: on_click && ((_, event) => {
               event.stopPropagation();
@@ -1591,16 +1595,10 @@ var init_panel = __esm({
         }
       }
       static open(...args) {
-        HTML.div({
-          id: this.id,
-          class: "-collapsed"
-        });
+        HTML.div({ id: this.id }).classList.remove("collapsed");
       }
       static close(...args) {
-        HTML.div({
-          id: this.id,
-          class: "collapsed"
-        });
+        HTML.div({ id: this.id }).classList.add("collapsed");
       }
     };
   }
@@ -1617,7 +1615,7 @@ var init_storage = __esm({
     init_deck();
     Storage = class {
       static store_deck() {
-        window.localStorage.setItem("deck", JSON.stringify(Deck.current.json()));
+        window.localStorage.setItem("deck", JSON.stringify(Deck.CURRENT.json()));
       }
       static async load_deck() {
         const json = window.localStorage.getItem("deck");
@@ -1817,19 +1815,24 @@ var init_search = __esm({
     init_set_card_printing();
     Search = class extends Panel {
       static id = "search-results";
+      static HISTORY = [];
+      static HISTORY_INDEX = 0;
+      static CURRENT_VALUE = "";
       static initialise() {
         HTML.button({
           id: "search-collapse",
           onclick: () => this.toggle()
         });
-        HTML.input({
-          id: "search-query",
-          onkeypress: (input, { key }) => {
-            if (key === "Enter") {
-              this.run();
-              input.blur();
-            }
+        HTML.form({
+          id: "search-form",
+          onsubmit: (_, event) => {
+            event.preventDefault();
+            this.run(HTML.input({ id: "search-query" }).value.trim());
           }
+        });
+        HTML.button({
+          id: "search-clear",
+          onclick: () => HTML.input({ id: "search-query", value: "" })
         });
         HTML.input({
           id: "search-results",
@@ -1849,7 +1852,7 @@ var init_search = __esm({
         HTML.button({ id: "search-collapse" }, "+");
         super.close();
       }
-      static async run(query = HTML.input({ id: "search-query" }).value) {
+      static async run(query) {
         HTML.input({ id: "search-query", value: query });
         if (!query) return;
         this.open();
@@ -1859,10 +1862,41 @@ var init_search = __esm({
           [...Array(5)].map(
             (_, i) => HTML.div(
               { id: `search-stack-${i}`, class: "stack" },
-              CardView.render(DeckCard.empty(), null, `search-result-${i}`)
+              CardView.render(DeckCard.empty(), `search-result-${i}`)
             )
           )
         ));
+        this.HISTORY.push(query);
+        console.log(this.HISTORY);
+        this.HISTORY_INDEX = 1;
+        HTML.input({
+          id: "search-query",
+          oninput: (input) => {
+            console.log(this.HISTORY);
+            console.log(this.HISTORY_INDEX);
+            console.log(this.CURRENT_VALUE, "->", input.value);
+            this.HISTORY_INDEX = 0;
+            this.CURRENT_VALUE = input.value;
+          },
+          onkeydown: (input, event) => {
+            switch (event.key) {
+              case "ArrowUp":
+                if (this.HISTORY_INDEX < this.HISTORY.length) {
+                  this.HISTORY_INDEX++;
+                  input.value = this.HISTORY[this.HISTORY.length - this.HISTORY_INDEX];
+                }
+                event.preventDefault();
+                return;
+              case "ArrowDown":
+                if (this.HISTORY_INDEX > 0) {
+                  this.HISTORY_INDEX--;
+                  input.value = this.HISTORY[this.HISTORY.length - this.HISTORY_INDEX] ?? this.CURRENT_VALUE;
+                }
+                event.preventDefault();
+                return;
+            }
+          }
+        });
         const card_list = await API.card_search(query);
         if (card_list) {
           HTML.div({ id: "search-status" }, `Found ${count_plural(card_list.total_cards, "card")}`);
@@ -1871,17 +1905,11 @@ var init_search = __esm({
             card_list.data.map((card) => DeckCard.from_card(card, true)).map(
               (card, i) => HTML.div(
                 { id: `search-stack-${i}`, class: "stack" },
-                CardView.render(
-                  card,
-                  null,
-                  `search-result-${i}`,
-                  false,
-                  () => {
-                    if (card.oracle_id() === CardPanel.SELECTED?.oracle_id()) {
-                      SetCardPrinting.do(CardPanel.SELECTED, card.card);
-                    }
+                CardView.render(card, `search-result-${i}`, () => {
+                  if (card.oracle_id() === CardPanel.SELECTED?.oracle_id()) {
+                    SetCardPrinting.do(CardPanel.SELECTED, card.card);
                   }
-                )
+                })
               )
             )
           ));
@@ -2178,7 +2206,7 @@ var init_card_panel = __esm({
         super.open();
         HTML.div(
           { id: "card-panel-card-container" },
-          CardView.render(card, void 0, `card-panel-card`)
+          CardView.render(card, `card-panel-card`)
         );
         const onkeypress = (input, { key }) => {
           if (key === "Enter") {
@@ -2323,7 +2351,7 @@ var init_card_panel = __esm({
         });
         HTML.button({
           id: "delete-card-button",
-          onclick: () => DeleteCard.do(Deck.current, card)
+          onclick: () => DeleteCard.do(Deck.CURRENT, card)
         });
       }
       static close() {
@@ -2355,7 +2383,7 @@ var init_deck_card = __esm({
       static CACHE = new Cache();
       static BASIC_LAND_REGEXP = /^(snow(.?cover(ed)?).?)?(plains?|island|swamp|mountain|forest|wastes?)$/i;
       static LINE_REGEXP = null;
-      static bracket_words = /* @__PURE__ */ new Set([
+      static BRACKET_WORDS = /* @__PURE__ */ new Set([
         "Used",
         "Plane",
         "Summer",
@@ -2383,7 +2411,7 @@ var init_deck_card = __esm({
         this.LINE_REGEXP = new RegExp([
           "^",
           "((?<quantity>\\d{1,3})[x*\xD7]?\\s)?",
-          `(?<name>[^([^#*]+?(\\s*\\((d{4}|[^)]*[ '][^)]*|${[...this.bracket_words].join("|")})\\))?)?`,
+          `(?<name>[^([^#*]+?(\\s*\\((d{4}|[^)]*[ '][^)]*|${[...this.BRACKET_WORDS].join("|")})\\))?)?`,
           "(?<set_num>\\([0-9A-Z]{3,5}\\)(\\s*[^)[(#*:\\s]+)?|\\([0-9A-Z]{3,5}:[^)[(#*:\\s]+\\))?",
           "(?<extra>([#*^[]).*)?",
           "$"
@@ -2396,7 +2424,7 @@ var init_deck_card = __esm({
           for (const match of matches) {
             const word = match.groups.word;
             if (word.match(/[A-Z]/i)) {
-              this.bracket_words.add(word);
+              this.BRACKET_WORDS.add(word);
             }
           }
         });
@@ -3011,7 +3039,7 @@ var init_deck = __esm({
     init_history();
     init_game();
     Deck = class _Deck extends CardList {
-      static current = new _Deck();
+      static CURRENT = new _Deck();
       raw;
       title;
       format = null;
@@ -3057,33 +3085,33 @@ var init_deck = __esm({
         let invalid_boards = [];
         do {
           Tag.clear();
-          _Deck.current = _Deck.parse(input, title, invalid_boards);
+          _Deck.CURRENT = _Deck.parse(input, title, invalid_boards);
           DeckView.render();
-          await _Deck.current.load(() => DeckView.render());
+          await _Deck.CURRENT.load(() => DeckView.render());
           invalid_boards = Board.all().filter((board) => {
             if (!board.has_filter()) return false;
-            const cards = _Deck.current.board(board);
+            const cards = _Deck.CURRENT.board(board);
             return cards.length > 0 && cards.every((card) => !board.can_include(card));
           });
         } while (invalid_boards.length > 0);
-        for (let i = 0; i < _Deck.current.length; i++) {
-          if (DeckView.set_background(_Deck.current[i])) break;
+        for (let i = 0; i < _Deck.CURRENT.length; i++) {
+          if (DeckView.set_background(_Deck.CURRENT[i])) break;
         }
         DeckCard.CACHE.dump();
-        return _Deck.current;
+        return _Deck.CURRENT;
       }
       static async load_from_json(deck) {
-        _Deck.current = new _Deck();
-        _Deck.current.title = deck.title;
-        _Deck.current.format = Format.match(deck.format);
-        _Deck.current.game = Game.match(deck.game);
+        _Deck.CURRENT = new _Deck();
+        _Deck.CURRENT.title = deck.title;
+        _Deck.CURRENT.format = Format.match(deck.format);
+        _Deck.CURRENT.game = Game.match(deck.game);
         deck.tags.forEach((tag) => Tag.match_or_new(tag.name, tag.hex));
-        _Deck.current.push(...deck.cards.map((card, id) => DeckCard.from_json(card, id)));
-        await _Deck.current.load(() => DeckView.render());
-        for (let i = 0; i < _Deck.current.length; i++) {
-          if (DeckView.set_background(_Deck.current[i])) break;
+        _Deck.CURRENT.push(...deck.cards.map((card, id) => DeckCard.from_json(card, id)));
+        await _Deck.CURRENT.load(() => DeckView.render());
+        for (let i = 0; i < _Deck.CURRENT.length; i++) {
+          if (DeckView.set_background(_Deck.CURRENT[i])) break;
         }
-        return _Deck.current;
+        return _Deck.CURRENT;
       }
       async load(on_progress = null) {
         this.forEach((card) => card.load_from_cache());
@@ -3668,7 +3696,7 @@ var init_deck_view = __esm({
       static ORDERING = CardClassifier;
       static FACE_SELECTOR = FaceSelector.front;
       static DECK_ELEMENT = HTML.div({ id: "deck" });
-      static render(deck = Deck.current) {
+      static render(deck = Deck.CURRENT) {
         this.errors = new DeckValidator(deck).validate();
         _DeckView.card_views = /* @__PURE__ */ new WeakMap();
         const show_boards = this.BY_BOARD && deck.some((card) => !card.board.is_default());
@@ -3766,10 +3794,10 @@ var init_deck_view = __esm({
                 const last_of_card = j === quantity - 1;
                 elements.push(CardView.render(
                   card,
-                  grouping?.face_id(card, group.value),
                   `${id}-card-${card.id}-${quantity - 1 - j}`,
-                  !last_of_card,
-                  () => CardPanel.open(card)
+                  () => CardPanel.open(card),
+                  grouping?.face_id(card, group.value),
+                  !last_of_card
                 ));
               }
               const card_views = _DeckView.card_views.get(card) ?? [];
@@ -4547,7 +4575,7 @@ var init_deck_panel = __esm({
           id: "deck-title",
           contenteditable: true,
           onchange: (element) => {
-            Deck.current.title = element.innerText;
+            Deck.CURRENT.title = element.innerText;
           },
           onkeypress: (element, event) => {
             if (event.key === "Enter") {
@@ -4625,7 +4653,7 @@ var require_main = __commonJS({
     var storage_1 = (init_storage(), __toCommonJS(storage_exports));
     (0, initialise_ui_1.initialise_ui)();
     storage_1.Storage.load_deck();
-    if (deck_1.Deck.current.length === 0) {
+    if (deck_1.Deck.CURRENT.length === 0) {
       deck_1.Deck.load_current(`
         Lightning Bolt
         Grizzly Bears *F*

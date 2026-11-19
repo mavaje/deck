@@ -9,7 +9,7 @@ initialise_ui();
 
 Storage.load_deck();
 
-if (Deck.current.length === 0) {
+if (Deck.CURRENT.length === 0) {
     Deck.load_current(`
         Lightning Bolt
         Grizzly Bears *F*

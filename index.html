@@ -13,12 +13,22 @@
     <div id="search">
         <div id="search-controls">
             <button id="search-collapse">+</button>
-            <label for="search-query" class="hidden">Search</label>
-            <input
-                id="search-query"
-                type="text"
-                placeholder="Search"
-            >
+            <form id="search-form">
+                <label for="search-query" class="hidden">Search</label>
+                <div class="input-group">
+                    <input
+                        id="search-query"
+                        type="text"
+                        placeholder="Search"
+                        enterkeyhint="search"
+                    >
+                    <button
+                        id="search-clear"
+                        type="button"
+                        class="danger"
+                    >×</button>
+                </div>
+            </form>
             <span id="search-status"></span>
         </div>
         <div id="search-results" class="collapsed">

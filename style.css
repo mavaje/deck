@@ -296,8 +296,11 @@ button:disabled {
     backdrop-filter: blur(4px);
 }
 
+#search-form,
+#search-form > .input-group,
 #search-query {
     flex: 1;
+    display: flex;
 }
 
 #search-status {
@@ -372,6 +375,7 @@ button:disabled {
     background-color: #0000007f;
     backdrop-filter: blur(4px);
     transition-property: left, right;
+    overflow-y: auto;
 }
 
 #deck-panel {
@@ -585,11 +589,11 @@ div:has(> #delete-card-button) {
 }
 
 .stack {
-    margin-block: 12px;
+    padding-block: 12px;
 }
 
 #deck .stack {
-    margin-bottom: 36px;
+    padding-bottom: 36px;
 }
 
 .card {
@@ -715,18 +719,20 @@ div:has(> #delete-card-button) {
 }
 
 .card-tilt {
-    --tilt-angle: 0;
-    --tilt-azimuth: 0;
+    --cursor-x: 0;
+    --cursor-y: 0;
 
     width: 100%;
     transform-style: preserve-3d;
 }
 
 .card:hover .card-tilt {
-    transform:
-            rotateZ(var(--tilt-angle))
-            rotateY(var(--tilt-azimuth))
-            rotateZ(calc(-1 * var(--tilt-angle)));
+    transform: rotate3d(
+        calc(-1 * var(--cursor-y)),
+        var(--cursor-x),
+        0,
+        calc(-0.1deg * hypot(var(--cursor-x), var(--cursor-y)))
+    );
 }
 
 .card-faces {
@@ -857,29 +863,86 @@ div:has(> #delete-card-button) {
     transform: translateZ(-1px) rotateX(180deg);
 }
 
-.card-face.foil:after,
-.card-face.etched:after {
+.card-face.foil:before,
+.card-face.etched:before {
     content: '';
     position: absolute;
     width: 100%;
     height: 100%;
-    background-size: 256px 256px;
     border-radius: var(--card-radius);
-    opacity: 25%;
+    background-size: 256px 256px;
     mix-blend-mode: overlay;
+    opacity: 25%;
     animation: foil-animation 12s linear infinite;
+}
+
+.card:hover .card-face:before {
+    animation: none;
+    background-position:
+        calc(1px * var(--cursor-x) / 2)
+        calc(1px * var(--cursor-y) / 2);
 }
 
 @keyframes foil-animation {
     100% { background-position: 256px 256px }
 }
 
-.card-face.foil:after {
+.card-face.foil:before {
     background-image: url(public/filter/foil.svg);
 }
 
-.card-face.etched:after {
+.card-face.etched:before {
     background-image: url(public/filter/etched.svg);
+}
+
+.card-face {
+    --specular-x: calc(50% + var(--cursor-x) * 1px);
+    --specular-y: calc(50% + var(--cursor-y) * 1px);
+}
+
+.card-face:after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: var(--card-radius);
+    background: radial-gradient(
+            circle at var(--specular-x) var(--specular-y),
+            white 0,
+            black 256px
+    );
+    mix-blend-mode: soft-light;
+    opacity: 0;
+    transition-property: opacity;
+}
+
+.card.landscape .card-face:after,
+.card.landscape-front.invert:has(.trigger:hover) .card-face.front:after,
+.card.landscape-front:not(.invert):not(:has(.trigger:hover)) .card-face.front:after {
+    --specular-x: calc(50% + var(--cursor-y) * 1px);
+    --specular-y: calc(50% - var(--cursor-x) * 1px);
+}
+
+.card.flip:not(.invert):has(.trigger:hover) .card-face:after,
+.card.flip.invert:not(:has(.trigger:hover)) .card-face:after {
+    --specular-x: calc(50% - var(--cursor-x) * 1px);
+    --specular-y: calc(50% - var(--cursor-y) * 1px);
+}
+
+.card.aftermath:not(.invert):has(.trigger:hover) .card-face:after,
+.card.aftermath.invert:not(:has(.trigger:hover)) .card-face:after {
+    --specular-x: calc(50% - var(--cursor-y) * 1px);
+    --specular-y: calc(50% + var(--cursor-x) * 1px);
+}
+
+.card:hover .card-face:after {
+    opacity: 25%;
+}
+
+.card:hover .card-face.foil:after,
+.card:hover .card-face.etched:after {
+    opacity: 50%;
+    mix-blend-mode: overlay;
 }
 
 #deck-cards.show-quantity .card.ghost:not(:hover) .count {
@@ -891,7 +954,7 @@ div:has(> #delete-card-button) {
 }
 
 .card.ghost:not(:hover) .card-face {
-    filter: contrast(50%);
+    filter: contrast(25%);
 }
 
 .card.error .card-faces {

@@ -2,20 +2,22 @@ import {HTML} from "./xml";
 import {DeckCard} from "../deck-card";
 import {data_url, skeleton, skeleton_back} from "./skeleton";
 import {DeckView} from "./deck-view";
+import {CardPanel} from "./deck/card-panel";
 
 export class CardView {
 
     static render(
         card: DeckCard,
-        face_id: number = card.display_face_id,
         id: number | string = null,
-        is_duplicate: boolean = false,
         on_click: () => any = null,
+        face_id: number = card.display_face_id,
+        is_duplicate: boolean = false,
     ): HTMLDivElement {
         const card_class: Set<string> = new Set(['card', 'fade-in']);
         if (is_duplicate) card_class.add('duplicate');
         if (card.quantity < 1) card_class.add('ghost');
         if (DeckView.errors.some(error => error.cards?.includes(card))) card_class.add('error');
+        if (card === CardPanel.SELECTED) card_class.add('select');
 
         const faces: HTMLDivElement[] = [];
 
@@ -66,13 +68,18 @@ export class CardView {
             card_class.add('landscape-front');
         }
 
-        let faces_style = {};
+        let faces_style: object = {};
+        let face_style: object[] = [];
 
         switch (card.card?.id) {
             // Hawkins National Laboratory // The Upside Down
             case '83a86763-c3fe-4cff-8b65-22cb329d112c':
                 faces_style['--transform-initial'] = 'rotateX(0deg)';
                 faces_style['--transform-final'] = 'rotateX(180deg)';
+                face_style[1] = {
+                '--specular-x': 'calc(50% - var(--cursor-x) * 1px)',
+                '--specular-y': 'calc(50% - var(--cursor-y) * 1px)',
+                };
                 break;
         }
 
@@ -144,6 +151,7 @@ export class CardView {
                     background_image: urls
                         .map(url => `url(${url})`)
                         .join(', '),
+                    ...face_style[face_id] ?? {},
                 },
             }));
         });
@@ -158,18 +166,15 @@ export class CardView {
                     const {top, left, width, height} = card_view.getBoundingClientRect();
                     const effective_height = height
                         + Number.parseFloat(getComputedStyle(card_view).marginBottom);
-                    const dx = x - (left + 24) - width / 2;
+                    const dx = x - (left) - width / 2;
                     const dy = y - top - effective_height / 2;
-                    const angle = Math.atan2(dy, dx);
-                    const azimuth = -10 * Math.min(Math.hypot(dx, dy) / 100, 1);
-                    tilt.style.setProperty('--tilt-angle', `${angle}rad`);
-                    tilt.style.setProperty('--tilt-azimuth', `${azimuth}deg`);
+
+                    tilt.style.setProperty('--cursor-x', `${dx}`);
+                    tilt.style.setProperty('--cursor-y', `${dy}`);
                 },
                 onpointerenter: () => DeckView.focus(card),
                 onpointerleave: () => {
                     DeckView.unfocus(card);
-                    tilt.style.setProperty('--tilt-angle', `0`);
-                    tilt.style.setProperty('--tilt-azimuth', `0`);
                 },
                 onclick: on_click && ((_, event) => {
                     event.stopPropagation();
