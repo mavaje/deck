@@ -5,12 +5,12 @@ export type DropdownOption<T = any> = {
     label?: string;
     discouraged?: boolean;
     disabled?: boolean;
+    element?: HTMLDivElement;
 };
 
 export class Dropdown<T = any> {
     input: HTMLInputElement;
     dropdown: HTMLDivElement;
-
 
     private closing_timeout: number = null;
 
@@ -25,7 +25,7 @@ export class Dropdown<T = any> {
         }, this.dropdown = HTML.div({
             id: `${attributes.id}-dropdown`,
             class: 'dropdown',
-        }, options.map(option => HTML.div({
+        }, options.map(option => option.element = HTML.div({
                 class: [
                     'option',
                     option.label === attributes.value && 'selected',
@@ -41,6 +41,11 @@ export class Dropdown<T = any> {
             onfocus: target => this.open(target),
             onclick: target => this.open(target),
             onblur: () => this.close(),
+            onkeypress: (input, {key}) => {
+                if (key === 'Enter') {
+                    input.blur();
+                }
+            },
             onkeydown: (target, event) => {
                 let index = this.options
                     .findIndex(({label}) => label === this.input.value);
@@ -70,7 +75,10 @@ export class Dropdown<T = any> {
     }
 
     select(option: DropdownOption<T>) {
-        this.input.value = option.label ?? `${option.value}`;
+        this.input.value = option.label;
+        this.options.forEach(option =>
+            option.element.classList.remove('selected'));
+        option.element.classList.add('selected');
         this.on_select(option);
     }
 

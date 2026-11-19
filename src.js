@@ -1936,7 +1936,7 @@ var init_dropdown = __esm({
         }, this.dropdown = HTML.div({
           id: `${attributes.id}-dropdown`,
           class: "dropdown"
-        }, options.map((option) => HTML.div({
+        }, options.map((option) => option.element = HTML.div({
           class: [
             "option",
             option.label === attributes.value && "selected",
@@ -1956,6 +1956,11 @@ var init_dropdown = __esm({
           onfocus: (target) => this.open(target),
           onclick: (target) => this.open(target),
           onblur: () => this.close(),
+          onkeypress: (input, { key }) => {
+            if (key === "Enter") {
+              input.blur();
+            }
+          },
           onkeydown: (target, event) => {
             let index = this.options.findIndex(({ label }) => label === this.input.value);
             switch (event.key) {
@@ -1979,7 +1984,9 @@ var init_dropdown = __esm({
         };
       }
       select(option) {
-        this.input.value = option.label ?? `${option.value}`;
+        this.input.value = option.label;
+        this.options.forEach((option2) => option2.element.classList.remove("selected"));
+        option.element.classList.add("selected");
         this.on_select(option);
       }
       open(target, instant = false) {
@@ -2249,8 +2256,7 @@ var init_card_panel = __esm({
           {
             id: "name-input",
             value: card.name || "",
-            onchange: (input) => EditCardName.do(card, input.value || null),
-            onkeypress
+            onchange: (input) => EditCardName.do(card, input.value || null)
           },
           ({ label, value }) => EditCardName.do(card, label, value),
           card.selectable_names(true).map(([id, name]) => ({
@@ -2297,8 +2303,7 @@ var init_card_panel = __esm({
             id: "language-input",
             class: card.invalid_language() && "error",
             value: card.language.name,
-            readonly: true,
-            onkeypress
+            readonly: true
           },
           ({ value }) => EditCardFields.do(card, { language: value }),
           Language.all().map((language) => ({
@@ -2310,8 +2315,7 @@ var init_card_panel = __esm({
           {
             id: "finish-input",
             value: card.finish.name,
-            readonly: true,
-            onkeypress
+            readonly: true
           },
           ({ value }) => EditCardFields.do(card, { finish: value }),
           Finish.all().map((finish) => ({
@@ -2324,8 +2328,7 @@ var init_card_panel = __esm({
           {
             id: "condition-input",
             value: card.condition?.name || "",
-            readonly: true,
-            onkeypress
+            readonly: true
           },
           ({ value }) => EditCardFields.do(card, { condition: value }),
           [
@@ -2345,8 +2348,7 @@ var init_card_panel = __esm({
             id: "zone-input",
             class: !card.zone.can_include(card) && "error",
             value: card.zone.name,
-            readonly: true,
-            onkeypress
+            readonly: true
           },
           ({ value }) => EditCardFields.do(card, { zone: value }),
           Zone.all().filter((zone) => zone.can_include(card)).map((zone) => ({
@@ -4537,6 +4539,7 @@ var init_deck_panel = __esm({
     init_panel();
     init_deck();
     init_deck_card();
+    init_dropdown();
     DeckPanel = class extends Panel {
       static id = "deck-panel";
       static CARD_GROUPINGS = [
@@ -4612,22 +4615,36 @@ var init_deck_panel = __esm({
             DeckView.render();
           }
         });
-        HTML.input({
-          id: "group-by",
-          readonly: true,
-          onchange: (select) => {
-            DeckView.GROUPING = this.CARD_GROUPINGS[select.value];
+        new Dropdown(
+          {
+            id: "group-by",
+            value: DeckView.ORDERING.name,
+            readonly: true
+          },
+          ({ value }) => {
+            DeckView.GROUPING = value;
             DeckView.render();
-          }
-        }, this.CARD_GROUPINGS.map((grouping, i) => HTML.option({ value: i }, grouping.name)));
-        HTML.input({
-          id: "order-by",
-          readonly: true,
-          onchange: (select) => {
-            DeckView.ORDERING = this.CARD_ORDERINGS[select.value];
+          },
+          this.CARD_GROUPINGS.map((grouping) => ({
+            label: grouping.name,
+            value: grouping
+          }))
+        );
+        new Dropdown(
+          {
+            id: "order-by",
+            value: DeckView.ORDERING.name,
+            readonly: true
+          },
+          ({ value }) => {
+            DeckView.ORDERING = value;
             DeckView.render();
-          }
-        }, this.CARD_ORDERINGS.map((ordering, i) => HTML.option({ value: i }, ordering.name)));
+          },
+          this.CARD_ORDERINGS.map((ordering) => ({
+            label: ordering.name,
+            value: ordering
+          }))
+        );
       }
       static open() {
         if (window.innerWidth < 848) {

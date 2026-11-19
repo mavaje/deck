@@ -71,7 +71,6 @@ export class CardPanel extends Panel {
                 id: 'name-input',
                 value: card.name || '',
                 onchange: input => EditCardName.do(card, input.value || null),
-                onkeypress,
             },
             ({label, value}) => EditCardName.do(card, label, value),
             card.selectable_names(true).map(([id, name]) => ({
@@ -124,7 +123,6 @@ export class CardPanel extends Panel {
                 class: card.invalid_language() && 'error',
                 value: card.language.name,
                 readonly: true,
-                onkeypress,
             },
             ({value}) => EditCardFields.do(card, {language: value}),
             Language.all().map(language => ({
@@ -138,7 +136,6 @@ export class CardPanel extends Panel {
                 id: 'finish-input',
                 value: card.finish.name,
                 readonly: true,
-                onkeypress,
             },
             ({value}) => EditCardFields.do(card, {finish: value}),
             Finish.all().map(finish => ({
@@ -153,7 +150,6 @@ export class CardPanel extends Panel {
                 id: 'condition-input',
                 value: card.condition?.name || '',
                 readonly: true,
-                onkeypress,
             },
             ({value}) => EditCardFields.do(card, {condition: value}),
             [
@@ -175,7 +171,6 @@ export class CardPanel extends Panel {
                 class: !card.zone.can_include(card) && 'error',
                 value: card.zone.name,
                 readonly: true,
-                onkeypress,
             },
             ({value}) => EditCardFields.do(card, {zone: value}),
             Zone.all()

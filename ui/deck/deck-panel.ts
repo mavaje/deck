@@ -19,11 +19,12 @@ import {CardPanel} from "./card-panel";
 import {Panel} from "../panel";
 import {Deck} from "../../deck";
 import {DeckCard} from "../../deck-card";
+import {Dropdown} from "../dropdown";
 
 export class DeckPanel extends Panel {
     static id: string = 'deck-panel';
 
-    static CARD_GROUPINGS: (typeof CardClassifier<string | number>)[] = [
+    static CARD_GROUPINGS: (typeof CardClassifier<any>)[] = [
         CardClassifier,
         SetClassifier,
         Rarity,
@@ -38,7 +39,7 @@ export class DeckPanel extends Panel {
         Tag,
     ];
 
-    static CARD_ORDERINGS: (typeof CardClassifier<string | number>)[] = [
+    static CARD_ORDERINGS: (typeof CardClassifier<any>)[] = [
         CardClassifier,
         Name,
         SetClassifier,
@@ -108,25 +109,37 @@ export class DeckPanel extends Panel {
             },
         });
 
-        HTML.input({
-            id: 'group-by',
-            readonly: true,
-            onchange: select => {
-                DeckView.GROUPING = this.CARD_GROUPINGS[select.value];
+        new Dropdown(
+            {
+                id: 'group-by',
+                value: DeckView.ORDERING.name,
+                readonly: true,
+            },
+            ({value}) => {
+                DeckView.GROUPING = value;
                 DeckView.render();
             },
-        }, this.CARD_GROUPINGS.map((grouping, i) =>
-            HTML.option({value: i}, grouping.name)));
+            this.CARD_GROUPINGS.map(grouping => ({
+                label: grouping.name,
+                value: grouping,
+            })),
+        );
 
-        HTML.input({
-            id: 'order-by',
-            readonly: true,
-            onchange: select => {
-                DeckView.ORDERING = this.CARD_ORDERINGS[select.value];
+        new Dropdown(
+            {
+                id: 'order-by',
+                value: DeckView.ORDERING.name,
+                readonly: true,
+            },
+            ({value}) => {
+                DeckView.ORDERING = value;
                 DeckView.render();
             },
-        }, this.CARD_ORDERINGS.map((ordering, i) =>
-            HTML.option({value: i}, ordering.name)));
+            this.CARD_ORDERINGS.map(ordering => ({
+                label: ordering.name,
+                value: ordering,
+            })),
+        );
     }
 
     static open(): void {

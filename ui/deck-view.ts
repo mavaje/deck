@@ -16,8 +16,8 @@ export class DeckView {
     static errors: DeckError[] = [];
 
     static BY_ZONE: boolean = true;
-    static GROUPING: typeof CardClassifier = CardClassifier;
-    static ORDERING: typeof CardClassifier = CardClassifier;
+    static GROUPING: typeof CardClassifier<any> = CardClassifier;
+    static ORDERING: typeof CardClassifier<any> = CardClassifier;
     static FACE_SELECTOR: FaceSelector = FaceSelector.front;
 
     static DECK_ELEMENT = HTML.div({id: 'deck'});
