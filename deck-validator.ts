@@ -3,7 +3,7 @@ import {Deck} from "./deck";
 import {Format} from "./format";
 import {Catalog} from "./scryfall/catalog";
 import {words_to_number} from "./text";
-import {Board} from "./designation/board";
+import {Zone} from "./designation/zone";
 import {RuleBreak} from "./rule-break";
 
 export type DeckErrorType =
@@ -23,7 +23,7 @@ export type DeckErrorType =
 export type DeckError = {
     type: DeckErrorType;
     message: string;
-    board?: Board;
+    zone?: Zone;
     cards?: DeckCard[];
 };
 
@@ -43,17 +43,17 @@ export class DeckValidator {
     public validate(format: Format = this.format): DeckError[] {
         const errors: DeckError[] = [];
 
-        const commanders = this.deck.board(Board.commander);
+        const commanders = this.deck.zone(Zone.commander);
         const commander_count = commanders.count();
 
-        const conspiracies = this.deck.board(Board.conspiracy);
+        const conspiracies = this.deck.zone(Zone.conspiracy);
 
         this.rulebreaks.push(...commanders.skip_empty().flatMap(card => card.rulebreaks()));
         this.rulebreaks.push(...conspiracies.skip_empty().flatMap(card => card.rulebreaks()));
 
         if (format) {
             const banned_cards = this.deck
-                .board(...Board.STANDARD)
+                .zone(...Zone.STANDARD)
                 .filter(card => card.legality(format) === 'banned');
             if (banned_cards.count() > 0) {
                 errors.push({
@@ -64,7 +64,7 @@ export class DeckValidator {
             }
 
             const illegal_cards = this.deck
-                .board(...Board.STANDARD)
+                .zone(...Zone.STANDARD)
                 .filter(card => card.legality(format) === 'not_legal');
             if (illegal_cards.count() > 0) {
                 errors.push({
@@ -74,7 +74,7 @@ export class DeckValidator {
                 });
             }
 
-            const card_count = this.deck.board(...Board.STARTING_DECK).count();
+            const card_count = this.deck.zone(...Zone.STARTING_DECK).count();
             if (card_count < format.min_cards()) {
                 let min_cards = format.min_cards();
                 this.rulebreaks.forEach(rulebreak => min_cards -= rulebreak.breaks_deck_min());
@@ -82,23 +82,23 @@ export class DeckValidator {
                     errors.push({
                         type: 'too-few-cards',
                         message: `You have ${card_count} cards, you need at least ${min_cards}`,
-                        board: Board.deck,
+                        zone: Zone.deck,
                     });
                 }
             } else if (card_count > format.max_cards() && !this.rulebreaks.some(rulebreak => rulebreak.breaks_deck_max())) {
                 errors.push({
                     type: 'too-many-cards',
                     message: `You have ${card_count} cards, you can have up to ${format.max_cards()}`,
-                    board: Board.deck,
+                    zone: Zone.deck,
                 });
             }
 
-            const sideboard = this.deck.board(Board.sideboard);
+            const sideboard = this.deck.zone(Zone.sideboard);
             if (sideboard.count() > format.sideboard_limit) {
                 errors.push({
                     type: 'too-many-sideboard-cards',
                     message: `You have ${sideboard.count()} cards in your sideboard, you can have up to ${format.sideboard_limit}`,
-                    board: Board.sideboard,
+                    zone: Zone.sideboard,
                 });
             }
 
@@ -117,19 +117,19 @@ export class DeckValidator {
                         errors.push({
                             type: 'too-few-commanders',
                             message: `You must have a commander in this format`,
-                            board: Board.commander,
+                            zone: Zone.commander,
                         });
                     } else if (commander_count > 1) {
                         errors.push({
                             type: 'too-many-commanders',
                             message: `You cannot have more than one commander`,
-                            board: Board.commander,
+                            zone: Zone.commander,
                         });
                     } else if (format.has_signature_spell) {
                         errors.push({
                             type: 'too-few-commanders',
                             message: `You must have an oathbreaker and a signature spell`,
-                            board: Board.commander,
+                            zone: Zone.commander,
                         });
                     }
 
@@ -148,19 +148,19 @@ export class DeckValidator {
                     errors.push({
                         type: 'too-many-commanders',
                         message: `You cannot have commanders in this format`,
-                        board: Board.commander,
+                        zone: Zone.commander,
                     });
                 }
             }
         }
 
-        errors.push(...this.deck.board(Board.companion).skip_empty().flatMap(card => this.validate_deck_restrictions(card, format)));
+        errors.push(...this.deck.zone(Zone.companion).skip_empty().flatMap(card => this.validate_deck_restrictions(card, format)));
         errors.push(...conspiracies.skip_empty().flatMap(card => this.validate_deck_restrictions(card, format)));
 
         let color_identity = this.deck.color_identity();
 
         this.deck
-            .board(...Board.STANDARD)
+            .zone(...Zone.STANDARD)
             .map(card => {
             if (color_identity) {
                 const additional_break = this.rulebreaks.find(rulebreak => rulebreak.breaks_color_identity(card));
@@ -186,7 +186,7 @@ export class DeckValidator {
         });
 
         this.deck
-            .board(...Board.STANDARD)
+            .zone(...Zone.STANDARD)
             .by_count((count, card) => {
                 const max = card.copy_limit(format);
                 if (count > max) {
@@ -198,55 +198,55 @@ export class DeckValidator {
                 }
             });
 
-        Board.all()
-            .filter(board => !Board.STANDARD.includes(board))
-            .forEach(board => {
-            const board_cards = this.deck.board(board);
+        Zone.all()
+            .filter(zone => !Zone.STANDARD.includes(zone))
+            .forEach(zone => {
+            const zone_cards = this.deck.zone(zone);
 
-            if (board_cards.count() === 0) return;
+            if (zone_cards.count() === 0) return;
 
-            if (board_cards.count() < board.min_cards()) {
+            if (zone_cards.count() < zone.min_cards()) {
                 errors.push({
                     type: 'too-few-cards',
-                    message: `You must have at least ${board.min_cards()} cards in a ${board.name.toLowerCase()}`,
-                    board,
+                    message: `You must have at least ${zone.min_cards()} cards in a ${zone.name.toLowerCase()}`,
+                    zone: zone,
                 });
-            } else if (board_cards.count() > board.max_cards()) {
+            } else if (zone_cards.count() > zone.max_cards()) {
                 errors.push({
                     type: 'too-many-cards',
-                    message: `You can only have ${board.max_cards()} cards in a ${board.name.toLowerCase()}`,
-                    board,
+                    message: `You can only have ${zone.max_cards()} cards in a ${zone.name.toLowerCase()}`,
+                    zone: zone,
                 });
             }
 
-            if (board.copy_limit) {
-                const too_many = board_cards
-                    .filter_by_count(count => count > board.copy_limit);
+            if (zone.copy_limit) {
+                const too_many = zone_cards
+                    .filter_by_count(count => count > zone.copy_limit);
 
                 if (too_many.count() > 0) {
                     errors.push({
                         type: 'too-many-copies',
-                        message: `You have only ${board.copy_limit} copy of each card in a ${board.name}`,
+                        message: `You have only ${zone.copy_limit} copy of each card in a ${zone.name}`,
                         cards: too_many,
                     });
                 }
             }
 
-            if (board.has_filter()) {
-                const wrong_type = board_cards
-                    .filter(card => !board.can_include(card));
+            if (zone.has_filter()) {
+                const wrong_type = zone_cards
+                    .filter(card => !zone.can_include(card));
 
                 if (wrong_type.count() > 0) {
                     errors.push({
                         type: 'illegal-card',
-                        message: `A ${board.name} can contain only ${board.card_types.join(' or ')} cards`,
+                        message: `A ${zone.name} can contain only ${zone.card_types.join(' or ')} cards`,
                         cards: wrong_type,
                     });
                 }
             }
         });
 
-        const phenomena = this.deck.board(Board.planar)
+        const phenomena = this.deck.zone(Zone.planar)
             .filter(card => card.is_type('Phenomenon'));
         if (phenomena.count() > 2) {
             errors.push({
@@ -260,7 +260,7 @@ export class DeckValidator {
     }
 
     private validate_deck_restrictions(card: DeckCard, format: Format): DeckError[] {
-        let deck = this.deck.board(...Board.STARTING_DECK);
+        let deck = this.deck.zone(...Zone.STARTING_DECK);
 
         if (card.has_keyword('Companion')) {
             const companion_match = card.oracle().match(/Companion — (?<ability>[^(]+\.)/);

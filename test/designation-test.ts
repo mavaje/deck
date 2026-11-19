@@ -3,7 +3,7 @@ import {Language} from "../designation/language";
 import {Designation} from "../designation/designation";
 import {Finish} from "../designation/finish";
 import {Condition} from "../designation/condition";
-import {Board} from "../designation/board";
+import {Zone} from "../designation/zone";
 
 export class DesignationTest extends Test {
 
@@ -12,7 +12,7 @@ export class DesignationTest extends Test {
 
     async test(): Promise<void> {
         const designations: (typeof Designation)[] = [
-            Board,
+            Zone,
             Condition,
             Finish,
             Language,

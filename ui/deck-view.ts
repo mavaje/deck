@@ -1,5 +1,5 @@
 import {HTML} from "./xml";
-import {Board} from "../designation/board";
+import {Zone} from "../designation/zone";
 import {Deck} from "../deck";
 import {CardView} from "./card-view";
 import {DeckCard} from "../deck-card";
@@ -15,7 +15,7 @@ export class DeckView {
     static card_views = new WeakMap<DeckCard, HTMLDivElement[]>();
     static errors: DeckError[] = [];
 
-    static BY_BOARD: boolean = true;
+    static BY_ZONE: boolean = true;
     static GROUPING: typeof CardClassifier = CardClassifier;
     static ORDERING: typeof CardClassifier = CardClassifier;
     static FACE_SELECTOR: FaceSelector = FaceSelector.front;
@@ -27,43 +27,43 @@ export class DeckView {
 
         DeckView.card_views = new WeakMap();
 
-        const show_boards = this.BY_BOARD
-            && deck.some(card => !card.board.is_default());
+        const show_zones = this.BY_ZONE
+            && deck.some(card => !card.zone.is_default());
 
         return HTML.div(
             {
                 id: 'deck-cards',
                 onclick: () => CardPanel.close(),
             },
-            show_boards
-                ? this.render_boards(deck, 'deck-groups')
+            show_zones
+                ? this.render_zones(deck, 'deck-groups')
                 : this.render_groups(deck, 'deck-groups'),
         );
     }
 
-    private static render_boards(deck: Deck, id: string): HTMLDivElement {
+    private static render_zones(deck: Deck, id: string): HTMLDivElement {
         return HTML.div({
             id,
             class: 'groups',
-        }, Board.all().map(board => this.render_board(deck.board(board), board)));
+        }, Zone.all().map(zone => this.render_zone(deck.zone(zone), zone)));
     }
 
-    private static render_board(
+    private static render_zone(
         cards: CardList,
-        board?: Board,
+        zone?: Zone,
     ): HTMLDivElement {
         if (cards.length === 0) return null;
-        const id = `board-${board ?? 'all'}`;
+        const id = `zone-${zone ?? 'all'}`;
         return HTML.div(
             {
                 id,
                 class: 'group',
             },
-            board && HTML.div({
+            zone && HTML.div({
                 id: `${id}-label`,
                 class: ['label', 'fade-in'],
             }, HTML.div(
-                HTML.span({style: {font_weight: 'bold'}}, board.name),
+                HTML.span({style: {font_weight: 'bold'}}, zone.name),
                 ` (${cards.count()})`,
             )),
             this.render_groups(cards, `${id}-groups`),

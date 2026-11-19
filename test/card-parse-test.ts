@@ -1,7 +1,7 @@
 import {DeckCard} from "../deck-card";
 import {Test} from "./test";
 import {Language} from "../designation/language";
-import {Board} from "../designation/board";
+import {Zone} from "../designation/zone";
 import {Condition} from "../designation/condition";
 import {Finish} from "../designation/finish";
 
@@ -33,8 +33,8 @@ export class CardParseTest extends Test {
 
             // TappedOut
             '1x Llanowar Elves (M10)': new DeckCard({quantity: 1, name: 'Llanowar Elves', set: 'm10'}),
-            '1x Greven Il Vec *CMDR*': new DeckCard({quantity: 1, name: 'Greven Il Vec', board: Board.commander}),
-            '1x Gyruda, Doom of Depths *CMPN*': new DeckCard({quantity: 1, name: 'Gyruda, Doom of Depths', board: Board.companion}),
+            '1x Greven Il Vec *CMDR*': new DeckCard({quantity: 1, name: 'Greven Il Vec', zone: Zone.commander}),
+            '1x Gyruda, Doom of Depths *CMPN*': new DeckCard({quantity: 1, name: 'Gyruda, Doom of Depths', zone: Zone.companion}),
             '1x Mishra\'s Factory (ATQ:1074)': new DeckCard({quantity: 1, name: 'Mishra\'s Factory', set: 'atq', collector_number: '1074'}),
             '1x Llanowar Elves *GE*': new DeckCard({quantity: 1, name: 'Llanowar Elves', language: Language.german}),
             '1x Llanowar Elves *SL*': new DeckCard({quantity: 1, name: 'Llanowar Elves', condition: Condition.slightly_played}),
@@ -87,7 +87,7 @@ export class CardParseTest extends Test {
             );
 
             if (card) {
-                const card_string = card.to_string('1 Name (SET:000?)? *EN*? *F*? *NM*? [Tag] #Board')
+                const card_string = card.to_string('1 Name (SET:000?)? *EN*? *F*? *NM*? [Tag] #Zone')
                 const card2 = DeckCard.parse(card_string);
 
                 this.assert_match(

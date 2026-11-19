@@ -2,23 +2,23 @@ import {Designation} from "./designation";
 import {DeckCard} from "../deck-card";
 import {normalise} from "../text";
 
-export class Board extends Designation {
-    static vanguard = new Board('Vanguard', ['vanguard'], 1, 1, ['Vanguard']);
-    static conspiracy = new Board('Conspiracy', ['conspiracy'], [0], null, ['Conspiracy']);
-    static hero = new Board('Hero', ['hero'], 1, 1, ['Hero']);
-    static commander = new Board('Commander', ['cmdr', 'commanders', 'brawlers', 'oathbreakers']);
-    static companion = new Board('Companion', ['cmpn', 'companions'])
+export class Zone extends Designation {
+    static vanguard = new Zone('Vanguard', ['vanguard'], 1, 1, ['Vanguard']);
+    static conspiracy = new Zone('Conspiracy', ['conspiracy'], [0], null, ['Conspiracy']);
+    static hero = new Zone('Hero', ['hero'], 1, 1, ['Hero']);
+    static commander = new Zone('Commander', ['cmdr', 'commanders', 'brawlers', 'oathbreakers']);
+    static companion = new Zone('Companion', ['cmpn', 'companions'])
         .with_filter(card => card.has_keyword('Companion'));
-    static deck = new Board('Deck', ['main', 'main board', 'main deck']);
-    static sideboard = new Board('Sideboard', ['sb', 'side board', 'side']);
-    static stickers = new Board('Sticker Deck', ['stickers'], [10], 1, ['Stickers']);
-    static attractions = new Board('Attraction Deck', ['attraction', 'attractions'], 10, 1, ['Artifact - Attraction']);
-    static contraptions = new Board('Contraption Deck', ['contraption', 'contraptions'], [15], 1, ['Artifact - Contraption']);
-    static planar = new Board('Planar Deck', ['planar', 'planes'], [10], 1, ['Plane', 'Phenomenon']);
-    static schemes = new Board('Scheme Deck', ['scheme', 'schemes', 'archenemy'], [20], 2, ['Scheme']);
-    static tokens = new Board('Tokens', ['tokens', 'emblems', 'dungeons'], [20], 2, ['Token', 'Emblem', 'Dungeon', 'Card']);
-    static maybeboard = new Board('Maybeboard', ['mb', 'maybe board', 'maybe']);
-    static acquireboard = new Board('Acquireboard', ['ab', 'acquire', 'acquire board']);
+    static deck = new Zone('Deck', ['main', 'main board', 'main deck']);
+    static sideboard = new Zone('Sideboard', ['sb', 'side board', 'side']);
+    static stickers = new Zone('Sticker Deck', ['stickers'], [10], 1, ['Stickers']);
+    static attractions = new Zone('Attraction Deck', ['attraction', 'attractions'], 10, 1, ['Artifact - Attraction']);
+    static contraptions = new Zone('Contraption Deck', ['contraption', 'contraptions'], [15], 1, ['Artifact - Contraption']);
+    static planar = new Zone('Planar Deck', ['planar', 'planes'], [10], 1, ['Plane', 'Phenomenon']);
+    static schemes = new Zone('Scheme Deck', ['scheme', 'schemes', 'archenemy'], [20], 2, ['Scheme']);
+    static tokens = new Zone('Tokens', ['tokens', 'emblems', 'dungeons'], [20], 2, ['Token', 'Emblem', 'Dungeon', 'Card']);
+    static maybeboard = new Zone('Maybeboard', ['mb', 'maybe board', 'maybe']);
+    static acquireboard = new Zone('Acquireboard', ['ab', 'acquire', 'acquire board']);
 
     static DEFAULT = this.deck;
 
@@ -55,7 +55,7 @@ export class Board extends Designation {
     }
 
     is_default(): boolean {
-        return this === Board.DEFAULT;
+        return this === Zone.DEFAULT;
     }
 
     min_cards(): number {
@@ -91,13 +91,13 @@ export class Board extends Designation {
         return this.filters.length > 0;
     }
 
-    static default_for(card: DeckCard): Board {
-        for (const board of this.all()) {
-            if (board.has_filter() && board.can_include(card)) {
-                return board;
+    static default_for(card: DeckCard): Zone {
+        for (const zone of this.all()) {
+            if (zone.has_filter() && zone.can_include(card)) {
+                return zone;
             }
         }
 
-        return Board.deck;
+        return Zone.deck;
     }
 }

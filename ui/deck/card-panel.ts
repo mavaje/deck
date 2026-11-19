@@ -3,7 +3,7 @@ import {DeckCard} from "../../deck-card";
 import {Language} from "../../designation/language";
 import {is_nullish} from "../../value";
 import {API} from "../../scryfall/api";
-import {Board} from "../../designation/board";
+import {Zone} from "../../designation/zone";
 import {Finish} from "../../designation/finish";
 import {Condition} from "../../designation/condition";
 import {CardView} from "../card-view";
@@ -175,19 +175,19 @@ export class CardPanel extends Panel {
         });
 
         HTML.input({
-            id: 'board-input',
-            class: !card.board.can_include(card) && 'error',
-            value: card.board.name,
+            id: 'zone-input',
+            class: !card.zone.can_include(card) && 'error',
+            value: card.zone.name,
             readonly: true,
             onkeypress,
             ...new Dropdown(
-                'board-options',
-                Board.all()
-                    .filter(board => board.can_include(card))
-                    .map(board => ({
-                        value: board.name,
-                        on_select: () => EditCardFields.do(card, {board}),
-                        selected: card.board === board,
+                'zone-options',
+                Zone.all()
+                    .filter(zone => zone.can_include(card))
+                    .map(zone => ({
+                        value: zone.name,
+                        on_select: () => EditCardFields.do(card, {zone: zone}),
+                        selected: card.zone === zone,
                     })),
             ).event_listeners(),
         });

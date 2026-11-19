@@ -2,7 +2,7 @@ import {Test, TestMatcher} from "./test";
 import {Deck} from "../deck";
 import {Format} from "../format";
 import {DeckError, DeckValidator} from "../deck-validator";
-import {Board} from "../designation/board";
+import {Zone} from "../designation/zone";
 
 export class DeckValidationTest extends Test {
 
@@ -667,7 +667,7 @@ export class DeckValidationTest extends Test {
                     Morphic Tide
                 `,
                 errors: [
-                    {type: 'too-few-cards', board: Board.planar},
+                    {type: 'too-few-cards', zone: Zone.planar},
                 ],
             },
             {

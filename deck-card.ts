@@ -5,7 +5,7 @@ import {Format} from "./format";
 import {Cache} from "./scryfall/cache";
 import {RuleBreak} from "./rule-break";
 import {Language} from "./designation/language";
-import {Board} from "./designation/board";
+import {Zone} from "./designation/zone";
 import {Condition} from "./designation/condition";
 import {Finish} from "./designation/finish";
 import {Deck} from "./deck";
@@ -22,7 +22,7 @@ export type JSONCard = {
     lang: string;
     finish: string;
     condition: string;
-    board: string;
+    zone: string;
     tags: string[];
 };
 
@@ -53,7 +53,7 @@ export class DeckCard extends Face {
     quantity: number = 1;
     finish: Finish = Finish.DEFAULT;
     condition?: Condition = null;
-    board: Board = Board.DEFAULT;
+    zone: Zone = Zone.DEFAULT;
 
     tags: Set<Tag> = new Set();
 
@@ -102,8 +102,8 @@ export class DeckCard extends Face {
     static parse(
         input: string,
         deck?: Deck,
-        default_board: Board = Board.DEFAULT,
-        exclude_boards: Board[] = [],
+        default_zone: Zone = Zone.DEFAULT,
+        exclude_zones: Zone[] = [],
     ): DeckCard {
         const match = this.LINE_REGEXP.exec(input);
         if (!match) return null;
@@ -135,7 +135,7 @@ export class DeckCard extends Face {
             raw_name: name,
             set: API.SETS.normalise(set),
             collector_number,
-            board: default_board,
+            zone: default_zone,
         });
 
         if (!card.name && !(card.set && card.collector_number)) return null;
@@ -171,9 +171,9 @@ export class DeckCard extends Face {
                     continue;
                 }
 
-                const board = Board.match(tag);
-                if (board && !exclude_boards.includes(board)) {
-                    card.board = board;
+                const zone = Zone.match(tag);
+                if (zone && !exclude_zones.includes(zone)) {
+                    card.zone = zone;
                     continue;
                 }
 
@@ -214,14 +214,14 @@ export class DeckCard extends Face {
     static from_json(json: JSONCard, id?: number): DeckCard {
         return new DeckCard({
             id,
-            quantity: json.qty,
-            name: json.name,
-            set: json.set,
-            collector_number: json.cn,
-            language: Language.match(json.lang),
-            finish: Finish.match(json.finish),
-            condition: Condition.match(json.condition),
-            board: Board.match(json.board),
+            quantity: json.qty ?? 1,
+            name: json.name || null,
+            set: json.set || null,
+            collector_number: json.cn || null,
+            language: Language.match(json.lang) ?? Language.DEFAULT,
+            finish: Finish.match(json.finish) ?? Finish.DEFAULT,
+            condition: Condition.match(json.condition) ?? null,
+            zone: Zone.match(json.zone) ?? Zone.DEFAULT,
             tags: new Set(json.tags.map(tag => Tag.match_or_new(tag))),
         });
     }
@@ -445,7 +445,7 @@ export class DeckCard extends Face {
             'set',
             'collector_number',
             'language',
-            'board',
+            'zone',
             'condition',
             'is_foil',
             'display_face_id',
@@ -459,10 +459,10 @@ export class DeckCard extends Face {
             && [...this.tags].every(tag => card.tags.has(tag));
     }
 
-    on_board(board: Board): boolean;
-    on_board(...boards: Board[]): boolean;
-    on_board(...boards: Board[]): boolean {
-        return boards.length === 0 || boards.includes(this.board);
+    in_zone(zone: Zone): boolean;
+    in_zone(...zones: Zone[]): boolean;
+    in_zone(...zones: Zone[]): boolean {
+        return zones.length === 0 || zones.includes(this.zone);
     }
 
     card_name(printed: boolean = false): string {
@@ -698,9 +698,9 @@ export class DeckCard extends Face {
                     } else if (Condition.match(input)) {
                         return !this.condition ? ''
                             : string.replace(/[\w\s]+/, preserve_case(input.length > 2 ? this.condition.name : this.condition.code(), input));
-                    } else if (input.match(/^(board|brd)$/i)) {
-                        return opt && this.board.is_default() ? ''
-                            : string.replace(/[\w\s]+/, preserve_case(input.length > 3 ? this.board.name : this.board.code(), input));
+                    } else if (input.match(/^(zone|zn)$/i)) {
+                        return opt && this.zone.is_default() ? ''
+                            : string.replace(/[\w\s]+/, preserve_case(input.length >= 4 ? this.zone.name : this.zone.code(), input));
                     } else if (input.match(/tag/i)) {
                         return [...this.tags]
                             .sort()
@@ -738,7 +738,7 @@ export class DeckCard extends Face {
             lang: this.language?.code() ?? null,
             finish: this.finish?.code() ?? null,
             condition: this.condition?.code() ?? null,
-            board: this.board?.code() ?? null,
+            zone: this.zone?.code() ?? null,
             tags: [...this.tags].map(tag => tag.name),
         };
     }

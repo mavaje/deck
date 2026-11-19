@@ -110,9 +110,9 @@ export class DeckPanel extends Panel {
             HTML.option({value: i}, grouping.name)));
 
         HTML.input({
-            id: 'by-board',
+            id: 'by-zone',
             onchange: input => {
-                DeckView.BY_BOARD = input.checked;
+                DeckView.BY_ZONE = input.checked;
                 DeckView.render();
             },
         });

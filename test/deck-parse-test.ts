@@ -1,7 +1,7 @@
 import {Test} from "./test";
 import {Deck} from "../deck";
 import {DeckCard} from "../deck-card";
-import {Board} from "../designation/board";
+import {Zone} from "../designation/zone";
 import {Finish} from "../designation/finish";
 
 export class DeckParseTest extends Test {
@@ -39,7 +39,7 @@ lightning bolt
             [
                 // new DeckCard({quantity: 1, name: 'About'}),
                 new DeckCard({quantity: 1, name: 'Name Jace, Reforging the multiverse', tags: this.tag_set('About')}),
-                new DeckCard({quantity: 1, name: 'Jace, Multiverse Architect', board: Board.commander}),
+                new DeckCard({quantity: 1, name: 'Jace, Multiverse Architect', zone: Zone.commander}),
                 new DeckCard({quantity: 10, name: 'Black Lotus', set: '2ed', collector_number: '233', tags: this.tag_set('Artifact')}),
                 new DeckCard({quantity: 1, name: 'Esika, God of the Tree // The Prismatic Bridge', set: 'khm', collector_number: '168', tags: this.tag_set('Creature')}),
                 new DeckCard({quantity: 1, name: 'Forest', set: 'plst', collector_number: 'AKH-268', tags: this.tag_set('Land')}),
@@ -48,10 +48,10 @@ lightning bolt
                 new DeckCard({quantity: 1, name: 'Nezumi Graverobber // Nighteyes the Desecrator', set: 'plst', collector_number: 'CHK-129', tags: this.tag_set('Creature')}),
                 new DeckCard({quantity: 2, name: 'Sensei\'s Divining Top', set: 'ema', collector_number: '232', finish: Finish.foil, tags: this.tag_set('Good Stuff', 'Don\'t Have')}),
                 new DeckCard({quantity: 2, name: 'Swamp', set: 'gk1', collector_number: '25', tags: this.tag_set('Land')}),
-                new DeckCard({quantity: 1, name: 'Tovolar, Dire Overlord // Tovolar, the Midnight Scourge', set: 'mid', collector_number: '311', board: Board.commander}),
+                new DeckCard({quantity: 1, name: 'Tovolar, Dire Overlord // Tovolar, the Midnight Scourge', set: 'mid', collector_number: '311', zone: Zone.commander}),
                 new DeckCard({quantity: 1, name: 'turn // burn'}),
-                new DeckCard({quantity: 1, name: 'lightning bolt', board: Board.sideboard}),
-                new DeckCard({quantity: 1, name: 'lightning bolt', board: Board.sideboard}),
+                new DeckCard({quantity: 1, name: 'lightning bolt', zone: Zone.sideboard}),
+                new DeckCard({quantity: 1, name: 'lightning bolt', zone: Zone.sideboard}),
             ],
             deck
         );

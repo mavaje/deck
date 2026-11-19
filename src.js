@@ -362,13 +362,13 @@ var init_designation = __esm({
   }
 });
 
-// designation/board.ts
-var Board;
-var init_board = __esm({
-  "designation/board.ts"() {
+// designation/zone.ts
+var Zone;
+var init_zone = __esm({
+  "designation/zone.ts"() {
     init_designation();
     init_text();
-    Board = class _Board extends Designation {
+    Zone = class _Zone extends Designation {
       constructor(name, codes, cards = [0], copy_limit = null, card_types = null) {
         super(name, codes);
         this.name = name;
@@ -388,21 +388,21 @@ var init_board = __esm({
       cards;
       copy_limit;
       card_types;
-      static vanguard = new _Board("Vanguard", ["vanguard"], 1, 1, ["Vanguard"]);
-      static conspiracy = new _Board("Conspiracy", ["conspiracy"], [0], null, ["Conspiracy"]);
-      static hero = new _Board("Hero", ["hero"], 1, 1, ["Hero"]);
-      static commander = new _Board("Commander", ["cmdr", "commanders", "brawlers", "oathbreakers"]);
-      static companion = new _Board("Companion", ["cmpn", "companions"]).with_filter((card) => card.has_keyword("Companion"));
-      static deck = new _Board("Deck", ["main", "main board", "main deck"]);
-      static sideboard = new _Board("Sideboard", ["sb", "side board", "side"]);
-      static stickers = new _Board("Sticker Deck", ["stickers"], [10], 1, ["Stickers"]);
-      static attractions = new _Board("Attraction Deck", ["attraction", "attractions"], 10, 1, ["Artifact - Attraction"]);
-      static contraptions = new _Board("Contraption Deck", ["contraption", "contraptions"], [15], 1, ["Artifact - Contraption"]);
-      static planar = new _Board("Planar Deck", ["planar", "planes"], [10], 1, ["Plane", "Phenomenon"]);
-      static schemes = new _Board("Scheme Deck", ["scheme", "schemes", "archenemy"], [20], 2, ["Scheme"]);
-      static tokens = new _Board("Tokens", ["tokens", "emblems", "dungeons"], [20], 2, ["Token", "Emblem", "Dungeon", "Card"]);
-      static maybeboard = new _Board("Maybeboard", ["mb", "maybe board", "maybe"]);
-      static acquireboard = new _Board("Acquireboard", ["ab", "acquire", "acquire board"]);
+      static vanguard = new _Zone("Vanguard", ["vanguard"], 1, 1, ["Vanguard"]);
+      static conspiracy = new _Zone("Conspiracy", ["conspiracy"], [0], null, ["Conspiracy"]);
+      static hero = new _Zone("Hero", ["hero"], 1, 1, ["Hero"]);
+      static commander = new _Zone("Commander", ["cmdr", "commanders", "brawlers", "oathbreakers"]);
+      static companion = new _Zone("Companion", ["cmpn", "companions"]).with_filter((card) => card.has_keyword("Companion"));
+      static deck = new _Zone("Deck", ["main", "main board", "main deck"]);
+      static sideboard = new _Zone("Sideboard", ["sb", "side board", "side"]);
+      static stickers = new _Zone("Sticker Deck", ["stickers"], [10], 1, ["Stickers"]);
+      static attractions = new _Zone("Attraction Deck", ["attraction", "attractions"], 10, 1, ["Artifact - Attraction"]);
+      static contraptions = new _Zone("Contraption Deck", ["contraption", "contraptions"], [15], 1, ["Artifact - Contraption"]);
+      static planar = new _Zone("Planar Deck", ["planar", "planes"], [10], 1, ["Plane", "Phenomenon"]);
+      static schemes = new _Zone("Scheme Deck", ["scheme", "schemes", "archenemy"], [20], 2, ["Scheme"]);
+      static tokens = new _Zone("Tokens", ["tokens", "emblems", "dungeons"], [20], 2, ["Token", "Emblem", "Dungeon", "Card"]);
+      static maybeboard = new _Zone("Maybeboard", ["mb", "maybe board", "maybe"]);
+      static acquireboard = new _Zone("Acquireboard", ["ab", "acquire", "acquire board"]);
       static DEFAULT = this.deck;
       static STARTING_DECK = [
         this.commander,
@@ -416,7 +416,7 @@ var init_board = __esm({
       ];
       filters = [];
       is_default() {
-        return this === _Board.DEFAULT;
+        return this === _Zone.DEFAULT;
       }
       min_cards() {
         return (Array.isArray(this.cards) ? this.cards[0] : this.cards) ?? 0;
@@ -438,12 +438,12 @@ var init_board = __esm({
         return this.filters.length > 0;
       }
       static default_for(card) {
-        for (const board of this.all()) {
-          if (board.has_filter() && board.can_include(card)) {
-            return board;
+        for (const zone of this.all()) {
+          if (zone.has_filter() && zone.can_include(card)) {
+            return zone;
           }
         }
-        return _Board.deck;
+        return _Zone.deck;
       }
     };
   }
@@ -2178,7 +2178,7 @@ var init_card_panel = __esm({
     init_language();
     init_value();
     init_api();
-    init_board();
+    init_zone();
     init_finish();
     init_condition();
     init_card_view();
@@ -2333,17 +2333,17 @@ var init_card_panel = __esm({
           ).event_listeners()
         });
         HTML.input({
-          id: "board-input",
-          class: !card.board.can_include(card) && "error",
-          value: card.board.name,
+          id: "zone-input",
+          class: !card.zone.can_include(card) && "error",
+          value: card.zone.name,
           readonly: true,
           onkeypress,
           ...new Dropdown(
-            "board-options",
-            Board.all().filter((board) => board.can_include(card)).map((board) => ({
-              value: board.name,
-              on_select: () => EditCardFields.do(card, { board }),
-              selected: card.board === board
+            "zone-options",
+            Zone.all().filter((zone) => zone.can_include(card)).map((zone) => ({
+              value: zone.name,
+              on_select: () => EditCardFields.do(card, { zone }),
+              selected: card.zone === zone
             }))
           ).event_listeners()
         });
@@ -2370,7 +2370,7 @@ var init_deck_card = __esm({
     init_cache();
     init_rule_break();
     init_language();
-    init_board();
+    init_zone();
     init_condition();
     init_finish();
     init_tag();
@@ -2397,7 +2397,7 @@ var init_deck_card = __esm({
       quantity = 1;
       finish = Finish.DEFAULT;
       condition = null;
-      board = Board.DEFAULT;
+      zone = Zone.DEFAULT;
       tags = /* @__PURE__ */ new Set();
       display_face_id = null;
       constructor(card = {}) {
@@ -2435,7 +2435,7 @@ var init_deck_card = __esm({
       static empty() {
         return new _DeckCard();
       }
-      static parse(input, deck, default_board = Board.DEFAULT, exclude_boards = []) {
+      static parse(input, deck, default_zone = Zone.DEFAULT, exclude_zones = []) {
         const match = this.LINE_REGEXP.exec(input);
         if (!match) return null;
         const {
@@ -2460,7 +2460,7 @@ var init_deck_card = __esm({
           raw_name: name,
           set: API.SETS.normalise(set),
           collector_number,
-          board: default_board
+          zone: default_zone
         });
         if (!card.name && !(card.set && card.collector_number)) return null;
         if (extra) {
@@ -2485,9 +2485,9 @@ var init_deck_card = __esm({
               card.finish = finish;
               continue;
             }
-            const board = Board.match(tag);
-            if (board && !exclude_boards.includes(board)) {
-              card.board = board;
+            const zone = Zone.match(tag);
+            if (zone && !exclude_zones.includes(zone)) {
+              card.zone = zone;
               continue;
             }
             const hex_match = tag.match(/^(?<tag>.+)[,;:](?<hex>#[0-9a-f]{6})$/i);
@@ -2520,14 +2520,14 @@ var init_deck_card = __esm({
       static from_json(json, id) {
         return new _DeckCard({
           id,
-          quantity: json.qty,
-          name: json.name,
-          set: json.set,
-          collector_number: json.cn,
-          language: Language.match(json.lang),
-          finish: Finish.match(json.finish),
-          condition: Condition.match(json.condition),
-          board: Board.match(json.board),
+          quantity: json.qty ?? 1,
+          name: json.name || null,
+          set: json.set || null,
+          collector_number: json.cn || null,
+          language: Language.match(json.lang) ?? Language.DEFAULT,
+          finish: Finish.match(json.finish) ?? Finish.DEFAULT,
+          condition: Condition.match(json.condition) ?? null,
+          zone: Zone.match(json.zone) ?? Zone.DEFAULT,
           tags: new Set(json.tags.map((tag) => Tag.match_or_new(tag)))
         });
       }
@@ -2703,7 +2703,7 @@ var init_deck_card = __esm({
           "set",
           "collector_number",
           "language",
-          "board",
+          "zone",
           "condition",
           "is_foil",
           "display_face_id"
@@ -2714,8 +2714,8 @@ var init_deck_card = __esm({
         }
         return this.tags.size === card.tags.size && [...this.tags].every((tag) => card.tags.has(tag));
       }
-      on_board(...boards) {
-        return boards.length === 0 || boards.includes(this.board);
+      in_zone(...zones) {
+        return zones.length === 0 || zones.includes(this.zone);
       }
       card_name(printed = false) {
         return super.card_name(printed) ?? this.name;
@@ -2873,8 +2873,8 @@ var init_deck_card = __esm({
               return opt && this.finish.is_default() ? "" : string.replace(/[\w\s]+/, preserve_case(input.length > 2 ? this.finish.name : this.finish.code(), input));
             } else if (Condition.match(input)) {
               return !this.condition ? "" : string.replace(/[\w\s]+/, preserve_case(input.length > 2 ? this.condition.name : this.condition.code(), input));
-            } else if (input.match(/^(board|brd)$/i)) {
-              return opt && this.board.is_default() ? "" : string.replace(/[\w\s]+/, preserve_case(input.length > 3 ? this.board.name : this.board.code(), input));
+            } else if (input.match(/^(zone|zn)$/i)) {
+              return opt && this.zone.is_default() ? "" : string.replace(/[\w\s]+/, preserve_case(input.length >= 4 ? this.zone.name : this.zone.code(), input));
             } else if (input.match(/tag/i)) {
               return [...this.tags].sort().map((tag) => string.replace(/[\w\s]+/, preserve_case(tag.to_string(), input))).join(" ");
             } else {
@@ -2895,7 +2895,7 @@ var init_deck_card = __esm({
           lang: this.language?.code() ?? null,
           finish: this.finish?.code() ?? null,
           condition: this.condition?.code() ?? null,
-          board: this.board?.code() ?? null,
+          zone: this.zone?.code() ?? null,
           tags: [...this.tags].map((tag) => tag.name)
         };
       }
@@ -3029,7 +3029,7 @@ var init_deck = __esm({
     init_format();
     init_api();
     init_color_set();
-    init_board();
+    init_zone();
     init_card_list();
     init_tag();
     init_deck_view();
@@ -3042,24 +3042,24 @@ var init_deck = __esm({
       title;
       format = null;
       game = null;
-      static parse(input, title, exclude_boards = []) {
+      static parse(input, title, exclude_zones = []) {
         const deck = new _Deck();
         deck.title = title;
         deck.raw = input;
-        let group_board = Board.DEFAULT;
+        let group_zone = Zone.DEFAULT;
         let group_tag = null;
         input.split("\n").forEach((line) => {
           if (/^\s*$/.test(line)) {
-            group_board = Board.DEFAULT;
+            group_zone = Zone.DEFAULT;
             group_tag = null;
             return;
           }
           const header_match = line.match(/^\s*(?<tag>\/\/|#)?\s*(?<header>\w.*?):?(\s*\(\d+\):?)?\s*$/i);
           if (header_match) {
             const { tag, header } = header_match.groups;
-            const board = Board.match(header, !tag);
-            if (board && !exclude_boards.includes(board)) {
-              group_board = board;
+            const zone = Zone.match(header, !tag);
+            if (zone && !exclude_zones.includes(zone)) {
+              group_zone = zone;
               return;
             }
             if (tag || /^about$/i.test(header)) {
@@ -3067,7 +3067,7 @@ var init_deck = __esm({
               return;
             }
           }
-          const card = DeckCard.parse(line, deck, group_board, exclude_boards);
+          const card = DeckCard.parse(line, deck, group_zone, exclude_zones);
           if (card) {
             if (group_tag) {
               card.tags.add(group_tag);
@@ -3081,18 +3081,18 @@ var init_deck = __esm({
       static async load_current(input, title) {
         CardPanel.close();
         History.reset();
-        let invalid_boards = [];
+        let invalid_zones = [];
         do {
           Tag.clear();
-          _Deck.CURRENT = _Deck.parse(input, title, invalid_boards);
+          _Deck.CURRENT = _Deck.parse(input, title, invalid_zones);
           DeckView.render();
           await _Deck.CURRENT.load(() => DeckView.render());
-          invalid_boards = Board.all().filter((board) => {
-            if (!board.has_filter()) return false;
-            const cards = _Deck.CURRENT.board(board);
-            return cards.length > 0 && cards.every((card) => !board.can_include(card));
+          invalid_zones = Zone.all().filter((zone) => {
+            if (!zone.has_filter()) return false;
+            const cards = _Deck.CURRENT.zone(zone);
+            return cards.length > 0 && cards.every((card) => !zone.can_include(card));
           });
-        } while (invalid_boards.length > 0);
+        } while (invalid_zones.length > 0);
         for (let i = 0; i < _Deck.CURRENT.length; i++) {
           if (DeckView.set_background(_Deck.CURRENT[i])) break;
         }
@@ -3101,9 +3101,9 @@ var init_deck = __esm({
       }
       static async load_from_json(deck) {
         _Deck.CURRENT = new _Deck();
-        _Deck.CURRENT.title = deck.title;
-        _Deck.CURRENT.format = Format.match(deck.format);
-        _Deck.CURRENT.game = Game.match(deck.game);
+        _Deck.CURRENT.title = deck.title || null;
+        _Deck.CURRENT.format = Format.match(deck.format) ?? null;
+        _Deck.CURRENT.game = Game.match(deck.game) ?? null;
         deck.tags.forEach((tag) => Tag.match_or_new(tag.name, tag.hex));
         _Deck.CURRENT.push(...deck.cards.map((card, id) => DeckCard.from_json(card, id)));
         await _Deck.CURRENT.load(() => DeckView.render());
@@ -3147,19 +3147,19 @@ var init_deck = __esm({
         }));
         return this;
       }
-      board(...boards) {
-        return this.filter((card) => card.on_board(...boards));
+      zone(...zones) {
+        return this.filter((card) => card.in_zone(...zones));
       }
       color_identity() {
-        const commanders = this.board(Board.commander).skip_empty();
+        const commanders = this.zone(Zone.commander).skip_empty();
         if (commanders.count() === 0) return null;
         let color_identity = ColorSet.colors.c;
         commanders.forEach((card) => color_identity = color_identity.plus(card.color_identity()));
         return color_identity;
       }
       to_string(card_format) {
-        return Board.all().filter((board) => this.board(board).length > 0).map((board) => `# ${board.name}
-` + this.board(board).map((card) => card.to_string(card_format) + ` (${card.display_face_id})`).join("\n") + "\n").join("\n");
+        return Zone.all().filter((zone) => this.zone(zone).length > 0).map((zone) => `# ${zone.name}
+` + this.zone(zone).map((card) => card.to_string(card_format) + ` (${card.display_face_id})`).join("\n") + "\n").join("\n");
       }
       toString() {
         return this.to_string();
@@ -3340,7 +3340,7 @@ var init_deck_validator = __esm({
   "deck-validator.ts"() {
     init_catalog();
     init_text();
-    init_board();
+    init_zone();
     DeckValidator = class {
       constructor(deck, format = deck.format) {
         this.deck = deck;
@@ -3354,13 +3354,13 @@ var init_deck_validator = __esm({
       }
       validate(format = this.format) {
         const errors = [];
-        const commanders = this.deck.board(Board.commander);
+        const commanders = this.deck.zone(Zone.commander);
         const commander_count = commanders.count();
-        const conspiracies = this.deck.board(Board.conspiracy);
+        const conspiracies = this.deck.zone(Zone.conspiracy);
         this.rulebreaks.push(...commanders.skip_empty().flatMap((card) => card.rulebreaks()));
         this.rulebreaks.push(...conspiracies.skip_empty().flatMap((card) => card.rulebreaks()));
         if (format) {
-          const banned_cards = this.deck.board(...Board.STANDARD).filter((card) => card.legality(format) === "banned");
+          const banned_cards = this.deck.zone(...Zone.STANDARD).filter((card) => card.legality(format) === "banned");
           if (banned_cards.count() > 0) {
             errors.push({
               type: "illegal-card",
@@ -3368,7 +3368,7 @@ var init_deck_validator = __esm({
               cards: banned_cards
             });
           }
-          const illegal_cards = this.deck.board(...Board.STANDARD).filter((card) => card.legality(format) === "not_legal");
+          const illegal_cards = this.deck.zone(...Zone.STANDARD).filter((card) => card.legality(format) === "not_legal");
           if (illegal_cards.count() > 0) {
             errors.push({
               type: "illegal-card",
@@ -3376,7 +3376,7 @@ var init_deck_validator = __esm({
               cards: illegal_cards
             });
           }
-          const card_count = this.deck.board(...Board.STARTING_DECK).count();
+          const card_count = this.deck.zone(...Zone.STARTING_DECK).count();
           if (card_count < format.min_cards()) {
             let min_cards = format.min_cards();
             this.rulebreaks.forEach((rulebreak) => min_cards -= rulebreak.breaks_deck_min());
@@ -3384,22 +3384,22 @@ var init_deck_validator = __esm({
               errors.push({
                 type: "too-few-cards",
                 message: `You have ${card_count} cards, you need at least ${min_cards}`,
-                board: Board.deck
+                zone: Zone.deck
               });
             }
           } else if (card_count > format.max_cards() && !this.rulebreaks.some((rulebreak) => rulebreak.breaks_deck_max())) {
             errors.push({
               type: "too-many-cards",
               message: `You have ${card_count} cards, you can have up to ${format.max_cards()}`,
-              board: Board.deck
+              zone: Zone.deck
             });
           }
-          const sideboard = this.deck.board(Board.sideboard);
+          const sideboard = this.deck.zone(Zone.sideboard);
           if (sideboard.count() > format.sideboard_limit) {
             errors.push({
               type: "too-many-sideboard-cards",
               message: `You have ${sideboard.count()} cards in your sideboard, you can have up to ${format.sideboard_limit}`,
-              board: Board.sideboard
+              zone: Zone.sideboard
             });
           }
           if (format.has_command_zone()) {
@@ -3413,19 +3413,19 @@ var init_deck_validator = __esm({
                 errors.push({
                   type: "too-few-commanders",
                   message: `You must have a commander in this format`,
-                  board: Board.commander
+                  zone: Zone.commander
                 });
               } else if (commander_count > 1) {
                 errors.push({
                   type: "too-many-commanders",
                   message: `You cannot have more than one commander`,
-                  board: Board.commander
+                  zone: Zone.commander
                 });
               } else if (format.has_signature_spell) {
                 errors.push({
                   type: "too-few-commanders",
                   message: `You must have an oathbreaker and a signature spell`,
-                  board: Board.commander
+                  zone: Zone.commander
                 });
               }
               const illegal_commanders = commanders.filter((card) => !card.can_command(format));
@@ -3442,15 +3442,15 @@ var init_deck_validator = __esm({
               errors.push({
                 type: "too-many-commanders",
                 message: `You cannot have commanders in this format`,
-                board: Board.commander
+                zone: Zone.commander
               });
             }
           }
         }
-        errors.push(...this.deck.board(Board.companion).skip_empty().flatMap((card) => this.validate_deck_restrictions(card, format)));
+        errors.push(...this.deck.zone(Zone.companion).skip_empty().flatMap((card) => this.validate_deck_restrictions(card, format)));
         errors.push(...conspiracies.skip_empty().flatMap((card) => this.validate_deck_restrictions(card, format)));
         let color_identity = this.deck.color_identity();
-        this.deck.board(...Board.STANDARD).map((card) => {
+        this.deck.zone(...Zone.STANDARD).map((card) => {
           if (color_identity) {
             const additional_break = this.rulebreaks.find((rulebreak) => rulebreak.breaks_color_identity(card));
             if (additional_break) {
@@ -3470,7 +3470,7 @@ var init_deck_validator = __esm({
             }
           }
         });
-        this.deck.board(...Board.STANDARD).by_count((count, card) => {
+        this.deck.zone(...Zone.STANDARD).by_count((count, card) => {
           const max = card.copy_limit(format);
           if (count > max) {
             errors.push({
@@ -3480,44 +3480,44 @@ var init_deck_validator = __esm({
             });
           }
         });
-        Board.all().filter((board) => !Board.STANDARD.includes(board)).forEach((board) => {
-          const board_cards = this.deck.board(board);
-          if (board_cards.count() === 0) return;
-          if (board_cards.count() < board.min_cards()) {
+        Zone.all().filter((zone) => !Zone.STANDARD.includes(zone)).forEach((zone) => {
+          const zone_cards = this.deck.zone(zone);
+          if (zone_cards.count() === 0) return;
+          if (zone_cards.count() < zone.min_cards()) {
             errors.push({
               type: "too-few-cards",
-              message: `You must have at least ${board.min_cards()} cards in a ${board.name.toLowerCase()}`,
-              board
+              message: `You must have at least ${zone.min_cards()} cards in a ${zone.name.toLowerCase()}`,
+              zone
             });
-          } else if (board_cards.count() > board.max_cards()) {
+          } else if (zone_cards.count() > zone.max_cards()) {
             errors.push({
               type: "too-many-cards",
-              message: `You can only have ${board.max_cards()} cards in a ${board.name.toLowerCase()}`,
-              board
+              message: `You can only have ${zone.max_cards()} cards in a ${zone.name.toLowerCase()}`,
+              zone
             });
           }
-          if (board.copy_limit) {
-            const too_many = board_cards.filter_by_count((count) => count > board.copy_limit);
+          if (zone.copy_limit) {
+            const too_many = zone_cards.filter_by_count((count) => count > zone.copy_limit);
             if (too_many.count() > 0) {
               errors.push({
                 type: "too-many-copies",
-                message: `You have only ${board.copy_limit} copy of each card in a ${board.name}`,
+                message: `You have only ${zone.copy_limit} copy of each card in a ${zone.name}`,
                 cards: too_many
               });
             }
           }
-          if (board.has_filter()) {
-            const wrong_type = board_cards.filter((card) => !board.can_include(card));
+          if (zone.has_filter()) {
+            const wrong_type = zone_cards.filter((card) => !zone.can_include(card));
             if (wrong_type.count() > 0) {
               errors.push({
                 type: "illegal-card",
-                message: `A ${board.name} can contain only ${board.card_types.join(" or ")} cards`,
+                message: `A ${zone.name} can contain only ${zone.card_types.join(" or ")} cards`,
                 cards: wrong_type
               });
             }
           }
         });
-        const phenomena = this.deck.board(Board.planar).filter((card) => card.is_type("Phenomenon"));
+        const phenomena = this.deck.zone(Zone.planar).filter((card) => card.is_type("Phenomenon"));
         if (phenomena.count() > 2) {
           errors.push({
             type: "planar-deck-error",
@@ -3528,7 +3528,7 @@ var init_deck_validator = __esm({
         return errors;
       }
       validate_deck_restrictions(card, format) {
-        let deck = this.deck.board(...Board.STARTING_DECK);
+        let deck = this.deck.zone(...Zone.STARTING_DECK);
         if (card.has_keyword("Companion")) {
           const companion_match = card.oracle().match(/Companion — (?<ability>[^(]+\.)/);
           if (!companion_match) return [];
@@ -3679,7 +3679,7 @@ var DeckView;
 var init_deck_view = __esm({
   "ui/deck-view.ts"() {
     init_xml();
-    init_board();
+    init_zone();
     init_deck();
     init_card_view();
     init_card_classifier();
@@ -3690,7 +3690,7 @@ var init_deck_view = __esm({
     DeckView = class _DeckView {
       static card_views = /* @__PURE__ */ new WeakMap();
       static errors = [];
-      static BY_BOARD = true;
+      static BY_ZONE = true;
       static GROUPING = CardClassifier;
       static ORDERING = CardClassifier;
       static FACE_SELECTOR = FaceSelector.front;
@@ -3698,34 +3698,34 @@ var init_deck_view = __esm({
       static render(deck = Deck.CURRENT) {
         this.errors = new DeckValidator(deck).validate();
         _DeckView.card_views = /* @__PURE__ */ new WeakMap();
-        const show_boards = this.BY_BOARD && deck.some((card) => !card.board.is_default());
+        const show_zones = this.BY_ZONE && deck.some((card) => !card.zone.is_default());
         return HTML.div(
           {
             id: "deck-cards",
             onclick: () => CardPanel.close()
           },
-          show_boards ? this.render_boards(deck, "deck-groups") : this.render_groups(deck, "deck-groups")
+          show_zones ? this.render_zones(deck, "deck-groups") : this.render_groups(deck, "deck-groups")
         );
       }
-      static render_boards(deck, id) {
+      static render_zones(deck, id) {
         return HTML.div({
           id,
           class: "groups"
-        }, Board.all().map((board) => this.render_board(deck.board(board), board)));
+        }, Zone.all().map((zone) => this.render_zone(deck.zone(zone), zone)));
       }
-      static render_board(cards, board) {
+      static render_zone(cards, zone) {
         if (cards.length === 0) return null;
-        const id = `board-${board ?? "all"}`;
+        const id = `zone-${zone ?? "all"}`;
         return HTML.div(
           {
             id,
             class: "group"
           },
-          board && HTML.div({
+          zone && HTML.div({
             id: `${id}-label`,
             class: ["label", "fade-in"]
           }, HTML.div(
-            HTML.span({ style: { font_weight: "bold" } }, board.name),
+            HTML.span({ style: { font_weight: "bold" } }, zone.name),
             ` (${cards.count()})`
           )),
           this.render_groups(cards, `${id}-groups`)
@@ -4573,8 +4573,7 @@ var init_deck_panel = __esm({
         HTML.button({
           id: "deck-download",
           onclick: () => {
-            console.log(Deck.CURRENT.to_string("Name"));
-            console.log(Deck.CURRENT.to_string("Name // Back"));
+            console.log(Deck.CURRENT.to_string());
           }
         });
         HTML.h2({
@@ -4596,9 +4595,7 @@ var init_deck_panel = __esm({
             const file = input.files[0];
             const [title] = file.name.split(".");
             HTML.h2({ id: "deck-title" }, title);
-            file.text().then((input2) => Deck.load_current(input2, title)).then((deck) => {
-              DeckCard.CACHE.dump();
-            });
+            file.text().then((input2) => Deck.load_current(input2, title)).then(() => DeckCard.CACHE.dump());
           }
         });
         HTML.select({
@@ -4609,9 +4606,9 @@ var init_deck_panel = __esm({
           }
         }, this.CARD_GROUPINGS.map((grouping, i) => HTML.option({ value: i }, grouping.name)));
         HTML.input({
-          id: "by-board",
+          id: "by-zone",
           onchange: (input) => {
-            DeckView.BY_BOARD = input.checked;
+            DeckView.BY_ZONE = input.checked;
             DeckView.render();
           }
         });

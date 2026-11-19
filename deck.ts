@@ -2,7 +2,7 @@ import {DeckCard, JSONCard} from "./deck-card";
 import {Format} from "./format";
 import {API} from "./scryfall/api";
 import {ColorSet} from "./color-set";
-import {Board} from "./designation/board";
+import {Zone} from "./designation/zone";
 import {CardList} from "./card-list";
 import {Tag} from "./designation/tag";
 import {DeckView} from "./ui/deck-view";
@@ -32,17 +32,21 @@ export class Deck extends CardList {
     format: Format = null;
     game: Game = null;
 
-    static parse(input: string, title?: string, exclude_boards: Board[] = []) {
+    static parse(
+        input: string,
+        title?: string,
+        exclude_zones: Zone[] = [],
+    ) {
         const deck = new Deck();
         deck.title = title;
         deck.raw = input;
 
-        let group_board: Board = Board.DEFAULT;
+        let group_zone: Zone = Zone.DEFAULT;
         let group_tag: Tag = null;
 
         input.split('\n').forEach(line => {
             if (/^\s*$/.test(line)) {
-                group_board = Board.DEFAULT;
+                group_zone = Zone.DEFAULT;
                 group_tag = null;
                 return;
             }
@@ -53,9 +57,9 @@ export class Deck extends CardList {
             if (header_match) {
                 const {tag, header} = header_match.groups;
 
-                const board = Board.match(header, !tag);
-                if (board && !exclude_boards.includes(board)) {
-                    group_board = board;
+                const zone = Zone.match(header, !tag);
+                if (zone && !exclude_zones.includes(zone)) {
+                    group_zone = zone;
                     return;
                 }
 
@@ -65,7 +69,7 @@ export class Deck extends CardList {
                 }
             }
 
-            const card = DeckCard.parse(line, deck, group_board, exclude_boards);
+            const card = DeckCard.parse(line, deck, group_zone, exclude_zones);
             if (card) {
                 if (group_tag) {
                     card.tags.add(group_tag);
@@ -82,22 +86,22 @@ export class Deck extends CardList {
         CardPanel.close();
         History.reset();
 
-        let invalid_boards: Board[] = [];
+        let invalid_zones: Zone[] = [];
 
         do {
             Tag.clear();
-            Deck.CURRENT = Deck.parse(input, title, invalid_boards);
+            Deck.CURRENT = Deck.parse(input, title, invalid_zones);
             DeckView.render();
             await Deck.CURRENT.load(() => DeckView.render());
 
-            invalid_boards = Board.all()
-                .filter(board => {
-                    if (!board.has_filter()) return false;
-                    const cards = Deck.CURRENT.board(board);
+            invalid_zones = Zone.all()
+                .filter(zone => {
+                    if (!zone.has_filter()) return false;
+                    const cards = Deck.CURRENT.zone(zone);
                     return cards.length > 0
-                        && cards.every(card => !board.can_include(card));
+                        && cards.every(card => !zone.can_include(card));
                 });
-        } while (invalid_boards.length > 0);
+        } while (invalid_zones.length > 0);
 
         for (let i = 0; i < Deck.CURRENT.length; i++) {
             if (DeckView.set_background(Deck.CURRENT[i])) break;
@@ -109,9 +113,9 @@ export class Deck extends CardList {
 
     static async load_from_json(deck: JSONDeck): Promise<Deck> {
         Deck.CURRENT = new Deck();
-        Deck.CURRENT.title = deck.title;
-        Deck.CURRENT.format = Format.match(deck.format);
-        Deck.CURRENT.game = Game.match(deck.game);
+        Deck.CURRENT.title = deck.title || null;
+        Deck.CURRENT.format = Format.match(deck.format) ?? null;
+        Deck.CURRENT.game = Game.match(deck.game) ?? null;
         deck.tags.forEach(tag => Tag.match_or_new(tag.name, tag.hex));
         Deck.CURRENT.push(...deck.cards.map((card, id) => DeckCard.from_json(card, id)));
 
@@ -171,14 +175,14 @@ export class Deck extends CardList {
         return this;
     }
 
-    board(board: Board): CardList;
-    board(...boards: Board[]): CardList;
-    board(...boards: Board[]): CardList {
-        return this.filter(card => card.on_board(...boards));
+    zone(zone: Zone): CardList;
+    zone(...zones: Zone[]): CardList;
+    zone(...zones: Zone[]): CardList {
+        return this.filter(card => card.in_zone(...zones));
     }
 
     color_identity(): ColorSet {
-        const commanders = this.board(Board.commander).skip_empty();
+        const commanders = this.zone(Zone.commander).skip_empty();
 
         if (commanders.count() === 0) return null;
 
@@ -189,10 +193,10 @@ export class Deck extends CardList {
     }
 
     to_string(card_format?: string): string {
-        return Board.all()
-            .filter(board => this.board(board).length > 0)
-            .map(board => `# ${board.name}\n`
-                + this.board(board).map(card => card.to_string(card_format) + ` (${card.display_face_id})`).join('\n') + '\n')
+        return Zone.all()
+            .filter(zone => this.zone(zone).length > 0)
+            .map(zone => `# ${zone.name}\n`
+                + this.zone(zone).map(card => card.to_string(card_format) + ` (${card.display_face_id})`).join('\n') + '\n')
             .join('\n');
     }
 
