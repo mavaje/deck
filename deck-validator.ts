@@ -13,6 +13,7 @@ export type DeckErrorType =
     'too-many-commanders' |
     'too-many-sideboard-cards' |
     'too-many-copies' |
+    'unavailable-card'|
     'illegal-card'|
     'illegal-commander' |
     'illegal-companion' |
@@ -33,15 +34,27 @@ export class DeckValidator {
 
     constructor(
         private deck: Deck,
-        private format: Format = deck.format
     ) {}
 
-    public is_valid(format: Format = this.format): boolean {
-        return this.validate(format).length === 0;
+    public is_valid(): boolean {
+        return this.validate().length === 0;
     }
 
-    public validate(format: Format = this.format): DeckError[] {
+    public validate(): DeckError[] {
         const errors: DeckError[] = [];
+
+        const {game, format} = this.deck;
+
+        if (game) {
+            const unavailable_cards = this.deck.filter(card => !card.is_available(game));
+            if (unavailable_cards.count() > 0) {
+                errors.push({
+                    type: 'unavailable-card',
+                    message: `These cards are unavailable in ${game.name}`,
+                    cards: unavailable_cards,
+                });
+            }
+        }
 
         const commanders = this.deck.zone(Zone.commander);
         const commander_count = commanders.count();
@@ -158,6 +171,7 @@ export class DeckValidator {
         errors.push(...conspiracies.skip_empty().flatMap(card => this.validate_deck_restrictions(card, format)));
 
         let color_identity = this.deck.color_identity();
+        const color_identity_breaks: DeckCard[] = [];
 
         this.deck
             .zone(...Zone.STANDARD)
@@ -176,14 +190,18 @@ export class DeckValidator {
                 if (!color_identity.contains(card.color_identity())
                     && !this.rulebreaks.some(rulebreak => rulebreak.breaks_color_identity(card))
                 ) {
-                    errors.push({
-                        type: 'color-identity-error',
-                        message: `This card is not within your commander color identity`,
-                        cards: [card],
-                    });
+                    color_identity_breaks.push(card);
                 }
             }
         });
+
+        if (color_identity_breaks.length > 0) {
+            errors.push({
+                type: 'color-identity-error',
+                message: `This card is not within your commander color identity`,
+                cards: color_identity_breaks,
+            });
+        }
 
         this.deck
             .zone(...Zone.STANDARD)

@@ -9,6 +9,8 @@ import {DeckView} from "./ui/deck-view";
 import {History} from "./history/history";
 import {Game} from "./game";
 import {CardPanel} from "./ui/deck/card-panel";
+import {DeckPanel} from "./ui/deck/deck-panel";
+import {Storage} from "./storage";
 
 export type JSONDeck = {
     title: string;
@@ -86,6 +88,8 @@ export class Deck extends CardList {
         CardPanel.close();
         History.reset();
 
+        DeckPanel.update();
+
         let invalid_zones: Zone[] = [];
 
         do {
@@ -103,9 +107,7 @@ export class Deck extends CardList {
                 });
         } while (invalid_zones.length > 0);
 
-        for (let i = 0; i < Deck.CURRENT.length; i++) {
-            if (DeckView.set_background(Deck.CURRENT[i])) break;
-        }
+        Storage.store_deck();
 
         DeckCard.CACHE.dump();
         return Deck.CURRENT;
@@ -119,11 +121,9 @@ export class Deck extends CardList {
         deck.tags.forEach(tag => Tag.match_or_new(tag.name, tag.hex));
         Deck.CURRENT.push(...deck.cards.map((card, id) => DeckCard.from_json(card, id)));
 
-        await Deck.CURRENT.load(() => DeckView.render());
+        DeckPanel.update();
 
-        for (let i = 0; i < Deck.CURRENT.length; i++) {
-            if (DeckView.set_background(Deck.CURRENT[i])) break;
-        }
+        await Deck.CURRENT.load(() => DeckView.render());
 
         return Deck.CURRENT;
     }
@@ -173,6 +173,11 @@ export class Deck extends CardList {
         }));
 
         return this;
+    }
+
+    render_hooks() {
+        DeckView.render();
+
     }
 
     zone(zone: Zone): CardList;

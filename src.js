@@ -1109,6 +1109,9 @@ var init_face = __esm({
           "banned"
         ].includes(this.legality(format));
       }
+      is_available(game) {
+        return !this.card || this.card.games.includes(game.code());
+      }
       is_default_language() {
         return !this.card || this.card?.lang === Language.DEFAULT.code();
       }
@@ -1813,6 +1816,7 @@ var init_search = __esm({
     init_panel();
     init_card_panel();
     init_set_card_printing();
+    init_deck();
     Search = class extends Panel {
       static id = "search-results";
       static HISTORY = /* @__PURE__ */ new Set();
@@ -1856,17 +1860,6 @@ var init_search = __esm({
         query = query.replaceAll(/^\s+|\s+$/g, "").replaceAll(/\s+/g, " ");
         HTML.input({ id: "search-query", value: query });
         if (!query) return;
-        this.open();
-        HTML.div({ id: "search-status" }, "Searching...");
-        HTML.div({ id: "search-results", class: "searching" }, HTML.div(
-          { class: "groups" },
-          [...Array(5)].map(
-            (_, i) => HTML.div(
-              { id: `search-stack-${i}`, class: "stack" },
-              CardView.render(DeckCard.empty(), `search-result-${i}`)
-            )
-          )
-        ));
         this.HISTORY.delete(query);
         this.HISTORY.add(query);
         this.HISTORY_INDEX = 1;
@@ -1895,6 +1888,27 @@ var init_search = __esm({
             }
           }
         });
+        this.open();
+        HTML.div({ id: "search-status" }, "Searching...");
+        HTML.div({ id: "search-results", class: "searching" }, HTML.div(
+          { class: "groups" },
+          [...Array(5)].map(
+            (_, i) => HTML.div(
+              { id: `search-stack-${i}`, class: "stack" },
+              CardView.render(DeckCard.empty(), `search-result-${i}`)
+            )
+          )
+        ));
+        if (Deck.CURRENT.format) {
+          query += ` format:${Deck.CURRENT.format.code()}`;
+        }
+        if (Deck.CURRENT.game) {
+          query += ` game:${Deck.CURRENT.game.code()}`;
+        }
+        const color_id = Deck.CURRENT.color_identity();
+        if (color_id) {
+          query += ` id:${color_id.code()}`;
+        }
         const card_list = await API.card_search(query);
         if (card_list) {
           HTML.div({ id: "search-status" }, `Found ${count_plural(card_list.total_cards, "card")}`);
@@ -1930,6 +1944,10 @@ var init_dropdown = __esm({
       constructor(attributes, on_select, options) {
         this.on_select = on_select;
         this.options = options;
+        options.forEach((option) => {
+          option.label ??= `${option.value}`;
+          option.input_value ??= option.label;
+        });
         this.input = HTML.input({
           ...attributes,
           ...this.event_listeners()
@@ -1939,12 +1957,12 @@ var init_dropdown = __esm({
         }, options.map((option) => option.element = HTML.div({
           class: [
             "option",
-            option.label === attributes.value && "selected",
             option.discouraged && "discouraged",
-            option.disabled && "disabled"
+            option.disabled && "disabled",
+            option.input_value === attributes.value && "selected"
           ],
           onclick: !option.disabled && (() => this.select(option))
-        }, `${option.label ?? option.value}`))));
+        }, option.label))));
       }
       on_select;
       options;
@@ -1962,7 +1980,7 @@ var init_dropdown = __esm({
             }
           },
           onkeydown: (target, event) => {
-            let index = this.options.findIndex(({ label }) => label === this.input.value);
+            let index = this.options.findIndex(({ input_value }) => input_value === this.input.value);
             switch (event.key) {
               case "ArrowUp":
                 index = index < 0 ? this.options.length - 1 : (index + this.options.length - 1) % this.options.length;
@@ -1984,12 +2002,14 @@ var init_dropdown = __esm({
         };
       }
       select(option) {
-        this.input.value = option.label;
-        this.options.forEach((option2) => option2.element.classList.remove("selected"));
-        option.element.classList.add("selected");
+        this.input.value = option.input_value;
+        this.options.forEach((o) => o.element.classList.toggle("selected", o === option));
         this.on_select(option);
       }
       open(target, instant = false) {
+        this.options.forEach((option) => {
+          option.element.classList.toggle("selected", option.input_value === this.input.value);
+        });
         if (this.options.length < 2 || this.dropdown.classList.contains("opening") || this.dropdown.classList.contains("open")) return;
         const { offsetTop, offsetHeight, offsetLeft } = target;
         this.dropdown.style.top = `${offsetTop + offsetHeight + 8}px`;
@@ -2334,6 +2354,7 @@ var init_card_panel = __esm({
           [
             {
               label: "Unspecified",
+              input_value: "",
               value: null,
               discouraged: true
             },
@@ -3045,6 +3066,8 @@ var init_deck = __esm({
     init_history();
     init_game();
     init_card_panel();
+    init_deck_panel();
+    init_storage();
     Deck = class _Deck extends CardList {
       static CURRENT = new _Deck();
       raw;
@@ -3090,6 +3113,7 @@ var init_deck = __esm({
       static async load_current(input, title) {
         CardPanel.close();
         History.reset();
+        DeckPanel.update();
         let invalid_zones = [];
         do {
           Tag.clear();
@@ -3102,9 +3126,7 @@ var init_deck = __esm({
             return cards.length > 0 && cards.every((card) => !zone.can_include(card));
           });
         } while (invalid_zones.length > 0);
-        for (let i = 0; i < _Deck.CURRENT.length; i++) {
-          if (DeckView.set_background(_Deck.CURRENT[i])) break;
-        }
+        Storage.store_deck();
         DeckCard.CACHE.dump();
         return _Deck.CURRENT;
       }
@@ -3115,10 +3137,8 @@ var init_deck = __esm({
         _Deck.CURRENT.game = Game.match(deck.game) ?? null;
         deck.tags.forEach((tag) => Tag.match_or_new(tag.name, tag.hex));
         _Deck.CURRENT.push(...deck.cards.map((card, id) => DeckCard.from_json(card, id)));
+        DeckPanel.update();
         await _Deck.CURRENT.load(() => DeckView.render());
-        for (let i = 0; i < _Deck.CURRENT.length; i++) {
-          if (DeckView.set_background(_Deck.CURRENT[i])) break;
-        }
         return _Deck.CURRENT;
       }
       async load(on_progress = null) {
@@ -3155,6 +3175,9 @@ var init_deck = __esm({
           on_progress?.();
         }));
         return this;
+      }
+      render_hooks() {
+        DeckView.render();
       }
       zone(...zones) {
         return this.filter((card) => card.in_zone(...zones));
@@ -3351,18 +3374,27 @@ var init_deck_validator = __esm({
     init_text();
     init_zone();
     DeckValidator = class {
-      constructor(deck, format = deck.format) {
+      constructor(deck) {
         this.deck = deck;
-        this.format = format;
       }
       deck;
-      format;
       rulebreaks = [];
-      is_valid(format = this.format) {
-        return this.validate(format).length === 0;
+      is_valid() {
+        return this.validate().length === 0;
       }
-      validate(format = this.format) {
+      validate() {
         const errors = [];
+        const { game, format } = this.deck;
+        if (game) {
+          const unavailable_cards = this.deck.filter((card) => !card.is_available(game));
+          if (unavailable_cards.count() > 0) {
+            errors.push({
+              type: "unavailable-card",
+              message: `These cards are unavailable in ${game.name}`,
+              cards: unavailable_cards
+            });
+          }
+        }
         const commanders = this.deck.zone(Zone.commander);
         const commander_count = commanders.count();
         const conspiracies = this.deck.zone(Zone.conspiracy);
@@ -3459,6 +3491,7 @@ var init_deck_validator = __esm({
         errors.push(...this.deck.zone(Zone.companion).skip_empty().flatMap((card) => this.validate_deck_restrictions(card, format)));
         errors.push(...conspiracies.skip_empty().flatMap((card) => this.validate_deck_restrictions(card, format)));
         let color_identity = this.deck.color_identity();
+        const color_identity_breaks = [];
         this.deck.zone(...Zone.STANDARD).map((card) => {
           if (color_identity) {
             const additional_break = this.rulebreaks.find((rulebreak) => rulebreak.breaks_color_identity(card));
@@ -3471,14 +3504,17 @@ var init_deck_validator = __esm({
               }
             }
             if (!color_identity.contains(card.color_identity()) && !this.rulebreaks.some((rulebreak) => rulebreak.breaks_color_identity(card))) {
-              errors.push({
-                type: "color-identity-error",
-                message: `This card is not within your commander color identity`,
-                cards: [card]
-              });
+              color_identity_breaks.push(card);
             }
           }
         });
+        if (color_identity_breaks.length > 0) {
+          errors.push({
+            type: "color-identity-error",
+            message: `This card is not within your commander color identity`,
+            cards: color_identity_breaks
+          });
+        }
         this.deck.zone(...Zone.STANDARD).by_count((count, card) => {
           const max = card.copy_limit(format);
           if (count > max) {
@@ -3683,6 +3719,31 @@ var init_deck_validator = __esm({
   }
 });
 
+// card-classifier/zone.ts
+var Zone2;
+var init_zone2 = __esm({
+  "card-classifier/zone.ts"() {
+    init_card_classifier();
+    init_zone();
+    init_group();
+    Zone2 = class _Zone extends CardClassifier {
+      static name = "Zone";
+      static ZONE_GROUPS = {
+        "cmdr": { icon: "public/icon/commander.svg" },
+        "cmpn": { icon: "public/icon/companion.svg" }
+      };
+      groups() {
+        return Zone.all().map((zone) => new Group({
+          name: zone.name,
+          value: zone.code(),
+          cards: this.cards.filter((card) => card.in_zone(zone)),
+          ..._Zone.ZONE_GROUPS[zone.code()] ?? {}
+        }));
+      }
+    };
+  }
+});
+
 // ui/deck-view.ts
 var DeckView;
 var init_deck_view = __esm({
@@ -3696,6 +3757,7 @@ var init_deck_view = __esm({
     init_group();
     init_card_panel();
     init_deck_validator();
+    init_zone2();
     DeckView = class _DeckView {
       static card_views = /* @__PURE__ */ new WeakMap();
       static errors = [];
@@ -3706,6 +3768,7 @@ var init_deck_view = __esm({
       static DECK_ELEMENT = HTML.div({ id: "deck" });
       static render(deck = Deck.CURRENT) {
         this.errors = new DeckValidator(deck).validate();
+        console.log(this.errors);
         _DeckView.card_views = /* @__PURE__ */ new WeakMap();
         const show_zones = this.BY_ZONE && deck.some((card) => !card.zone.is_default());
         return HTML.div(
@@ -3725,6 +3788,7 @@ var init_deck_view = __esm({
       static render_zone(cards, zone) {
         if (cards.length === 0) return null;
         const id = `zone-${zone ?? "all"}`;
+        const icon = Zone2.ZONE_GROUPS[zone.code()]?.icon;
         return HTML.div(
           {
             id,
@@ -3734,6 +3798,7 @@ var init_deck_view = __esm({
             id: `${id}-label`,
             class: ["label", "fade-in"]
           }, HTML.div(
+            icon && HTML.img({ class: "icon", src: icon }),
             HTML.span({ style: { font_weight: "bold" } }, zone.name),
             ` (${cards.count()})`
           )),
@@ -3815,19 +3880,6 @@ var init_deck_view = __esm({
             })
           )
         );
-      }
-      static set_background(card) {
-        const url = card.main_face().face?.image_uris.art;
-        if (url) {
-          HTML.div({
-            id: "background",
-            style: {
-              "--card-image-url": `url(${url})`
-            }
-          });
-          return true;
-        }
-        return false;
       }
       static focus(card) {
         _DeckView.card_views.get(card)?.forEach((element) => element.classList.add("focus"));
@@ -4514,6 +4566,47 @@ var init_type_primary = __esm({
   }
 });
 
+// history/edit-deck-field.ts
+var EditDeckField;
+var init_edit_deck_field = __esm({
+  "history/edit-deck-field.ts"() {
+    init_action();
+    init_deck();
+    init_deck_panel();
+    init_deck_view();
+    EditDeckField = class _EditDeckField extends Action {
+      constructor(field, value) {
+        super();
+        this.field = field;
+        this.value = value;
+      }
+      field;
+      value;
+      old_value;
+      message() {
+        return `Set deck ${this.field} to ${this.value}`;
+      }
+      execute() {
+        const { field, value } = this;
+        this.old_value = Deck.CURRENT[field];
+        Deck.CURRENT[field] = value;
+        DeckPanel.update();
+        DeckView.render();
+      }
+      reverse() {
+        return new _EditDeckField(
+          this.field,
+          this.old_value
+        );
+      }
+      is_noop() {
+        const { field, value } = this;
+        return value === Deck.CURRENT[field];
+      }
+    };
+  }
+});
+
 // ui/deck/deck-panel.ts
 var DeckPanel;
 var init_deck_panel = __esm({
@@ -4540,6 +4633,9 @@ var init_deck_panel = __esm({
     init_deck();
     init_deck_card();
     init_dropdown();
+    init_edit_deck_field();
+    init_format();
+    init_game();
     DeckPanel = class extends Panel {
       static id = "deck-panel";
       static CARD_GROUPINGS = [
@@ -4589,9 +4685,7 @@ var init_deck_panel = __esm({
         HTML.h2({
           id: "deck-title",
           contenteditable: true,
-          onchange: (element) => {
-            Deck.CURRENT.title = element.innerText;
-          },
+          onblur: (element) => EditDeckField.do("title", element.innerText),
           onkeypress: (element, event) => {
             if (event.key === "Enter") {
               element.blur();
@@ -4604,7 +4698,7 @@ var init_deck_panel = __esm({
           oninput: (input) => {
             const file = input.files[0];
             const [title] = file.name.split(".");
-            HTML.h2({ id: "deck-title" }, title);
+            this.update();
             file.text().then((input2) => Deck.load_current(input2, title)).then(() => DeckCard.CACHE.dump());
           }
         });
@@ -4645,12 +4739,70 @@ var init_deck_panel = __esm({
             value: ordering
           }))
         );
+        new Dropdown(
+          {
+            id: "deck-format",
+            value: Deck.CURRENT.format?.name ?? "",
+            readonly: true
+          },
+          ({ value }) => EditDeckField.do("format", value),
+          [
+            {
+              label: "Unspecified",
+              input_value: "",
+              value: null,
+              discouraged: true
+            },
+            ...Format.all().map((format) => ({
+              label: format.name,
+              value: format
+            }))
+          ]
+        );
+        new Dropdown(
+          {
+            id: "deck-game",
+            value: Deck.CURRENT.game?.name ?? "",
+            readonly: true
+          },
+          ({ value }) => EditDeckField.do("game", value),
+          [
+            {
+              label: "Unspecified",
+              input_value: "",
+              value: null,
+              discouraged: true
+            },
+            ...Game.all().map((game) => ({
+              label: game.name,
+              value: game
+            }))
+          ]
+        );
+      }
+      static update() {
+        HTML.h2({ id: "deck-title" }, Deck.CURRENT.title);
+        HTML.h2({ id: "deck-format", value: Deck.CURRENT.format?.name ?? "" });
+        HTML.h2({ id: "deck-game", value: Deck.CURRENT.game?.name ?? "" });
+        for (let i = 0; i < Deck.CURRENT.length; i++) {
+          const url = Deck.CURRENT[i].main_face().face?.image_uris.art;
+          if (url) {
+            HTML.div({
+              id: "background",
+              style: {
+                "--card-image-url": `url(${url})`
+              }
+            });
+            break;
+          }
+        }
       }
       static open() {
         if (window.innerWidth < 848) {
           CardPanel.close();
         }
         super.open();
+        this.update();
       }
     };
   }

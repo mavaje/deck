@@ -25,7 +25,8 @@ html {
 
 body {
     --card-scale: min(8px, calc((100vw - 32px) / 49));
-    --panel-width: min(424px, 100vw);
+    --deck-panel-width: min(284px, 100vw);
+    --card-panel-width: min(424px, 100vw);
 
     background-color: #3f0f2f;
     color: #ffffff;
@@ -68,6 +69,12 @@ body {
         margin-bottom: 0;
         opacity: 0;
     }
+}
+
+hr {
+    width: calc(100% - 8px);
+    border-color: white;
+    box-shadow: 0 0 8px 2px var(--theme);
 }
 
 .divider {
@@ -365,7 +372,6 @@ button:disabled {
     position: absolute;
     top: 0;
     bottom: 0;
-    width: calc(var(--panel-width) - 8px);
     display: flex;
     flex-direction: column;
     justify-content: start;
@@ -378,33 +384,40 @@ button:disabled {
     overflow-y: auto;
 }
 
+#deck-panel > div,
+#card-panel > div {
+    display: flex;
+    flex-direction: row;
+    justify-content: start;
+    align-items: center;
+}
+
 #deck-panel {
+    width: calc(var(--deck-panel-width) - 8px);
     left: 0;
 }
 
 #deck-panel.collapsed {
-    left: calc(-4px - var(--panel-width));
+    left: calc(-4px - var(--deck-panel-width));
 }
 
-#deck-panel > div {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
+#deck-panel label:first-child {
+    width: 30%;
+    text-align: end;
 }
 
 #card-panel {
+    width: calc(var(--card-panel-width) - 8px);
     right: 0;
 }
 
 #card-panel.collapsed {
-    right: calc(-4px - var(--panel-width));
+    right: calc(-4px - var(--card-panel-width));
 }
 
-#card-panel > div {
-    display: flex;
-    justify-content: start;
-    align-items: center;
+#card-panel label {
+    width: 20%;
+    text-align: end;
 }
 
 #card-panel > #card-panel-card-container {
@@ -420,21 +433,16 @@ button:disabled {
     height: calc(49 * var(--card-scale));
 }
 
-#card-panel label {
-    width: 20%;
-    text-align: end;
-}
-
 #quantity-input {
     width: 3ch;
     text-align: center;
 }
 
-#card-panel #name-input {
+#name-input {
     flex: 1;
 }
 
-#card-panel #set-input {
+#set-input {
     flex: 0;
     width: 5ch;
 }
@@ -506,11 +514,11 @@ div:has(> #delete-card) {
 
 @media (min-width: 424px) {
     #deck-groups > .group:first-child {
-        padding-inline-start: calc(var(--panel-width) + 12px);
+        padding-inline-start: calc(var(--deck-panel-width) + 12px);
     }
 
     #deck-groups > .group:last-child {
-        padding-inline-end: calc(var(--panel-width) + 12px);
+        padding-inline-end: calc(var(--card-panel-width) + 12px);
     }
 }
 
@@ -564,7 +572,7 @@ div:has(> #delete-card) {
 
 .label div {
     position: sticky;
-    left: 328px;
+    left: calc(var(--deck-panel-width) + 8px);
     right: 8px;
     display: flex;
     flex-direction: row;

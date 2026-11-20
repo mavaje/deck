@@ -20,6 +20,9 @@ import {Panel} from "../panel";
 import {Deck} from "../../deck";
 import {DeckCard} from "../../deck-card";
 import {Dropdown} from "../dropdown";
+import {EditDeckField} from "../../history/edit-deck-field";
+import {Format} from "../../format";
+import {Game} from "../../game";
 
 export class DeckPanel extends Panel {
     static id: string = 'deck-panel';
@@ -76,9 +79,7 @@ export class DeckPanel extends Panel {
         HTML.h2({
             id: 'deck-title',
             contenteditable: true,
-            onchange: element => {
-                Deck.CURRENT.title = element.innerText;
-            },
+            onblur: element => EditDeckField.do('title', element.innerText),
             onkeypress: (element, event) => {
                 if (event.key === 'Enter') {
                     element.blur();
@@ -93,7 +94,7 @@ export class DeckPanel extends Panel {
                 const file = input.files[0];
                 const [title] = file.name.split('.');
 
-                HTML.h2({id: 'deck-title'}, title);
+                this.update();
 
                 file.text()
                     .then(input => Deck.load_current(input, title))
@@ -140,6 +141,66 @@ export class DeckPanel extends Panel {
                 value: ordering,
             })),
         );
+
+        new Dropdown(
+            {
+                id: 'deck-format',
+                value: Deck.CURRENT.format?.name ?? '',
+                readonly: true,
+            },
+            ({value}) => EditDeckField.do('format', value),
+            [
+                {
+                    label: 'Unspecified',
+                    input_value: '',
+                    value: null,
+                    discouraged: true,
+                },
+                ...Format.all().map(format => ({
+                    label: format.name,
+                    value: format,
+                })),
+            ],
+        );
+
+        new Dropdown(
+            {
+                id: 'deck-game',
+                value: Deck.CURRENT.game?.name ?? '',
+                readonly: true,
+            },
+            ({value}) => EditDeckField.do('game', value),
+            [
+                {
+                    label: 'Unspecified',
+                    input_value: '',
+                    value: null,
+                    discouraged: true,
+                },
+                ...Game.all().map(game => ({
+                    label: game.name,
+                    value: game,
+                })),
+            ],
+        );
+    }
+
+    static update(): void {
+        HTML.h2({id: 'deck-title'}, Deck.CURRENT.title);
+        HTML.h2({id: 'deck-format', value: Deck.CURRENT.format?.name ?? ''});
+        HTML.h2({id: 'deck-game', value: Deck.CURRENT.game?.name ?? ''});
+
+        for (let i = 0; i < Deck.CURRENT.length; i++) {
+            const url = Deck.CURRENT[i].main_face().face?.image_uris.art;
+            if (url) {
+                HTML.div({
+                    id: 'background', style: {
+                        '--card-image-url': `url(${url})`,
+                    }
+                });
+                break;
+            }
+        }
     }
 
     static open(): void {
@@ -147,5 +208,6 @@ export class DeckPanel extends Panel {
             CardPanel.close();
         }
         super.open();
+        this.update();
     }
 }

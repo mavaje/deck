@@ -155,6 +155,7 @@ export class CardPanel extends Panel {
             [
                 {
                     label: 'Unspecified',
+                    input_value: '',
                     value: null,
                     discouraged: true,
                 },

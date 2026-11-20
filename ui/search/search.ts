@@ -6,6 +6,7 @@ import {count_plural} from "../../text";
 import {Panel} from "../panel";
 import {CardPanel} from "../deck/card-panel";
 import {SetCardPrinting} from "../../history/set-card-printing";
+import {Deck} from "../../deck";
 
 export class Search extends Panel {
     static id: string = 'search-results';
@@ -58,19 +59,9 @@ export class Search extends Panel {
         query = query
             .replaceAll(/^\s+|\s+$/g, '')
             .replaceAll(/\s+/g, ' ');
+
         HTML.input({id: 'search-query', value: query});
         if (!query) return;
-        this.open();
-        HTML.div({id: 'search-status'}, 'Searching...');
-        HTML.div({id: 'search-results', class: 'searching'}, HTML.div(
-            {class: 'groups'},
-            [...Array(5)]
-                .map((_, i) =>
-                    HTML.div({id: `search-stack-${i}`, class: 'stack'},
-                        CardView.render(DeckCard.empty(), `search-result-${i}`),
-                    )
-                ),
-        ));
 
         this.HISTORY.delete(query);
         this.HISTORY.add(query);
@@ -101,6 +92,31 @@ export class Search extends Panel {
                 }
             },
         });
+
+        this.open();
+        HTML.div({id: 'search-status'}, 'Searching...');
+        HTML.div({id: 'search-results', class: 'searching'}, HTML.div(
+            {class: 'groups'},
+            [...Array(5)]
+                .map((_, i) =>
+                    HTML.div({id: `search-stack-${i}`, class: 'stack'},
+                        CardView.render(DeckCard.empty(), `search-result-${i}`),
+                    )
+                ),
+        ));
+
+        if (Deck.CURRENT.format) {
+            query += ` format:${Deck.CURRENT.format.code()}`;
+        }
+
+        if (Deck.CURRENT.game) {
+            query += ` game:${Deck.CURRENT.game.code()}`;
+        }
+
+        const color_id = Deck.CURRENT.color_identity();
+        if (color_id) {
+            query += ` id:${color_id.code()}`;
+        }
 
         const card_list = await API.card_search(query);
         if (card_list) {

@@ -3,6 +3,7 @@ import {Language} from "./designation/language";
 import {Catalog} from "./scryfall/catalog";
 import {Format} from "./format";
 import {ColorSet} from "./color-set";
+import {Game} from "./game";
 
 export class Face<T extends Card | CardFace = Card | CardFace> {
 
@@ -58,6 +59,10 @@ export class Face<T extends Card | CardFace = Card | CardFace> {
             'not_legal',
             'banned',
         ] as Legality[]).includes(this.legality(format));
+    }
+
+    is_available(game: Game): boolean {
+        return !this.card || this.card.games.includes(game.code());
     }
 
     is_default_language(): boolean {

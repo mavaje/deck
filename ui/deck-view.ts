@@ -9,6 +9,7 @@ import {FaceSelector} from "../card-classifier/face-selector";
 import {Group} from "../card-classifier/group";
 import {CardPanel} from "./deck/card-panel";
 import {DeckError, DeckValidator} from "../deck-validator";
+import {Zone as ZoneGrouping} from '../card-classifier/zone';
 
 export class DeckView {
 
@@ -24,6 +25,8 @@ export class DeckView {
 
     static render(deck: Deck = Deck.CURRENT): HTMLDivElement {
         this.errors = new DeckValidator(deck).validate();
+
+        console.log(this.errors);
 
         DeckView.card_views = new WeakMap();
 
@@ -54,6 +57,7 @@ export class DeckView {
     ): HTMLDivElement {
         if (cards.length === 0) return null;
         const id = `zone-${zone ?? 'all'}`;
+        const icon = ZoneGrouping.ZONE_GROUPS[zone.code()]?.icon;
         return HTML.div(
             {
                 id,
@@ -63,6 +67,7 @@ export class DeckView {
                 id: `${id}-label`,
                 class: ['label', 'fade-in'],
             }, HTML.div(
+                icon && HTML.img({class: 'icon', src: icon}),
                 HTML.span({style: {font_weight: 'bold'}}, zone.name),
                 ` (${cards.count()})`,
             )),
@@ -161,19 +166,6 @@ export class DeckView {
                     }),
             ),
         );
-    }
-
-    static set_background(card: DeckCard): boolean {
-        const url = card.main_face().face?.image_uris.art;
-        if (url) {
-            HTML.div({
-                id: 'background', style: {
-                    '--card-image-url': `url(${url})`,
-                }
-            });
-            return true;
-        }
-        return false;
     }
 
     static focus(card: DeckCard) {

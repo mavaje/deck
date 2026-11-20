@@ -1,8 +1,9 @@
 import {Attributes, HTML} from "./xml";
 
 export type DropdownOption<T = any> = {
-    value?: T;
     label?: string;
+    input_value?: string;
+    value?: T;
     discouraged?: boolean;
     disabled?: boolean;
     element?: HTMLDivElement;
@@ -19,6 +20,10 @@ export class Dropdown<T = any> {
         private on_select: (option: DropdownOption<T>) => any,
         private options: DropdownOption<T>[],
     ) {
+        options.forEach(option => {
+            option.label ??= `${option.value}`;
+            option.input_value ??= option.label;
+        });
         this.input = HTML.input({
             ...attributes,
             ...this.event_listeners(),
@@ -28,12 +33,12 @@ export class Dropdown<T = any> {
         }, options.map(option => option.element = HTML.div({
                 class: [
                     'option',
-                    option.label === attributes.value && 'selected',
                     option.discouraged && 'discouraged',
                     option.disabled && 'disabled',
+                    option.input_value === attributes.value && 'selected',
                 ],
                 onclick: !option.disabled && (() => this.select(option)),
-            }, `${option.label ?? option.value}`))));
+            }, option.label))));
     }
 
     event_listeners(): Attributes<HTMLElement, HTMLElementEventMap> {
@@ -48,7 +53,7 @@ export class Dropdown<T = any> {
             },
             onkeydown: (target, event) => {
                 let index = this.options
-                    .findIndex(({label}) => label === this.input.value);
+                    .findIndex(({input_value}) => input_value === this.input.value);
                 switch (event.key) {
                     case 'ArrowUp':
                         index = index < 0
@@ -75,18 +80,22 @@ export class Dropdown<T = any> {
     }
 
     select(option: DropdownOption<T>) {
-        this.input.value = option.label;
-        this.options.forEach(option =>
-            option.element.classList.remove('selected'));
-        option.element.classList.add('selected');
+        this.input.value = option.input_value;
+        this.options.forEach(o =>
+            o.element.classList.toggle('selected', o === option));
         this.on_select(option);
     }
 
     open(target: HTMLElement, instant: boolean = false): Dropdown {
+        this.options.forEach(option => {
+            option.element.classList.toggle('selected', option.input_value === this.input.value);
+        });
+
         if (this.options.length < 2
             || this.dropdown.classList.contains('opening')
             || this.dropdown.classList.contains('open')
         ) return;
+
         const {offsetTop, offsetHeight, offsetLeft} = target;
         this.dropdown.style.top = `${offsetTop + offsetHeight + 8}px`;
         this.dropdown.style.left = `${offsetLeft}px`;
