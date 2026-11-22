@@ -214,7 +214,7 @@ function fraction(number) {
 }
 function normalise(text, uppercase = false, strip = /[^\w\s]/gi, separator = " ") {
   if (!text) return text;
-  return (uppercase ? text.toUpperCase() : text.toLowerCase()).normalize("NFKD").replaceAll("\xE6", "ae").replaceAll(strip, "").replaceAll(/\s+/g, separator);
+  return (uppercase ? text.toUpperCase() : text.toLowerCase()).normalize("NFKD").replaceAll("\xE6", "ae").replaceAll(strip, "").replaceAll(/^\s+|\s+$/g, "").replaceAll(/\s+/g, separator);
 }
 function preserve_case(target, template) {
   if (!target) return "";
@@ -479,12 +479,20 @@ var init_cache = __esm({
       put(key, data) {
         key = this.normalise_key(key);
         this.data[key] = data;
+        return data;
       }
       put_each(keys, data) {
         keys.forEach((key) => this.put(key, data));
       }
       put_all(data) {
         Object.entries(data).forEach(([key, data2]) => this.put(key, data2));
+      }
+      remember(key, evaluate) {
+        return this.get(key) ?? this.put(key, evaluate());
+      }
+      forget(key) {
+        key = this.normalise_key(key);
+        delete this.data[key];
       }
       dump() {
         const sorted_data = {};
@@ -615,22 +623,16 @@ var init_api = __esm({
         return url;
       }
       static async request(method, url, body) {
-        const can_cache = method === "GET" && !body;
-        if (can_cache && this.CACHE.has(url)) {
-          console.log(`${method} ${url} (cached)`, body ?? "");
-          return this.CACHE.get(url);
-        }
-        return new Promise((done) => {
+        const get = () => new Promise((done) => {
           const request = new XMLHttpRequest();
           request.open(method, url);
           request.setRequestHeader("Accept", "application/json");
           request.addEventListener("load", () => {
             const response = JSON.parse(request.responseText);
             if (response.object !== "error") {
-              if (can_cache) this.CACHE.put(url, response);
               done(response);
             } else {
-              if (can_cache) this.CACHE.put(url, null);
+              if (can_cache) this.CACHE.forget(url);
               console.error(response);
               done(null);
             }
@@ -655,6 +657,15 @@ var init_api = __esm({
             request.send(body ? JSON.stringify(body) : null);
           }, timeout);
         });
+        const can_cache = method === "GET" && !body;
+        if (can_cache) {
+          if (this.CACHE.has(url)) {
+            console.log(`${method} ${url} (cached)`, body ?? "");
+          }
+          return this.CACHE.remember(url, get);
+        } else {
+          return get();
+        }
       }
       static async get(url) {
         return this.request("GET", url);
@@ -701,6 +712,9 @@ var init_api = __esm({
       static random_card(query) {
         return this.get(this.card_random_url({ q: query }));
       }
+      static first_card(query) {
+        return this.card_search(query).then((list) => list?.data[0]);
+      }
       static card_autocomplete(name) {
         return this.get(this.card_autocomplete_url(name));
       }
@@ -728,9 +742,6 @@ var init_api = __esm({
       }
       static card_search(query) {
         return this.get(this.card_search_url(query));
-      }
-      static card_search_first(query) {
-        return this.card_search(query).then((list) => list?.data[0]);
       }
       static set(code) {
         return this.get(this.set_url(code));
@@ -1093,8 +1104,19 @@ var init_face = __esm({
       faces() {
         return this.is_card() && this.card.card_faces?.map((face) => new _Face(this.card, face)) || [this];
       }
-      oracle_id() {
-        return this.card?.oracle_id ?? this.faces()[0]?.face?.oracle_id;
+      oracle_ids() {
+        if (this.is_face() && this.face.oracle_id) {
+          return [this.face.oracle_id];
+        }
+        if (this.card) {
+          if (this.card.oracle_id) {
+            return [this.card.oracle_id];
+          }
+          if (this.card.card_faces) {
+            return [...new Set(this.card.card_faces.map(({ oracle_id }) => oracle_id).filter(Boolean))];
+          }
+        }
+        return [];
       }
       off_battlefield_overrides() {
         const match = this.oracle()?.match(/(^|\n)~ is also a (?<type_line>\w+(,? \w+)*)\./i) ?? this.oracle()?.match(/(^|\n)As long as ~ isn't on the battlefield, it's a ((?<power>\d+)\/(?<toughness>\d+) )?(?<type_line>\w+( \w+)*) in addition to its other types\./i);
@@ -1719,6 +1741,7 @@ var EditCardFields;
 var init_edit_card_fields = __esm({
   "history/edit-card-fields.ts"() {
     init_action();
+    init_deck();
     EditCardFields = class _EditCardFields extends Action {
       constructor(card, fields) {
         super();
@@ -1742,7 +1765,7 @@ var init_edit_card_fields = __esm({
           "collector_number",
           "language"
         ].some((field) => field in fields)) {
-          card.reload();
+          card.reload(Deck.CURRENT.game);
         }
         card.render_hooks();
       }
@@ -1900,10 +1923,10 @@ var init_search = __esm({
           )
         ));
         if (Deck.CURRENT.format) {
-          query += ` format:${Deck.CURRENT.format.code()}`;
+          query += ` format:${Deck.CURRENT.format}`;
         }
         if (Deck.CURRENT.game) {
-          query += ` game:${Deck.CURRENT.game.code()}`;
+          query += ` game:${Deck.CURRENT.game}`;
         }
         const color_id = Deck.CURRENT.color_identity();
         if (color_id) {
@@ -1918,7 +1941,7 @@ var init_search = __esm({
               (card, i) => HTML.div(
                 { id: `search-stack-${i}`, class: "stack" },
                 CardView.render(card, `search-result-${i}`, () => {
-                  if (card.oracle_id() === CardPanel.SELECTED?.oracle_id()) {
+                  if (card.oracle_ids().some((id) => CardPanel.SELECTED.oracle_ids().includes(id))) {
                     SetCardPrinting.do(CardPanel.SELECTED, card.card);
                   }
                 })
@@ -2040,6 +2063,7 @@ var init_edit_card_name = __esm({
   "history/edit-card-name.ts"() {
     init_action();
     init_language();
+    init_deck();
     EditCardName = class extends Action {
       constructor(card, name, face_id = card.display_face_id) {
         super();
@@ -2072,7 +2096,7 @@ var init_edit_card_name = __esm({
           card.collector_number = null;
           card.language = Language.DEFAULT;
           card.display_face_id = null;
-          card.reload();
+          card.reload(Deck.CURRENT.game);
         }
         card.render_hooks();
       }
@@ -2109,7 +2133,7 @@ var init_edit_card_name = __esm({
       execute() {
         const { card, values, was_reset } = this;
         Object.assign(card, values);
-        if (was_reset) card.reload();
+        if (was_reset) card.reload(Deck.CURRENT.game);
         card.render_hooks();
       }
       reverse() {
@@ -2307,9 +2331,13 @@ var init_card_panel = __esm({
           disabled: !card.name,
           onclick: () => {
             if (!card.name) return;
-            let query = `!"${card.card_name(false)}" unique:prints`;
+            const unique_name = card.card_name(false).replace(/^(.+) \/\/ \1$/, "$1");
+            console.log(unique_name);
+            let query = `!"${unique_name}" unique:prints`;
             if (!card.language.is_default()) query += ` lang:${card.language}`;
-            if (card.card) query += ` oracleid:${card.card.oracle_id}`;
+            card.main_face(true).oracle_ids().forEach((id) => {
+              query += ` oracleid:${id}`;
+            });
             Search.run(query);
           }
         });
@@ -2561,27 +2589,32 @@ var init_deck_card = __esm({
           tags: new Set(json.tags.map((tag) => Tag.match_or_new(tag)))
         });
       }
-      cache_keys() {
-        const keys = [];
+      cache_keys(game) {
+        const keys = /* @__PURE__ */ new Set();
+        if (this.card) {
+          const { set, collector_number, lang } = this.card;
+          keys.add(`(${set}:${collector_number}:${lang})`);
+        }
         if (this.set && this.collector_number) {
-          keys.push(`(${this.set}:${this.collector_number}:${this.language})`);
+          keys.add(`(${this.set}:${this.collector_number}:${this.language})`);
         } else if (this.name) {
           [
             this.raw_name,
             this.main_face(false).card_name(true),
             this.main_face(true).card_name(true)
           ].forEach((name) => {
-            if (name) keys.push(`${normalise(name)} (${this.set ?? ""}::${this.language})`);
+            if (name) {
+              keys.add(`${normalise(name)} (${game ?? ""}:${this.set ?? ""}:${this.language})`);
+            }
           });
         }
-        return keys;
+        return [...keys];
       }
       can_bulk_load() {
         return [
-          !/^y\d\d$/i.test(this.set),
-          this.language.is_default(),
+          !this.card,
           this.identifier(),
-          !this.card
+          !/^y\d\d$/i.test(this.set)
         ].every(Boolean);
       }
       identifier() {
@@ -2595,14 +2628,14 @@ var init_deck_card = __esm({
         }
         return null;
       }
-      load_from_cache() {
+      load_from_cache(game) {
         if (!this.card) {
-          this.card = _DeckCard.CACHE.get_any(this.cache_keys());
+          this.card = _DeckCard.CACHE.get_any(this.cache_keys(game));
           this.hydrate();
         }
       }
-      async load() {
-        this.load_from_cache();
+      async load(game) {
+        this.load_from_cache(game);
         const { name, set, collector_number, language } = this;
         let card = this.card;
         const is_alchemy_set = /^y\d\d$/i.test(set);
@@ -2614,10 +2647,10 @@ var init_deck_card = __esm({
         }
         if (name) {
           if (/^_{6,}$/.test(name) && !set) {
-            card ??= await API.random_card(`include:extras name:'${name}'`);
+            card ??= await API.first_card(`include:extras name:'${name}'`);
           }
           if (is_alchemy_set) {
-            card ??= await API.random_card(`st:alchemy name:'${name}'`);
+            card ??= await API.first_card(`st:alchemy name:'${name}'`);
           } else if (set && !collector_number) {
             card ??= await API.card_named(name, set);
           }
@@ -2625,16 +2658,22 @@ var init_deck_card = __esm({
           if (card && card.lang !== language.code() && !language.is_default()) {
             let query = `oracle_id:${card.oracle_id} lang:${language}`;
             if (set && !is_alchemy_set) query += ` set:${set}`;
-            card = await API.random_card(query) ?? card;
+            card = await API.first_card(query) ?? card;
+          }
+          if (card && game && !card.games.includes(game.code())) {
+            let query = `oracle_id:${card.oracle_id} game:${game}`;
+            if (set) query += ` set:${set}`;
+            if (!language.is_default()) query += ` lang:${language}`;
+            card = await API.first_card(query) ?? card;
           }
         }
         if (Object.entries({ name, set, collector_number, language }).some(([key, field]) => this[key] !== field)) {
           return;
         }
-        return this.hydrate(card).cache();
+        return this.hydrate(card).cache(game);
       }
-      async reload() {
-        return this.flush().load();
+      async reload(game) {
+        return this.flush().load(game);
       }
       flush() {
         this.raw = null;
@@ -2658,23 +2697,21 @@ var init_deck_card = __esm({
             this.language = Language.match(card.lang);
           }
           if (this.name && card.card_faces) {
-            const normal_name = normalise(this.name);
-            let max_similarity = Math.max(...[
-              this.card_name(false),
-              this.all_names(true).join(" // ")
-            ].map((name) => trigram(normal_name, normalise(name))));
-            if (max_similarity < 1) {
-              this.faces().some((face, id) => [
-                face.card_name(false),
-                face.card_name(true)
-              ].some((name) => {
-                const similarity = trigram(normal_name, normalise(name));
-                if (similarity > max_similarity) {
-                  max_similarity = similarity;
-                  this.display_face_id = id;
-                  return max_similarity === 1;
-                }
-              }));
+            const first_name = normalise(this.name.split("/")[0]);
+            let max_similarity = 0;
+            this.faces().some((face, id) => [
+              face.card_name(false),
+              face.card_name(true)
+            ].some((name) => {
+              const similarity = trigram(first_name, normalise(name));
+              if (similarity > max_similarity) {
+                max_similarity = similarity;
+                this.display_face_id = id;
+                return max_similarity === 1;
+              }
+            }));
+            if (!this.has_main_face() && this.display_face_id === 0 && this.name.includes("/")) {
+              this.display_face_id = null;
             }
           }
           this.name = this.deck_list_name();
@@ -2688,9 +2725,9 @@ var init_deck_card = __esm({
           CardPanel.open(this);
         }
       }
-      cache() {
+      cache(game) {
         if (this.card) {
-          _DeckCard.CACHE.put_each(this.cache_keys(), this.card);
+          _DeckCard.CACHE.put_each(this.cache_keys(game), this.card);
         }
         return this;
       }
@@ -3142,7 +3179,7 @@ var init_deck = __esm({
         return _Deck.CURRENT;
       }
       async load(on_progress = null) {
-        this.forEach((card) => card.load_from_cache());
+        this.forEach((card) => card.load_from_cache(this.game));
         on_progress?.();
         const card_map = {};
         this.forEach((card) => {
@@ -3171,7 +3208,7 @@ var init_deck = __esm({
           on_progress?.();
         }
         await Promise.all(this.map(async (card) => {
-          await card.load();
+          await card.load(this.game);
           on_progress?.();
         }));
         return this;
@@ -3768,7 +3805,6 @@ var init_deck_view = __esm({
       static DECK_ELEMENT = HTML.div({ id: "deck" });
       static render(deck = Deck.CURRENT) {
         this.errors = new DeckValidator(deck).validate();
-        console.log(this.errors);
         _DeckView.card_views = /* @__PURE__ */ new WeakMap();
         const show_zones = this.BY_ZONE && deck.some((card) => !card.zone.is_default());
         return HTML.div(
@@ -4592,6 +4628,9 @@ var init_edit_deck_field = __esm({
         Deck.CURRENT[field] = value;
         DeckPanel.update();
         DeckView.render();
+        if (field === "game") {
+          Deck.CURRENT.load(() => DeckView.render());
+        }
       }
       reverse() {
         return new _EditDeckField(
@@ -4680,6 +4719,7 @@ var init_deck_panel = __esm({
           id: "deck-download",
           onclick: () => {
             console.log(Deck.CURRENT.to_string());
+            DeckCard.CACHE.dump();
           }
         });
         HTML.h2({

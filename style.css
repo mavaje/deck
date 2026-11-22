@@ -677,11 +677,11 @@ div:has(> #delete-card) {
     --card-height: calc(35 * var(--card-scale));
 }
 
-.card.flip.invert {
+#deck-cards .card.flip.invert {
     margin-top: calc(1.5 * var(--card-scale));
 }
 
-.card.flip.invert > .card-shift > .card-tilt {
+#deck-cards .card.flip.invert > .card-shift > .card-tilt {
     margin-top: calc(-1.5 * var(--card-scale));
 }
 

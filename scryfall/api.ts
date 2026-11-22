@@ -9,7 +9,7 @@ export class API {
     private static LAST_REQUEST = null;
     private static TOO_MANY_REQUESTS: boolean = false;
 
-    public static CACHE = new Cache<SFObject>();
+    public static CACHE = new Cache<Promise<SFObject>>();
     
     public static SETS = new SetCache();
 
@@ -34,23 +34,16 @@ export class API {
         url: string,
         body?: any,
     ): Promise<T> {
-        const can_cache = method === 'GET' && !body;
-        if (can_cache && this.CACHE.has(url)) {
-            console.log(`${method} ${url} (cached)`, body ?? '');
-            return this.CACHE.get(url) as T;
-        }
-
-        return new Promise(done => {
+        const get = () => new Promise<T>(done => {
             const request = new XMLHttpRequest();
             request.open(method, url);
             request.setRequestHeader('Accept', 'application/json');
             request.addEventListener('load', () => {
                 const response: T | Error = JSON.parse(request.responseText);
                 if (response.object !== 'error') {
-                    if (can_cache) this.CACHE.put(url, response);
                     done(response as T);
                 } else {
-                    if (can_cache) this.CACHE.put(url, null);
+                    if (can_cache) this.CACHE.forget(url);
                     console.error(response);
                     done(null);
                 }
@@ -83,6 +76,17 @@ export class API {
                 request.send(body ? JSON.stringify(body) : null);
             }, timeout);
         });
+
+        const can_cache = method === 'GET' && !body;
+
+        if (can_cache) {
+            if (this.CACHE.has(url)) {
+                console.log(`${method} ${url} (cached)`, body ?? '');
+            }
+            return this.CACHE.remember(url, get) as Promise<T>;
+        } else {
+            return get();
+        }
     }
 
     private static async get<T extends SFObject>(url: string): Promise<T> {
@@ -165,6 +169,12 @@ export class API {
         return this.get<Card>(this.card_random_url({q: query}));
     }
 
+    public static first_card(
+        query: string,
+    ): Promise<Card> {
+        return this.card_search(query).then(list => list?.data[0]);
+    }
+
     public static card_autocomplete(
         name: string,
     ): Promise<Catalog> {
@@ -201,12 +211,6 @@ export class API {
         query: string,
     ): Promise<List<Card>> {
         return this.get<List<Card>>(this.card_search_url(query));
-    }
-
-    public static card_search_first(
-        query: string,
-    ): Promise<Card> {
-        return this.card_search(query).then(list => list?.data[0]);
     }
 
     public static set(code: string): Promise<Set> {

@@ -27,3 +27,8 @@ Dinosaur // Treasure (F17:11)
 Dinosaur (F17:11)
 Treasure (F17:11)
 Treasure // Dinosaur (F17:11)
+
+Monster // Sorcerer
+Monster
+Sorcerer
+Sorcerer // Monster

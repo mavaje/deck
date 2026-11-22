@@ -40,8 +40,24 @@ export class Face<T extends Card | CardFace = Card | CardFace> {
             || [this];
     }
 
-    oracle_id(): string {
-        return this.card?.oracle_id ?? this.faces()[0]?.face?.oracle_id;
+    oracle_ids(): string[] {
+        if (this.is_face() && this.face.oracle_id) {
+            return [this.face.oracle_id];
+        }
+
+        if (this.card) {
+            if (this.card.oracle_id) {
+                return [this.card.oracle_id];
+            }
+
+            if (this.card.card_faces) {
+                return [...new Set<string>(this.card.card_faces
+                    .map(({oracle_id}) => oracle_id)
+                    .filter(Boolean))];
+            }
+        }
+
+        return [];
     }
 
     off_battlefield_overrides(): Partial<Card> {

@@ -106,11 +106,11 @@ export class Search extends Panel {
         ));
 
         if (Deck.CURRENT.format) {
-            query += ` format:${Deck.CURRENT.format.code()}`;
+            query += ` format:${Deck.CURRENT.format}`;
         }
 
         if (Deck.CURRENT.game) {
-            query += ` game:${Deck.CURRENT.game.code()}`;
+            query += ` game:${Deck.CURRENT.game}`;
         }
 
         const color_id = Deck.CURRENT.color_identity();
@@ -128,7 +128,7 @@ export class Search extends Panel {
                     .map((card, i) =>
                         HTML.div({id: `search-stack-${i}`, class: 'stack'},
                             CardView.render(card, `search-result-${i}`, () => {
-                                if (card.oracle_id() === CardPanel.SELECTED?.oracle_id()) {
+                                if (card.oracle_ids().some(id => CardPanel.SELECTED.oracle_ids().includes(id))) {
                                     SetCardPrinting.do(CardPanel.SELECTED, card.card);
                                 }
                             }),

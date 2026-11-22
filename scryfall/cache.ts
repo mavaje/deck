@@ -25,9 +25,10 @@ export class Cache<T> {
         return this.get(key);
     }
 
-    public put(key: string, data: T) {
+    public put(key: string, data: T): T {
         key = this.normalise_key(key);
         this.data[key] = data;
+        return data;
     }
 
     public put_each(keys: string[], data: T) {
@@ -37,6 +38,16 @@ export class Cache<T> {
     public put_all(data: Record<string, T>) {
         Object.entries(data)
             .forEach(([key, data]) => this.put(key, data));
+    }
+
+    public remember(key: string, evaluate: () => T): T {
+        return this.get(key)
+            ?? this.put(key, evaluate());
+    }
+
+    public forget(key: string): void {
+        key = this.normalise_key(key);
+        delete this.data[key];
     }
 
     public dump() {

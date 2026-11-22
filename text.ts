@@ -95,6 +95,7 @@ export function normalise(
         .normalize('NFKD')
         .replaceAll('æ', 'ae')
         .replaceAll(strip, '')
+        .replaceAll(/^\s+|\s+$/g, '')
         .replaceAll(/\s+/g, separator);
 }
 

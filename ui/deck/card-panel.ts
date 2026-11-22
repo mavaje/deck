@@ -104,9 +104,13 @@ export class CardPanel extends Panel {
             disabled: !card.name,
             onclick: () => {
                 if (!card.name) return;
-                let query = `!"${card.card_name(false)}" unique:prints`;
+                const unique_name = card.card_name(false)
+                    .replace(/^(.+) \/\/ \1$/, '$1');
+                let query = `!"${unique_name}" unique:prints`;
                 if (!card.language.is_default()) query += ` lang:${card.language}`;
-                if (card.card) query += ` oracleid:${card.card.oracle_id}`;
+                card.main_face(true).oracle_ids().forEach(id => {
+                    query += ` oracleid:${id}`;
+                });
                 Search.run(query);
             },
         });

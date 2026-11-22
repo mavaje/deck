@@ -26,7 +26,7 @@ export class DeckView {
     static render(deck: Deck = Deck.CURRENT): HTMLDivElement {
         this.errors = new DeckValidator(deck).validate();
 
-        console.log(this.errors);
+        // console.log(this.errors);
 
         DeckView.card_views = new WeakMap();
 

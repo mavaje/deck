@@ -73,6 +73,7 @@ export class DeckPanel extends Panel {
             id: 'deck-download',
             onclick: () => {
                 console.log(Deck.CURRENT.to_string());
+                DeckCard.CACHE.dump();
             },
         });
 

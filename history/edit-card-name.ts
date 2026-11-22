@@ -1,6 +1,7 @@
 import {Action} from "./action";
 import {DeckCard} from "../deck-card";
 import {Language} from "../designation/language";
+import {Deck} from "../deck";
 
 export class EditCardName extends Action {
 
@@ -36,7 +37,7 @@ export class EditCardName extends Action {
             card.collector_number = null;
             card.language = Language.DEFAULT;
             card.display_face_id = null;
-            card.reload();
+            card.reload(Deck.CURRENT.game);
         }
         card.render_hooks();
     }
@@ -76,7 +77,7 @@ class RevertCardName extends Action {
     execute(): void {
         const {card, values, was_reset} = this;
         Object.assign(card, values);
-        if (was_reset) card.reload();
+        if (was_reset) card.reload(Deck.CURRENT.game);
         card.render_hooks();
     }
 

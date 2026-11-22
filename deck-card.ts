@@ -13,6 +13,7 @@ import {Tag} from "./designation/tag";
 import {Face} from "./face";
 import {DeckView} from "./ui/deck-view";
 import {CardPanel} from "./ui/deck/card-panel";
+import {Game} from "./game";
 
 export type JSONCard = {
     qty: number;
@@ -226,30 +227,36 @@ export class DeckCard extends Face {
         });
     }
 
-    cache_keys(): string[] {
-        const keys: string[] = [];
+    cache_keys(game?: Game): string[] {
+        const keys = new Set<string>();
+
+        if (this.card) {
+            const {set, collector_number, lang} = this.card;
+            keys.add(`(${set}:${collector_number}:${lang})`);
+        }
 
         if (this.set && this.collector_number) {
-            keys.push(`(${this.set}:${this.collector_number}:${this.language})`);
+            keys.add(`(${this.set}:${this.collector_number}:${this.language})`);
         } else if (this.name) {
             [
                 this.raw_name,
                 this.main_face(false).card_name(true),
                 this.main_face(true).card_name(true),
             ].forEach(name => {
-                if (name) keys.push(`${normalise(name)} (${this.set ?? ''}::${this.language})`);
+                if (name) {
+                    keys.add(`${normalise(name)} (${game ?? ''}:${this.set ?? ''}:${this.language})`);
+                }
             });
         }
 
-        return keys;
+        return [...keys];
     }
 
     can_bulk_load(): boolean {
         return [
-            !/^y\d\d$/i.test(this.set),
-            this.language.is_default(),
-            this.identifier(),
             !this.card,
+            this.identifier(),
+            !/^y\d\d$/i.test(this.set),
         ].every(Boolean);
     }
 
@@ -270,15 +277,15 @@ export class DeckCard extends Face {
         return null;
     }
 
-    load_from_cache(): void {
+    load_from_cache(game?: Game): void {
         if (!this.card) {
-            this.card = DeckCard.CACHE.get_any(this.cache_keys());
+            this.card = DeckCard.CACHE.get_any(this.cache_keys(game));
             this.hydrate();
         }
     }
 
-    async load(): Promise<this> {
-        this.load_from_cache();
+    async load(game?: Game): Promise<this> {
+        this.load_from_cache(game);
 
         const {name, set, collector_number, language} = this;
         let card: Card = this.card;
@@ -294,11 +301,11 @@ export class DeckCard extends Face {
 
         if (name) {
             if (/^_{6,}$/.test(name) && !set) {
-                card ??= await API.random_card(`include:extras name:'${name}'`);
+                card ??= await API.first_card(`include:extras name:'${name}'`);
             }
 
             if (is_alchemy_set) {
-                card ??= await API.random_card(`st:alchemy name:'${name}'`);
+                card ??= await API.first_card(`st:alchemy name:'${name}'`);
             } else if (set && !collector_number) {
                 card ??= await API.card_named(name, set);
             }
@@ -308,7 +315,17 @@ export class DeckCard extends Face {
             if (card && card.lang !== language.code() && !language.is_default()) {
                 let query = `oracle_id:${card.oracle_id} lang:${language}`;
                 if (set && !is_alchemy_set) query += ` set:${set}`;
-                card = await API.random_card(query) ?? card;
+                card = await API.first_card(query) ?? card;
+            }
+
+            if (card
+                && game
+                && !card.games.includes(game.code())
+            ) {
+                let query = `oracle_id:${card.oracle_id} game:${game}`;
+                if (set) query += ` set:${set}`;
+                if (!language.is_default()) query += ` lang:${language}`;
+                card = await API.first_card(query) ?? card;
             }
         }
 
@@ -318,11 +335,11 @@ export class DeckCard extends Face {
             return;
         }
 
-        return this.hydrate(card).cache();
+        return this.hydrate(card).cache(game);
     }
 
-    async reload(): Promise<this> {
-        return this.flush().load();
+    async reload(game?: Game): Promise<this> {
+        return this.flush().load(game);
     }
 
     flush(): this {
@@ -351,26 +368,28 @@ export class DeckCard extends Face {
             }
 
             if (this.name && card.card_faces) {
-                const normal_name = normalise(this.name);
+                const first_name = normalise(this.name.split('/')[0]);
 
-                let max_similarity = Math.max(...[
-                    this.card_name(false),
-                    this.all_names(true).join(' // '),
-                ].map(name => trigram(normal_name, normalise(name))));
+                let max_similarity = 0;
 
-                if (max_similarity < 1) {
-                    this.faces()
-                        .some((face, id) => [
-                            face.card_name(false),
-                            face.card_name(true),
-                        ].some(name => {
-                            const similarity = trigram(normal_name, normalise(name));
-                            if (similarity > max_similarity) {
-                                max_similarity = similarity;
-                                this.display_face_id = id;
-                                return max_similarity === 1;
-                            }
-                        }));
+                this.faces()
+                    .some((face, id) => [
+                        face.card_name(false),
+                        face.card_name(true),
+                    ].some(name => {
+                        const similarity = trigram(first_name, normalise(name));
+                        if (similarity > max_similarity) {
+                            max_similarity = similarity;
+                            this.display_face_id = id;
+                            return max_similarity === 1;
+                        }
+                    }));
+
+                if (!this.has_main_face()
+                    && this.display_face_id === 0
+                    && this.name.includes('/')
+                ) {
+                    this.display_face_id = null;
                 }
             }
 
@@ -389,9 +408,9 @@ export class DeckCard extends Face {
         }
     }
 
-    cache(): this {
+    cache(game?: Game): this {
         if (this.card) {
-            DeckCard.CACHE.put_each(this.cache_keys(), this.card);
+            DeckCard.CACHE.put_each(this.cache_keys(game), this.card);
         }
 
         return this;

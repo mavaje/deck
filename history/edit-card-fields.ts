@@ -1,5 +1,6 @@
 import {Action} from "./action";
 import {DeckCard} from "../deck-card";
+import {Deck} from "../deck";
 
 export class EditCardFields extends Action {
 
@@ -29,7 +30,7 @@ export class EditCardFields extends Action {
             'collector_number',
             'language',
         ] as (keyof DeckCard)[]).some(field => field in fields)) {
-            card.reload();
+            card.reload(Deck.CURRENT.game);
         }
         card.render_hooks();
     }

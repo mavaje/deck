@@ -2,7 +2,8 @@ import {Card, Catalog, List} from "../../scryfall/types";
 import {API} from "../../scryfall/api";
 
 export function load_api_cache() {
-    API.CACHE.put_all(TEST_FIXTURE);
+    API.CACHE.put_all(Object.fromEntries(Object.entries(TEST_FIXTURE)
+        .map(([url, data]) => [url, new Promise(done => done(data))])));
 }
 
 const TEST_FIXTURE: Record<string, Card | List<Card> | Catalog> = {

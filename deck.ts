@@ -129,7 +129,7 @@ export class Deck extends CardList {
     }
 
     async load(on_progress: () => void = null): Promise<this> {
-        this.forEach(card => card.load_from_cache());
+        this.forEach(card => card.load_from_cache(this.game));
         on_progress?.();
 
         const card_map: Record<string, DeckCard[]> = {};
@@ -168,7 +168,7 @@ export class Deck extends CardList {
         }
 
         await Promise.all(this.map(async card => {
-            await card.load();
+            await card.load(this.game);
             on_progress?.();
         }));
 

@@ -24,6 +24,9 @@ export class EditDeckField<K extends keyof Deck & string> extends Action {
         Deck.CURRENT[field] = value;
         DeckPanel.update();
         DeckView.render();
+        if (field === 'game') {
+            Deck.CURRENT.load(() => DeckView.render());
+        }
     }
 
     reverse(): Action {
