@@ -395,9 +395,24 @@ export class Face<T extends Card | CardFace = Card | CardFace> {
         return `https://backs.scryfall.io/large/${id[0]}/${id[1]}/${id}.jpg`;
     }
 
+    printed_name(): string {
+        if (this.face?.flavor_name) return this.face.flavor_name;
+
+        if (this.face?.printed_name) return this.face.printed_name;
+
+        if (this.is_card() && this.card.card_faces) {
+            const name = this.faces()
+                .map(face => face.printed_name() ?? '')
+                .join(' // ');
+            if (name) return name;
+        }
+
+        return null;
+    }
+
     card_name(printed: boolean = false): string {
         return printed && this.is_default_language()
-            ? this.face?.printed_name ?? this.face?.name
+            ? this.printed_name() ?? this.face?.name
             : this.face?.name;
     }
 

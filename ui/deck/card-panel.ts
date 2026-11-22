@@ -72,10 +72,10 @@ export class CardPanel extends Panel {
                 value: card.name || '',
                 onchange: input => EditCardName.do(card, input.value || null),
             },
-            ({label, value}) => EditCardName.do(card, label, value),
-            card.selectable_names(true).map(([id, name]) => ({
+            ({label, value}) => EditCardName.do(card, label, value.face_id, value.printed),
+            Object.entries(card.selectable_names()).map(([name, face]) => ({
                 label: name,
-                value: id,
+                value: face,
             })),
         );
 
@@ -104,9 +104,12 @@ export class CardPanel extends Panel {
             disabled: !card.name,
             onclick: () => {
                 if (!card.name) return;
-                const unique_name = card.card_name(false)
+                const name = card.card_name(false)
                     .replace(/^(.+) \/\/ \1$/, '$1');
-                let query = `!"${unique_name}" unique:prints`;
+                let query = card.card
+                    ? `!"${name}"`
+                    : name;
+                query += ' unique:prints';
                 if (!card.language.is_default()) query += ` lang:${card.language}`;
                 card.main_face(true).oracle_ids().forEach(id => {
                     query += ` oracleid:${id}`;

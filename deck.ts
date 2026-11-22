@@ -201,7 +201,7 @@ export class Deck extends CardList {
         return Zone.all()
             .filter(zone => this.zone(zone).length > 0)
             .map(zone => `# ${zone.name}\n`
-                + this.zone(zone).map(card => card.to_string(card_format) + ` (${card.display_face_id})`).join('\n') + '\n')
+                + this.zone(zone).map(card => card.to_string(card_format) + ` (${card.display_face_id}:${card.display_printed})`).join('\n') + '\n')
             .join('\n');
     }
 

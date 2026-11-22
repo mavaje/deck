@@ -59,6 +59,7 @@ export class DeckCard extends Face {
     tags: Set<Tag> = new Set();
 
     display_face_id: number = null;
+    display_printed: boolean = true;
 
     constructor(card: Partial<DeckCard> = {}) {
         super(card.card);
@@ -350,6 +351,7 @@ export class DeckCard extends Face {
     }
 
     hydrate_printing(card: Card) {
+        this.name = null;
         this.set = card.set;
         this.collector_number = card.collector_number;
         this.language = Language.match(card.lang);
@@ -376,11 +378,12 @@ export class DeckCard extends Face {
                     .some((face, id) => [
                         face.card_name(false),
                         face.card_name(true),
-                    ].some(name => {
+                    ].some((name, printed) => {
                         const similarity = trigram(first_name, normalise(name));
                         if (similarity > max_similarity) {
                             max_similarity = similarity;
                             this.display_face_id = id;
+                            this.display_printed = Boolean(printed);
                             return max_similarity === 1;
                         }
                     }));
@@ -468,6 +471,7 @@ export class DeckCard extends Face {
             'condition',
             'is_foil',
             'display_face_id',
+            'display_printed',
         ] as (keyof DeckCard)[]) {
             if (this[field] !== card[field]) {
                 return false;
@@ -488,7 +492,7 @@ export class DeckCard extends Face {
         return super.card_name(printed) ?? this.name;
     }
 
-    all_names(printed: boolean = true): string[] {
+    all_names(printed: boolean = this.display_printed): string[] {
         return (this.faces()
             .map(face => face.card_name(printed))
             .filter(Boolean)
@@ -496,22 +500,40 @@ export class DeckCard extends Face {
             ?.split(/\s*\/+\s*/g) ?? [];
     }
 
-    selectable_names(printed: boolean = true): [number, string][] {
-        const names: [number, string][] = [];
+    selectable_names(): Record<string, {
+        face_id: number;
+        printed: boolean;
+    }> {
+        const names: Record<string, {
+            face_id: number;
+            printed: boolean;
+        }> = {};
 
-        if (!this.has_main_face()) {
-            names.push([null, this.card_name(printed)]);
-        }
+        [
+            true,
+            false,
+        ].forEach(printed => {
+            if (!this.has_main_face()) {
+                names[this.card_name(printed)] ??= {
+                    face_id: null,
+                    printed: printed,
+                };
+            }
 
-        if (this.is_layout('adventure', 'prepare')) {
-            names.push([0, this.main_face(false).card_name(printed)]);
-        } else {
-            this.all_names(printed).forEach((name, id) => {
-                if (!names.some(([_, n]) => n === name)) {
-                    names.push([id, name]);
-                }
-            });
-        }
+            if (this.is_layout('adventure', 'prepare')) {
+                names[this.main_face(false).card_name(printed)] ??= {
+                    face_id: 0,
+                    printed: printed,
+                };
+            } else {
+                this.all_names(printed).forEach((name, id) => {
+                    names[name] ??= {
+                        face_id: id,
+                        printed: printed,
+                    };
+                });
+            }
+        });
 
         return names;
     }
@@ -526,7 +548,7 @@ export class DeckCard extends Face {
     }
 
     deck_list_name(): string {
-        return this.main_face(true).card_name(true) || this.name;
+        return this.main_face(true).card_name(this.display_printed) || this.name;
     }
 
     is_basic_land(): boolean {

@@ -122,8 +122,8 @@ export class CardView {
                 urls.push(...face.image_urls());
 
                 let name: string = card.is_double_faced()
-                    && face.card_name(true)
-                    || card.card_name(true);
+                    && face.card_name(card.display_printed)
+                    || card.card_name(card.display_printed);
                 if (card.set && card.collector_number) {
                     name ||= `[${card.set.toUpperCase()}:${card.collector_number}]`;
                 }
