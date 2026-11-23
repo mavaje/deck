@@ -21,17 +21,17 @@
 
 @font-face {
     font-family: 'Phyrexian';
-    src: url('public/font/phyrexian.woff2') format('woff');
+    src: url('public/font/phyrexian.woff') format('woff');
 }
 
 [lang=ph] {
     font-family: 'Phyrexian', monospace;
-    font-size: 15.5px;
+    font-size: 17.5px;
 }
 
 @font-face {
     font-family: 'Tengwar';
-    src: url('public/font/tengwar.woff2') format('woff');
+    src: url('public/font/tengwar.woff') format('woff');
 }
 
 [lang=qya] {
@@ -277,6 +277,10 @@ button:disabled {
     padding: 4px 8px;
     cursor: pointer;
     transition-property: background-color, text-shadow;
+}
+
+.dropdown .option[lang=qya] {
+    padding: 2px 8px;
 }
 
 .dropdown .option.selected {
