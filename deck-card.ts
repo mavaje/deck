@@ -21,8 +21,8 @@ export type JSONCard = {
     set: string;
     cn: string;
     lang: string;
-    finish: string;
-    condition: string;
+    fin: string;
+    cond: string;
     zone: string;
     tags: string[];
 };
@@ -137,6 +137,7 @@ export class DeckCard extends Face {
             raw_name: name,
             set: API.SETS.normalise(set),
             collector_number,
+            language: Language.infer(name),
             zone: default_zone,
         });
 
@@ -221,8 +222,8 @@ export class DeckCard extends Face {
             set: json.set || null,
             collector_number: json.cn || null,
             language: Language.match(json.lang) ?? Language.DEFAULT,
-            finish: Finish.match(json.finish) ?? Finish.DEFAULT,
-            condition: Condition.match(json.condition) ?? null,
+            finish: Finish.match(json.fin) ?? Finish.DEFAULT,
+            condition: Condition.match(json.cond) ?? null,
             zone: Zone.match(json.zone) ?? Zone.DEFAULT,
             tags: new Set(json.tags.map(tag => Tag.match_or_new(tag))),
         });
@@ -369,8 +370,10 @@ export class DeckCard extends Face {
                 this.language = Language.match(card.lang);
             }
 
+            const first_name = this.name.split(/\s*\//)[0];
+            const normalised = normalise(first_name);
+
             if (this.name && card.card_faces) {
-                const first_name = normalise(this.name.split('/')[0]);
 
                 let max_similarity = 0;
 
@@ -379,7 +382,9 @@ export class DeckCard extends Face {
                         face.card_name(false),
                         face.card_name(true),
                     ].some((name, printed) => {
-                        const similarity = trigram(first_name, normalise(name));
+                        const similarity = normalised === normalise(name)
+                            ? 1
+                            : trigram(normalised, normalise(name));
                         if (similarity > max_similarity) {
                             max_similarity = similarity;
                             this.display_face_id = id;
@@ -394,6 +399,15 @@ export class DeckCard extends Face {
                 ) {
                     this.display_face_id = null;
                 }
+            } else {
+                const [printed, normal] = [true, false].map(printed => {
+                    const name = this.card_name(printed)
+                    return name === first_name
+                        ? 1
+                        : trigram(normalised, normalise(name));
+                });
+
+                this.display_printed = printed > normal;
             }
 
             this.name = this.deck_list_name();
@@ -777,8 +791,8 @@ export class DeckCard extends Face {
             set: this.set || null,
             cn: this.collector_number || null,
             lang: this.language?.code() ?? null,
-            finish: this.finish?.code() ?? null,
-            condition: this.condition?.code() ?? null,
+            fin: this.finish?.code() ?? null,
+            cond: this.condition?.code() ?? null,
             zone: this.zone?.code() ?? null,
             tags: [...this.tags].map(tag => tag.name),
         };

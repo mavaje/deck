@@ -66,16 +66,22 @@ export class CardPanel extends Panel {
             onclick: () => EditCardFields.do(card, {quantity: card.quantity + 1}),
         });
 
+        const font_lang = card.language.has_font
+            ? card.language
+            : null;
+
         new Dropdown(
             {
                 id: 'name-input',
                 value: card.name || '',
                 onchange: input => EditCardName.do(card, input.value || null),
+                lang: card.display_printed ? font_lang?.code() : null,
             },
             ({label, value}) => EditCardName.do(card, label, value.face_id, value.printed),
             Object.entries(card.selectable_names()).map(([name, face]) => ({
                 label: name,
                 value: face,
+                lang: face.printed ? font_lang : null,
             })),
         );
 

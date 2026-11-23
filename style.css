@@ -19,6 +19,26 @@
     display: none;
 }
 
+@font-face {
+    font-family: 'Phyrexian';
+    src: url('public/font/phyrexian.woff2') format('woff');
+}
+
+[lang=ph] {
+    font-family: 'Phyrexian', monospace;
+    font-size: 15.5px;
+}
+
+@font-face {
+    font-family: 'Tengwar';
+    src: url('public/font/tengwar.woff2') format('woff');
+}
+
+[lang=qya] {
+    font-family: 'Tengwar', monospace;
+    font-size: 15.5px;
+}
+
 html {
     height: 100%;
 }
@@ -104,6 +124,10 @@ select {
     outline: none;
     caret-color: var(--theme);
     transition-property: background-color, border-color, box-shadow, text-shadow;
+}
+
+input[lang=qya] {
+    padding: 2px 8px;
 }
 
 select {

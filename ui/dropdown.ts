@@ -1,9 +1,11 @@
 import {Attributes, HTML} from "./xml";
+import {Language} from "../designation/language";
 
 export type DropdownOption<T = any> = {
     label?: string;
     input_value?: string;
     value?: T;
+    lang?: Language;
     discouraged?: boolean;
     disabled?: boolean;
     element?: HTMLDivElement;
@@ -37,6 +39,7 @@ export class Dropdown<T = any> {
                     option.disabled && 'disabled',
                     option.input_value === attributes.value && 'selected',
                 ],
+                lang: option.lang?.code(),
                 onclick: !option.disabled && (() => this.select(option)),
             }, option.label))));
     }

@@ -401,19 +401,21 @@ export class Face<T extends Card | CardFace = Card | CardFace> {
         if (this.face?.printed_name) return this.face.printed_name;
 
         if (this.is_card() && this.card.card_faces) {
-            const name = this.faces()
-                .map(face => face.printed_name() ?? '')
-                .join(' // ');
-            if (name) return name;
+            const names = this.faces()
+                .map(face => face.printed_name())
+                .filter(Boolean);
+            if (names.length > 0) {
+                return names.join(' // ');
+            }
         }
 
         return null;
     }
 
     card_name(printed: boolean = false): string {
-        return printed && this.is_default_language()
-            ? this.printed_name() ?? this.face?.name
-            : this.face?.name;
+        return printed
+            && this.printed_name()
+            || this.face?.name;
     }
 
     artist(): string {

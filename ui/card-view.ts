@@ -81,6 +81,12 @@ export class CardView {
                 '--specular-y': 'calc(50% - var(--cursor-y) * 1px)',
                 };
                 break;
+
+            // Mind Flayer, the Shadow
+            case '0fbaa2f0-9ad0-4ce2-8ce6-359d01bd524c':
+                card_class.add('flip');
+                card_class.add('invert');
+                break;
         }
 
         switch (card.card?.oracle_id) {
@@ -122,8 +128,8 @@ export class CardView {
                 urls.push(...face.image_urls());
 
                 let name: string = card.is_double_faced()
-                    && face.card_name(card.display_printed)
-                    || card.card_name(card.display_printed);
+                    && face.card_name(card.display_printed && !card.language.has_font)
+                    || card.card_name(card.display_printed && !card.language.has_font);
                 if (card.set && card.collector_number) {
                     name ||= `[${card.set.toUpperCase()}:${card.collector_number}]`;
                 }

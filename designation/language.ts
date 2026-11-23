@@ -17,14 +17,28 @@ export class Language extends Designation {
     static ancient_greek = new Language('Ancient Greek', ['grc', 'ag']);
     static arabic = new Language('Arabic', ['ar']);
     static sanskrit = new Language('Sanskrit', ['sa']);
-    static phyrexian = new Language('Phyrexian', ['ph']);
-    static quenya = new Language('Quenya', ['qya']);
+    static phyrexian = new Language('Phyrexian', ['ph'], true);
+    static quenya = new Language('Quenya', ['qya'], true);
     static dwarvish = new Language('Dwarvish', ['dw']);
     static klingon = new Language('Klingon', ['tlh', 'kl']);
 
     static DEFAULT = this.english;
 
+    constructor(
+        name: string,
+        codes: string[] = [],
+        public has_font: boolean = false,
+    ) {
+        super(name, codes);
+    }
+
     is_default(): boolean {
         return this === Language.DEFAULT;
+    }
+
+    static infer(text: string): Language {
+        if (/^\|/.test(text)) return Language.phyrexian;
+
+        return Language.DEFAULT;
     }
 }

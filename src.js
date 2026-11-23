@@ -509,6 +509,11 @@ var init_language = __esm({
   "designation/language.ts"() {
     init_designation();
     Language = class _Language extends Designation {
+      constructor(name, codes = [], has_font = false) {
+        super(name, codes);
+        this.has_font = has_font;
+      }
+      has_font;
       static english = new _Language("English", ["en"]);
       static spanish = new _Language("Spanish", ["es", "sp"]);
       static french = new _Language("French", ["fr"]);
@@ -525,13 +530,17 @@ var init_language = __esm({
       static ancient_greek = new _Language("Ancient Greek", ["grc", "ag"]);
       static arabic = new _Language("Arabic", ["ar"]);
       static sanskrit = new _Language("Sanskrit", ["sa"]);
-      static phyrexian = new _Language("Phyrexian", ["ph"]);
-      static quenya = new _Language("Quenya", ["qya"]);
+      static phyrexian = new _Language("Phyrexian", ["ph"], true);
+      static quenya = new _Language("Quenya", ["qya"], true);
       static dwarvish = new _Language("Dwarvish", ["dw"]);
       static klingon = new _Language("Klingon", ["tlh", "kl"]);
       static DEFAULT = this.english;
       is_default() {
         return this === _Language.DEFAULT;
+      }
+      static infer(text) {
+        if (/^\|/.test(text)) return _Language.phyrexian;
+        return _Language.DEFAULT;
       }
     };
   }
@@ -1379,13 +1388,15 @@ var init_face = __esm({
         if (this.face?.flavor_name) return this.face.flavor_name;
         if (this.face?.printed_name) return this.face.printed_name;
         if (this.is_card() && this.card.card_faces) {
-          const name = this.faces().map((face) => face.printed_name() ?? "").join(" // ");
-          if (name) return name;
+          const names = this.faces().map((face) => face.printed_name()).filter(Boolean);
+          if (names.length > 0) {
+            return names.join(" // ");
+          }
         }
         return null;
       }
       card_name(printed = false) {
-        return printed && this.is_default_language() ? this.printed_name() ?? this.face?.name : this.face?.name;
+        return printed && this.printed_name() || this.face?.name;
       }
       artist() {
         return this.face?.artist ?? this.card?.artist;
@@ -1407,7 +1418,13 @@ function skeleton(name) {
       SVG.rect({ x: 0.5, y: 19.5, width: 24, height: 3, rx: 1.5 }),
       SVG.rect({ x: 18.5, y: 31.5, width: 6, height: 3, rx: 1.5 })
     ]),
-    name && SVG.text({ x: 2, y: 2.5, font_size: 1.5, font_family: "monospace", fill: "#ffffff" }, name.length > 24 ? name.slice(0, 21) + "..." : name)
+    name && SVG.text({ x: 2, y: 2.5, fill: "#ffffff" }, name.length > 24 ? name.slice(0, 21) + "..." : name),
+    name && SVG.style(`
+            text {
+                font-family: monospace;
+                font-size: 1.5px;
+            }
+        `)
   ]);
 }
 function skeleton_back() {
@@ -1496,6 +1513,11 @@ var init_card_view = __esm({
               "--specular-y": "calc(50% - var(--cursor-y) * 1px)"
             };
             break;
+          // Mind Flayer, the Shadow
+          case "0fbaa2f0-9ad0-4ce2-8ce6-359d01bd524c":
+            card_class.add("flip");
+            card_class.add("invert");
+            break;
         }
         switch (card.card?.oracle_id) {
           // Topsy Turvy
@@ -1529,7 +1551,7 @@ var init_card_view = __esm({
           if (face_id2 === 0 || card.is_double_faced()) {
             const face = card.faces()[face_id2];
             urls.push(...face.image_urls());
-            let name = card.is_double_faced() && face.card_name(card.display_printed) || card.card_name(card.display_printed);
+            let name = card.is_double_faced() && face.card_name(card.display_printed && !card.language.has_font) || card.card_name(card.display_printed && !card.language.has_font);
             if (card.set && card.collector_number) {
               name ||= `[${card.set.toUpperCase()}:${card.collector_number}]`;
             }
@@ -1993,6 +2015,7 @@ var init_dropdown = __esm({
             option.disabled && "disabled",
             option.input_value === attributes.value && "selected"
           ],
+          lang: option.lang?.code(),
           onclick: !option.disabled && (() => this.select(option))
         }, option.label))));
       }
@@ -2315,16 +2338,19 @@ var init_card_panel = __esm({
           disabled: card.quantity >= 99,
           onclick: () => EditCardFields.do(card, { quantity: card.quantity + 1 })
         });
+        const font_lang = card.language.has_font ? card.language : null;
         new Dropdown(
           {
             id: "name-input",
             value: card.name || "",
-            onchange: (input) => EditCardName.do(card, input.value || null)
+            onchange: (input) => EditCardName.do(card, input.value || null),
+            lang: card.display_printed ? font_lang?.code() : null
           },
           ({ label, value }) => EditCardName.do(card, label, value.face_id, value.printed),
           Object.entries(card.selectable_names()).map(([name, face]) => ({
             label: name,
-            value: face
+            value: face,
+            lang: face.printed ? font_lang : null
           }))
         );
         HTML.input({
@@ -2538,6 +2564,7 @@ var init_deck_card = __esm({
           raw_name: name,
           set: API.SETS.normalise(set),
           collector_number,
+          language: Language.infer(name),
           zone: default_zone
         });
         if (!card.name && !(card.set && card.collector_number)) return null;
@@ -2603,8 +2630,8 @@ var init_deck_card = __esm({
           set: json.set || null,
           collector_number: json.cn || null,
           language: Language.match(json.lang) ?? Language.DEFAULT,
-          finish: Finish.match(json.finish) ?? Finish.DEFAULT,
-          condition: Condition.match(json.condition) ?? null,
+          finish: Finish.match(json.fin) ?? Finish.DEFAULT,
+          condition: Condition.match(json.cond) ?? null,
           zone: Zone.match(json.zone) ?? Zone.DEFAULT,
           tags: new Set(json.tags.map((tag) => Tag.match_or_new(tag)))
         });
@@ -2717,14 +2744,15 @@ var init_deck_card = __esm({
           if (this.language.code() !== card.lang && this.language.is_default()) {
             this.language = Language.match(card.lang);
           }
+          const first_name = this.name.split(/\s*\//)[0];
+          const normalised = normalise(first_name);
           if (this.name && card.card_faces) {
-            const first_name = normalise(this.name.split("/")[0]);
             let max_similarity = 0;
             this.faces().some((face, id) => [
               face.card_name(false),
               face.card_name(true)
             ].some((name, printed) => {
-              const similarity = trigram(first_name, normalise(name));
+              const similarity = normalised === normalise(name) ? 1 : trigram(normalised, normalise(name));
               if (similarity > max_similarity) {
                 max_similarity = similarity;
                 this.display_face_id = id;
@@ -2735,6 +2763,12 @@ var init_deck_card = __esm({
             if (!this.has_main_face() && this.display_face_id === 0 && this.name.includes("/")) {
               this.display_face_id = null;
             }
+          } else {
+            const [printed, normal] = [true, false].map((printed2) => {
+              const name = this.card_name(printed2);
+              return name === first_name ? 1 : trigram(normalised, normalise(name));
+            });
+            this.display_printed = printed > normal;
           }
           this.name = this.deck_list_name();
         }
@@ -2995,8 +3029,8 @@ var init_deck_card = __esm({
           set: this.set || null,
           cn: this.collector_number || null,
           lang: this.language?.code() ?? null,
-          finish: this.finish?.code() ?? null,
-          condition: this.condition?.code() ?? null,
+          fin: this.finish?.code() ?? null,
+          cond: this.condition?.code() ?? null,
           zone: this.zone?.code() ?? null,
           tags: [...this.tags].map((tag) => tag.name)
         };
