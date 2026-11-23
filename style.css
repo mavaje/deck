@@ -933,6 +933,8 @@ div:has(> #delete-card) {
 }
 
 .card-face:after {
+    --flare-scale: calc(50 * var(--card-scale));
+
     content: '';
     position: absolute;
     width: 100%;
@@ -941,7 +943,7 @@ div:has(> #delete-card) {
     background: radial-gradient(
             circle at var(--specular-x) var(--specular-y),
             white 0,
-            black 256px
+            black var(--flare-scale)
     );
     mix-blend-mode: soft-light;
     opacity: 0;

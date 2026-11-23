@@ -132,10 +132,13 @@ export class CardView {
                 urls.push(...face.image_urls());
 
                 let name: string = card.is_double_faced()
-                    && face.card_name(card.display_printed && !card.language.has_font)
-                    || card.card_name(card.display_printed && !card.language.has_font);
+                    && face.card_name(card.display_printed)
+                    || card.card_name(card.display_printed);
                 if (card.set && card.collector_number) {
                     name ||= `[${card.set.toUpperCase()}:${card.collector_number}]`;
+                }
+                if (card.language.has_font && card.language.detects(name)) {
+                    name = null;
                 }
                 urls.push(data_url(skeleton(name)));
                 if (!card.finish.is_default()) {

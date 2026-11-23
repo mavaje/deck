@@ -540,7 +540,7 @@ var init_language = __esm({
       static phyrexian = new _Language("Phyrexian", ["ph"], /^\|/, true);
       static quenya = new _Language("Quenya", ["qya"], /[\uE000-\uE07F]/, true);
       static dwarvish = new _Language("Dwarvish", ["dw"], /[\u16A0-\u16FF\uE080-\uE0FF]/);
-      static klingon = new _Language("Klingon", ["tlh", "kl"], /[\uF8D0–\uF8FF]/);
+      static klingon = new _Language("Klingon", ["tlh", "kl"], /[\uF8D0-\uF8FF]/);
       static DEFAULT = this.english;
       is_default() {
         return this === _Language.DEFAULT;
@@ -1569,9 +1569,12 @@ var init_card_view = __esm({
           if (face_id2 === 0 || card.is_double_faced()) {
             const face = card.faces()[face_id2];
             urls.push(...face.image_urls());
-            let name = card.is_double_faced() && face.card_name(card.display_printed && !card.language.has_font) || card.card_name(card.display_printed && !card.language.has_font);
+            let name = card.is_double_faced() && face.card_name(card.display_printed) || card.card_name(card.display_printed);
             if (card.set && card.collector_number) {
               name ||= `[${card.set.toUpperCase()}:${card.collector_number}]`;
+            }
+            if (card.language.has_font && card.language.detects(name)) {
+              name = null;
             }
             urls.push(data_url(skeleton(name)));
             if (!card.finish.is_default()) {
@@ -1612,10 +1615,8 @@ var init_card_view = __esm({
               tilt.style.setProperty("--cursor-x", `${dx}`);
               tilt.style.setProperty("--cursor-y", `${dy}`);
             },
-            onpointerenter: () => DeckView.focus(card),
-            onpointerleave: () => {
-              DeckView.unfocus(card);
-            },
+            onpointerenter: in_deck_view && (() => DeckView.focus(card)),
+            onpointerleave: in_deck_view && (() => DeckView.unfocus(card)),
             onclick: on_click && ((_, event) => {
               event.stopPropagation();
               on_click();
