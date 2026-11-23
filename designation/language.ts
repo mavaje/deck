@@ -37,6 +37,16 @@ export class Language extends Designation {
     }
 
     static infer(text: string): Language {
+        if (/[\u0370-\u03FF\u1F00-\u1FFF]/.test(text)) return Language.ancient_greek;
+        if (/[\u0400-\u04FF]/.test(text)) return Language.russian;
+        if (/[\u0590-\u05FF]/.test(text)) return Language.hebrew;
+        if (/[\u0600-\u06FF]/.test(text)) return Language.arabic;
+        if (/[\u0900-\u097F]/.test(text)) return Language.sanskrit;
+        if (/[\u1100-\u11FF\u3130-\u318F\uAC00-\uD7AF]/.test(text)) return Language.korean;
+        if (/[\u3040-\u309F\u30A0-\u30FF\u31F0-\u31FF\uFF65-\uFF9F]/.test(text)) return Language.japanese;
+        if (/[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]/.test(text)) return Language.chinese_simplified;
+        if (/[\uE000-\uE07F]/.test(text)) return Language.quenya;
+
         if (/^\|/.test(text)) return Language.phyrexian;
 
         return Language.DEFAULT;

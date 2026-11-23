@@ -539,6 +539,15 @@ var init_language = __esm({
         return this === _Language.DEFAULT;
       }
       static infer(text) {
+        if (/[\u0370-\u03FF\u1F00-\u1FFF]/.test(text)) return _Language.ancient_greek;
+        if (/[\u0400-\u04FF]/.test(text)) return _Language.russian;
+        if (/[\u0590-\u05FF]/.test(text)) return _Language.hebrew;
+        if (/[\u0600-\u06FF]/.test(text)) return _Language.arabic;
+        if (/[\u0900-\u097F]/.test(text)) return _Language.sanskrit;
+        if (/[\u1100-\u11FF\u3130-\u318F\uAC00-\uD7AF]/.test(text)) return _Language.korean;
+        if (/[\u3040-\u309F\u30A0-\u30FF\u31F0-\u31FF\uFF65-\uFF9F]/.test(text)) return _Language.japanese;
+        if (/[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]/.test(text)) return _Language.chinese_simplified;
+        if (/[\uE000-\uE07F]/.test(text)) return _Language.quenya;
         if (/^\|/.test(text)) return _Language.phyrexian;
         return _Language.DEFAULT;
       }
@@ -3247,6 +3256,7 @@ var init_deck = __esm({
         deck.tags.forEach((tag) => Tag.match_or_new(tag.name, tag.hex));
         _Deck.CURRENT.push(...deck.cards.map((card, id) => DeckCard.from_json(card, id)));
         DeckPanel.update();
+        DeckView.render();
         await _Deck.CURRENT.load(() => DeckView.render());
         return _Deck.CURRENT;
       }
@@ -3300,7 +3310,7 @@ var init_deck = __esm({
       }
       to_string(card_format) {
         return Zone.all().filter((zone) => this.zone(zone).length > 0).map((zone) => `# ${zone.name}
-` + this.zone(zone).map((card) => card.to_string(card_format) + ` (${card.display_face_id}:${card.display_printed})`).join("\n") + "\n").join("\n");
+` + this.zone(zone).map((card) => card.to_string(card_format)).join("\n") + "\n").join("\n");
       }
       toString() {
         return this.to_string();

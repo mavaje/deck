@@ -96,6 +96,7 @@ export class Deck extends CardList {
             Tag.clear();
             Deck.CURRENT = Deck.parse(input, title, invalid_zones);
             DeckView.render();
+
             await Deck.CURRENT.load(() => DeckView.render());
 
             invalid_zones = Zone.all()
@@ -121,6 +122,7 @@ export class Deck extends CardList {
         Deck.CURRENT.push(...deck.cards.map((card, id) => DeckCard.from_json(card, id)));
 
         DeckPanel.update();
+        DeckView.render();
 
         await Deck.CURRENT.load(() => DeckView.render());
 
@@ -200,7 +202,9 @@ export class Deck extends CardList {
         return Zone.all()
             .filter(zone => this.zone(zone).length > 0)
             .map(zone => `# ${zone.name}\n`
-                + this.zone(zone).map(card => card.to_string(card_format) + ` (${card.display_face_id}:${card.display_printed})`).join('\n') + '\n')
+                + this.zone(zone)
+                    .map(card => card.to_string(card_format))
+                    .join('\n') + '\n')
             .join('\n');
     }
 
