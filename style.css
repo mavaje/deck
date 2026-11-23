@@ -26,7 +26,7 @@
 
 [lang=ph] {
     font-family: 'Phyrexian', monospace;
-    font-size: 17.5px;
+    font-size: 14px;
 }
 
 @font-face {
@@ -36,7 +36,7 @@
 
 [lang=qya] {
     font-family: 'Tengwar', monospace;
-    font-size: 15.5px;
+    font-size: 16px;
 }
 
 html {
@@ -117,6 +117,7 @@ input,
 select {
     margin: 4px;
     padding: 4px 8px;
+    height: 16px;
     background-color: #0000007f;
     color: white;
     border-radius: 4px;
@@ -124,10 +125,6 @@ select {
     outline: none;
     caret-color: var(--theme);
     transition-property: background-color, border-color, box-shadow, text-shadow;
-}
-
-input[lang=qya] {
-    padding: 2px 8px;
 }
 
 select {
@@ -275,12 +272,9 @@ button:disabled {
 
 .dropdown .option {
     padding: 4px 8px;
+    line-height: 16px;
     cursor: pointer;
     transition-property: background-color, text-shadow;
-}
-
-.dropdown .option[lang=qya] {
-    padding: 2px 8px;
 }
 
 .dropdown .option.selected {

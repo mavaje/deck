@@ -12,12 +12,16 @@ export class CardView {
         on_click: () => any = null,
         face_id: number = card.display_face_id,
         is_duplicate: boolean = false,
+        in_deck_view: boolean = false,
     ): HTMLDivElement {
         const card_class: Set<string> = new Set(['card', 'fade-in']);
-        if (is_duplicate) card_class.add('duplicate');
-        if (card.quantity < 1) card_class.add('ghost');
-        if (DeckView.errors.some(error => error.cards?.includes(card))) card_class.add('error');
-        if (card === CardPanel.SELECTED) card_class.add('select');
+
+        if (in_deck_view) {
+            if (is_duplicate) card_class.add('duplicate');
+            if (card.quantity < 1) card_class.add('ghost');
+            if (DeckView.errors.some(error => error.cards?.includes(card))) card_class.add('error');
+            if (card === CardPanel.SELECTED) card_class.add('select');
+        }
 
         const faces: HTMLDivElement[] = [];
 
@@ -201,7 +205,8 @@ export class CardView {
                     id: id && `${id}-shift`,
                     class: 'card-shift',
                 },
-                !is_duplicate && HTML.div({class: 'count'}, `${card.quantity}×`),
+                in_deck_view && !is_duplicate
+                    && HTML.div({class: 'count'}, `${card.quantity}×`),
                 tilt = HTML.div(
                     {
                         id: id && `${id}-tilt`,

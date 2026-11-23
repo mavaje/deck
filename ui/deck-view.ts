@@ -155,6 +155,7 @@ export class DeckView {
                                 () => CardPanel.open(card),
                                 grouping?.face_id(card, group.value),
                                 !last_of_card,
+                                true,
                             ));
                         }
 

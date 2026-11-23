@@ -1454,12 +1454,14 @@ var init_card_view = __esm({
     init_deck_view();
     init_card_panel();
     CardView = class {
-      static render(card, id = null, on_click = null, face_id = card.display_face_id, is_duplicate = false) {
+      static render(card, id = null, on_click = null, face_id = card.display_face_id, is_duplicate = false, in_deck_view = false) {
         const card_class = /* @__PURE__ */ new Set(["card", "fade-in"]);
-        if (is_duplicate) card_class.add("duplicate");
-        if (card.quantity < 1) card_class.add("ghost");
-        if (DeckView.errors.some((error) => error.cards?.includes(card))) card_class.add("error");
-        if (card === CardPanel.SELECTED) card_class.add("select");
+        if (in_deck_view) {
+          if (is_duplicate) card_class.add("duplicate");
+          if (card.quantity < 1) card_class.add("ghost");
+          if (DeckView.errors.some((error) => error.cards?.includes(card))) card_class.add("error");
+          if (card === CardPanel.SELECTED) card_class.add("select");
+        }
         const faces = [];
         switch (card.layout()) {
           case "transform":
@@ -1617,7 +1619,7 @@ var init_card_view = __esm({
               id: id && `${id}-shift`,
               class: "card-shift"
             },
-            !is_duplicate && HTML.div({ class: "count" }, `${card.quantity}\xD7`),
+            in_deck_view && !is_duplicate && HTML.div({ class: "count" }, `${card.quantity}\xD7`),
             tilt = HTML.div(
               {
                 id: id && `${id}-tilt`,
@@ -2769,7 +2771,7 @@ var init_deck_card = __esm({
                 const name = this.card_name(printed2);
                 return name === first_name ? 1 : trigram(normalised, normalise(name));
               });
-              this.display_printed = printed > normal;
+              this.display_printed = printed >= normal;
             }
           }
           this.name = this.deck_list_name();
@@ -3235,7 +3237,6 @@ var init_deck = __esm({
           });
         } while (invalid_zones.length > 0);
         Storage.store_deck();
-        DeckCard.CACHE.dump();
         return _Deck.CURRENT;
       }
       static async load_from_json(deck) {
@@ -3977,7 +3978,8 @@ var init_deck_view = __esm({
                   `${id}-card-${card.id}-${quantity - 1 - j}`,
                   () => CardPanel.open(card),
                   grouping?.face_id(card, group.value),
-                  !last_of_card
+                  !last_of_card,
+                  true
                 ));
               }
               const card_views = _DeckView.card_views.get(card) ?? [];

@@ -407,7 +407,7 @@ export class DeckCard extends Face {
                             : trigram(normalised, normalise(name));
                     });
 
-                    this.display_printed = printed > normal;
+                    this.display_printed = printed >= normal;
                 }
             }
 

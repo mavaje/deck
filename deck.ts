@@ -109,7 +109,6 @@ export class Deck extends CardList {
 
         Storage.store_deck();
 
-        DeckCard.CACHE.dump();
         return Deck.CURRENT;
     }
 
