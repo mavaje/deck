@@ -16,6 +16,7 @@ import {EditCardName} from "../../history/edit-card-name";
 import {Deck} from "../../deck";
 import {DeleteCard} from "../../history/delete-card";
 import {EditCardFields} from "../../history/edit-card-fields";
+import {compare} from "../../text";
 
 export class CardPanel extends Panel {
     static id: string = 'card-panel';
@@ -66,22 +67,18 @@ export class CardPanel extends Panel {
             onclick: () => EditCardFields.do(card, {quantity: card.quantity + 1}),
         });
 
-        const font_lang = card.language.has_font
-            ? card.language
-            : null;
-
         new Dropdown(
             {
                 id: 'name-input',
                 value: card.name || '',
                 onchange: input => EditCardName.do(card, input.value || null),
-                lang: card.display_printed ? font_lang?.code() : null,
+                lang: card.language.detects(card.name) ? card.language.code() : null,
             },
             ({label, value}) => EditCardName.do(card, label, value.face_id, value.printed),
             Object.entries(card.selectable_names()).map(([name, face]) => ({
                 label: name,
                 value: face,
-                lang: face.printed ? font_lang : null,
+                lang: card.language,
             })),
         );
 
@@ -138,10 +135,12 @@ export class CardPanel extends Panel {
                 readonly: true,
             },
             ({value}) => EditCardFields.do(card, {language: value}),
-            Language.all().map(language => ({
-                label: language.name,
-                value: language,
-            })),
+            Language.all()
+                .sort((a, b) => compare(a.name, b.name))
+                .map(language => ({
+                    label: language.name,
+                    value: language,
+                })),
         );
 
         new Dropdown(
@@ -151,11 +150,12 @@ export class CardPanel extends Panel {
                 readonly: true,
             },
             ({value}) => EditCardFields.do(card, {finish: value}),
-            Finish.all().map(finish => ({
-                label: finish.name,
-                value: finish,
-                discouraged: card.card && !card.card.finishes.includes(finish.sf_finish()),
-            })),
+            Finish.all()
+                .map(finish => ({
+                    label: finish.name,
+                    value: finish,
+                    discouraged: card.card && !card.card.finishes.includes(finish.sf_finish()),
+                })),
         );
 
         new Dropdown(
@@ -172,10 +172,11 @@ export class CardPanel extends Panel {
                     value: null,
                     discouraged: true,
                 },
-                ...Condition.all().map(condition => ({
-                    label: condition.name,
-                    value: condition,
-                })),
+                ...Condition.all()
+                    .map(condition => ({
+                        label: condition.name,
+                        value: condition,
+                    })),
             ],
         );
 

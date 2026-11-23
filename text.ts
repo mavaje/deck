@@ -199,3 +199,8 @@ export function plural(count: number, noun: string, plural_noun: string = `${nou
 export function count_plural(count: number, noun: string, plural_noun: string = `${noun}s`): string {
     return `${count} ${plural(count, noun, plural_noun)}`;
 }
+
+const COMPARATOR = new Intl.Collator('en', {numeric: true});
+export function compare(a: string, b: string): number {
+    return COMPARATOR.compare(a, b);
+}

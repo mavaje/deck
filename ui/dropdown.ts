@@ -39,7 +39,7 @@ export class Dropdown<T = any> {
                     option.disabled && 'disabled',
                     option.input_value === attributes.value && 'selected',
                 ],
-                lang: option.lang?.code(),
+                lang: option.lang?.detects(option.label) ? option.lang.code() : null,
                 onclick: !option.disabled && (() => this.select(option)),
             }, option.label))));
     }

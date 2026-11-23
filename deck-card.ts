@@ -137,7 +137,7 @@ export class DeckCard extends Face {
             raw_name: name,
             set: API.SETS.normalise(set),
             collector_number,
-            language: Language.infer(name),
+            language: Language.detect(name),
             zone: default_zone,
         });
 

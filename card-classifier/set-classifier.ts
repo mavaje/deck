@@ -2,6 +2,7 @@ import {CardClassifier} from "./card-classifier";
 import {DeckCard} from "../deck-card";
 import {API} from "../scryfall/api";
 import {Group} from "./group";
+import {compare} from "../text";
 
 export class SetClassifier extends CardClassifier<string> {
     static name: string = 'Set';
@@ -34,7 +35,7 @@ export class SetClassifier extends CardClassifier<string> {
             parent.groups.push(group);
             parent.groups.sort((a, b) =>
                 this.nulls_first(a.value, b.value)
-                || this.compare_string(a.value, b.value));
+                || compare(a.value, b.value));
         } else {
             top_groups.push(group);
         }
@@ -50,7 +51,7 @@ export class SetClassifier extends CardClassifier<string> {
             this.add_set(groups, set_code);
         });
 
-        return groups.sort((a, b) => this.compare_string(a.value, b.value));
+        return groups.sort((a, b) => compare(a.value, b.value));
     }
 
     compare(a: DeckCard, b: DeckCard): number {

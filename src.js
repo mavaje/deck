@@ -250,7 +250,10 @@ function plural(count, noun, plural_noun = `${noun}s`) {
 function count_plural(count, noun, plural_noun = `${noun}s`) {
   return `${count} ${plural(count, noun, plural_noun)}`;
 }
-var UNITS, TEENS, TENS;
+function compare(a, b) {
+  return COMPARATOR.compare(a, b);
+}
+var UNITS, TEENS, TENS, COMPARATOR;
 var init_text = __esm({
   "text.ts"() {
     UNITS = [
@@ -289,6 +292,7 @@ var init_text = __esm({
       "eighty",
       "ninety"
     ];
+    COMPARATOR = new Intl.Collator("en", { numeric: true });
   }
 });
 
@@ -508,11 +512,14 @@ var Language;
 var init_language = __esm({
   "designation/language.ts"() {
     init_designation();
+    init_text();
     Language = class _Language extends Designation {
-      constructor(name, codes = [], has_font = false) {
+      constructor(name, codes = [], detector = null, has_font = false) {
         super(name, codes);
+        this.detector = detector;
         this.has_font = has_font;
       }
+      detector;
       has_font;
       static english = new _Language("English", ["en"]);
       static spanish = new _Language("Spanish", ["es", "sp"]);
@@ -520,35 +527,35 @@ var init_language = __esm({
       static german = new _Language("German", ["de", "ge"]);
       static italian = new _Language("Italian", ["it"]);
       static portuguese = new _Language("Portuguese", ["pt"]);
-      static japanese = new _Language("Japanese", ["ja", "jp"]);
-      static korean = new _Language("Korean", ["ko", "kr"]);
-      static russian = new _Language("Russian", ["ru", "rs"]);
-      static chinese_simplified = new _Language("Simplified Chinese", ["zhs", "cs"]);
+      static korean = new _Language("Korean", ["ko", "kr"], /[\u1100-\u11FF\u3130-\u318F\uA960-\uA97F\uAC00-\uD7AF\uD7B0-\uD7FF]/);
+      static japanese = new _Language("Japanese", ["ja", "jp"], /[\u3040-\u309F\u30A0-\u30FA\u30FC-\u30FF\u31F0-\u31FF\uFF66-\uFF9F\u3005]/);
+      static russian = new _Language("Russian", ["ru", "rs"], /[\u0400-\u04FF]/);
+      static chinese_simplified = new _Language("Simplified Chinese", ["zhs", "cs"], /[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\u{20000}-\u{3134F}]/u);
       static chinese_traditional = new _Language("Traditional Chinese", ["zht", "ct"]);
-      static hebrew = new _Language("Hebrew", ["he"]);
+      static hebrew = new _Language("Hebrew", ["he"], /[\u0590-\u05FF\uFB1D-\uFB4F]/);
       static latin = new _Language("Latin", ["la"]);
-      static ancient_greek = new _Language("Ancient Greek", ["grc", "ag"]);
-      static arabic = new _Language("Arabic", ["ar"]);
-      static sanskrit = new _Language("Sanskrit", ["sa"]);
-      static phyrexian = new _Language("Phyrexian", ["ph"], true);
-      static quenya = new _Language("Quenya", ["qya"], true);
-      static dwarvish = new _Language("Dwarvish", ["dw"]);
-      static klingon = new _Language("Klingon", ["tlh", "kl"]);
+      static ancient_greek = new _Language("Ancient Greek", ["grc", "ag"], /[\u0370-\u03FF\u1F00-\u1FFF]/);
+      static arabic = new _Language("Arabic", ["ar"], /[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/);
+      static sanskrit = new _Language("Sanskrit", ["sa"], /[\u0900-\u097F\uA8E0-\uA8FF\u1CD0-\u1CFF]/);
+      static phyrexian = new _Language("Phyrexian", ["ph"], /^\|/, true);
+      static quenya = new _Language("Quenya", ["qya"], /[\uE000-\uE07F]/, true);
+      static dwarvish = new _Language("Dwarvish", ["dw"], /[\u16A0-\u16FF\uE080-\uE0FF]/);
+      static klingon = new _Language("Klingon", ["tlh", "kl"], /[\uF8D0–\uF8FF]/);
       static DEFAULT = this.english;
       is_default() {
         return this === _Language.DEFAULT;
       }
-      static infer(text) {
-        if (/[\u0370-\u03FF\u1F00-\u1FFF]/.test(text)) return _Language.ancient_greek;
-        if (/[\u0400-\u04FF]/.test(text)) return _Language.russian;
-        if (/[\u0590-\u05FF]/.test(text)) return _Language.hebrew;
-        if (/[\u0600-\u06FF]/.test(text)) return _Language.arabic;
-        if (/[\u0900-\u097F]/.test(text)) return _Language.sanskrit;
-        if (/[\u1100-\u11FF\u3130-\u318F\uAC00-\uD7AF]/.test(text)) return _Language.korean;
-        if (/[\u3040-\u309F\u30A0-\u30FF\u31F0-\u31FF\uFF65-\uFF9F]/.test(text)) return _Language.japanese;
-        if (/[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]/.test(text)) return _Language.chinese_simplified;
-        if (/[\uE000-\uE07F]/.test(text)) return _Language.quenya;
-        if (/^\|/.test(text)) return _Language.phyrexian;
+      detects(text) {
+        if (!this.detector) return false;
+        text = normalise(text, false, /^/g);
+        return this.detector.test(text);
+      }
+      static detect(text) {
+        for (const language of _Language.all()) {
+          if (language.detects(text)) {
+            return language;
+          }
+        }
         return _Language.DEFAULT;
       }
     };
@@ -2026,7 +2033,7 @@ var init_dropdown = __esm({
             option.disabled && "disabled",
             option.input_value === attributes.value && "selected"
           ],
-          lang: option.lang?.code(),
+          lang: option.lang?.detects(option.label) ? option.lang.code() : null,
           onclick: !option.disabled && (() => this.select(option))
         }, option.label))));
       }
@@ -2308,6 +2315,7 @@ var init_card_panel = __esm({
     init_deck();
     init_delete_card();
     init_edit_card_fields();
+    init_text();
     CardPanel = class extends Panel {
       static id = "card-panel";
       static SELECTED = null;
@@ -2349,19 +2357,18 @@ var init_card_panel = __esm({
           disabled: card.quantity >= 99,
           onclick: () => EditCardFields.do(card, { quantity: card.quantity + 1 })
         });
-        const font_lang = card.language.has_font ? card.language : null;
         new Dropdown(
           {
             id: "name-input",
             value: card.name || "",
             onchange: (input) => EditCardName.do(card, input.value || null),
-            lang: card.display_printed ? font_lang?.code() : null
+            lang: card.language.detects(card.name) ? card.language.code() : null
           },
           ({ label, value }) => EditCardName.do(card, label, value.face_id, value.printed),
           Object.entries(card.selectable_names()).map(([name, face]) => ({
             label: name,
             value: face,
-            lang: face.printed ? font_lang : null
+            lang: card.language
           }))
         );
         HTML.input({
@@ -2410,7 +2417,7 @@ var init_card_panel = __esm({
             readonly: true
           },
           ({ value }) => EditCardFields.do(card, { language: value }),
-          Language.all().map((language) => ({
+          Language.all().sort((a, b) => compare(a.name, b.name)).map((language) => ({
             label: language.name,
             value: language
           }))
@@ -2575,7 +2582,7 @@ var init_deck_card = __esm({
           raw_name: name,
           set: API.SETS.normalise(set),
           collector_number,
-          language: Language.infer(name),
+          language: Language.detect(name),
           zone: default_zone
         });
         if (!card.name && !(card.set && card.collector_number)) return null;
@@ -3386,12 +3393,12 @@ var init_card_classifier = __esm({
     init_deck_view();
     init_face_selector();
     init_group();
-    CardClassifier = class _CardClassifier {
+    init_text();
+    CardClassifier = class {
       constructor(cards) {
         this.cards = cards;
       }
       cards;
-      static STRING_COMPARATOR = new Intl.Collator("en", { numeric: true });
       static name = "None";
       static ungrouped_name = "Unknown";
       split_by_face = false;
@@ -3451,15 +3458,12 @@ var init_card_classifier = __esm({
       compare_card_string(a, b, get) {
         const value_a = get(DeckView.FACE_SELECTOR.get(a)[0], a);
         const value_b = get(DeckView.FACE_SELECTOR.get(b)[0], b);
-        return this.nulls_last(value_a, value_b) || this.compare_string(value_a, value_b);
+        return this.nulls_last(value_a, value_b) || compare(value_a, value_b);
       }
       compare_card_index(a, b, get, ordering) {
         const value_a = get(DeckView.FACE_SELECTOR.get(a)[0], a);
         const value_b = get(DeckView.FACE_SELECTOR.get(b)[0], b);
         return this.compare_index(value_a, value_b, ordering);
-      }
-      compare_string(a, b) {
-        return _CardClassifier.STRING_COMPARATOR.compare(a, b);
       }
       compare_index(a, b, ordering) {
         let index_a = ordering.indexOf(a);
@@ -4344,6 +4348,7 @@ var init_set_classifier = __esm({
     init_card_classifier();
     init_api();
     init_group();
+    init_text();
     SetClassifier = class extends CardClassifier {
       static name = "Set";
       static ungrouped_name = "Unspecified";
@@ -4367,7 +4372,7 @@ var init_set_classifier = __esm({
         const parent = this.add_set(top_groups, set.parent_set_code);
         if (parent) {
           parent.groups.push(group);
-          parent.groups.sort((a, b) => this.nulls_first(a.value, b.value) || this.compare_string(a.value, b.value));
+          parent.groups.sort((a, b) => this.nulls_first(a.value, b.value) || compare(a.value, b.value));
         } else {
           top_groups.push(group);
         }
@@ -4379,7 +4384,7 @@ var init_set_classifier = __esm({
           let set_code = card.set_code();
           this.add_set(groups, set_code);
         });
-        return groups.sort((a, b) => this.compare_string(a.value, b.value));
+        return groups.sort((a, b) => compare(a.value, b.value));
       }
       compare(a, b) {
         return this.compare_card_string(

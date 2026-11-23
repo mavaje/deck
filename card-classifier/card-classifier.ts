@@ -5,10 +5,9 @@ import {Face} from "../face";
 import {DeckView} from "../ui/deck-view";
 import {FaceSelector} from "./face-selector";
 import {Group} from "./group";
+import {compare} from "../text";
 
 export abstract class CardClassifier<T extends string | number = string | number> {
-    static STRING_COMPARATOR = new Intl.Collator('en', {numeric: true});
-
     static name: string = 'None';
     static ungrouped_name: string = 'Unknown';
 
@@ -92,17 +91,13 @@ export abstract class CardClassifier<T extends string | number = string | number
         const value_a = get(DeckView.FACE_SELECTOR.get(a)[0], a);
         const value_b = get(DeckView.FACE_SELECTOR.get(b)[0], b);
         return this.nulls_last(value_a, value_b)
-            || this.compare_string(value_a, value_b);
+            || compare(value_a, value_b);
     }
 
     protected compare_card_index<T>(a: DeckCard, b: DeckCard, get: (face: Face, card: DeckCard) => T, ordering: T[]): number {
         const value_a = get(DeckView.FACE_SELECTOR.get(a)[0], a);
         const value_b = get(DeckView.FACE_SELECTOR.get(b)[0], b);
         return this.compare_index(value_a, value_b, ordering);
-    }
-
-    protected compare_string(a: string, b: string): number {
-        return CardClassifier.STRING_COMPARATOR.compare(a, b);
     }
 
     protected compare_index<T>(a: T, b: T, ordering: T[]): number {

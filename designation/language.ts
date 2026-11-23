@@ -1,4 +1,5 @@
 import {Designation} from "./designation";
+import {normalise} from "../text";
 
 export class Language extends Designation {
     static english = new Language('English', ['en']);
@@ -7,26 +8,27 @@ export class Language extends Designation {
     static german = new Language('German', ['de', 'ge']);
     static italian = new Language('Italian', ['it']);
     static portuguese = new Language('Portuguese', ['pt']);
-    static japanese = new Language('Japanese', ['ja', 'jp']);
-    static korean = new Language('Korean', ['ko', 'kr']);
-    static russian = new Language('Russian', ['ru', 'rs']);
-    static chinese_simplified = new Language('Simplified Chinese', ['zhs', 'cs']);
+    static korean = new Language('Korean', ['ko', 'kr'], /[\u1100-\u11FF\u3130-\u318F\uA960-\uA97F\uAC00-\uD7AF\uD7B0-\uD7FF]/);
+    static japanese = new Language('Japanese', ['ja', 'jp'], /[\u3040-\u309F\u30A0-\u30FA\u30FC-\u30FF\u31F0-\u31FF\uFF66-\uFF9F\u3005]/);
+    static russian = new Language('Russian', ['ru', 'rs'], /[\u0400-\u04FF]/);
+    static chinese_simplified = new Language('Simplified Chinese', ['zhs', 'cs'], /[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\u{20000}-\u{3134F}]/u);
     static chinese_traditional = new Language('Traditional Chinese', ['zht', 'ct']);
-    static hebrew = new Language('Hebrew', ['he']);
+    static hebrew = new Language('Hebrew', ['he'], /[\u0590-\u05FF\uFB1D-\uFB4F]/);
     static latin = new Language('Latin', ['la']);
-    static ancient_greek = new Language('Ancient Greek', ['grc', 'ag']);
-    static arabic = new Language('Arabic', ['ar']);
-    static sanskrit = new Language('Sanskrit', ['sa']);
-    static phyrexian = new Language('Phyrexian', ['ph'], true);
-    static quenya = new Language('Quenya', ['qya'], true);
-    static dwarvish = new Language('Dwarvish', ['dw']);
-    static klingon = new Language('Klingon', ['tlh', 'kl']);
+    static ancient_greek = new Language('Ancient Greek', ['grc', 'ag'], /[\u0370-\u03FF\u1F00-\u1FFF]/);
+    static arabic = new Language('Arabic', ['ar'], /[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/);
+    static sanskrit = new Language('Sanskrit', ['sa'], /[\u0900-\u097F\uA8E0-\uA8FF\u1CD0-\u1CFF]/);
+    static phyrexian = new Language('Phyrexian', ['ph'], /^\|/, true);
+    static quenya = new Language('Quenya', ['qya'], /[\uE000-\uE07F]/, true);
+    static dwarvish = new Language('Dwarvish', ['dw'], /[\u16A0-\u16FF\uE080-\uE0FF]/);
+    static klingon = new Language('Klingon', ['tlh', 'kl'], /[\uF8D0–\uF8FF]/);
 
     static DEFAULT = this.english;
 
     constructor(
         name: string,
         codes: string[] = [],
+        public detector: RegExp = null,
         public has_font: boolean = false,
     ) {
         super(name, codes);
@@ -36,18 +38,18 @@ export class Language extends Designation {
         return this === Language.DEFAULT;
     }
 
-    static infer(text: string): Language {
-        if (/[\u0370-\u03FF\u1F00-\u1FFF]/.test(text)) return Language.ancient_greek;
-        if (/[\u0400-\u04FF]/.test(text)) return Language.russian;
-        if (/[\u0590-\u05FF]/.test(text)) return Language.hebrew;
-        if (/[\u0600-\u06FF]/.test(text)) return Language.arabic;
-        if (/[\u0900-\u097F]/.test(text)) return Language.sanskrit;
-        if (/[\u1100-\u11FF\u3130-\u318F\uAC00-\uD7AF]/.test(text)) return Language.korean;
-        if (/[\u3040-\u309F\u30A0-\u30FF\u31F0-\u31FF\uFF65-\uFF9F]/.test(text)) return Language.japanese;
-        if (/[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]/.test(text)) return Language.chinese_simplified;
-        if (/[\uE000-\uE07F]/.test(text)) return Language.quenya;
+    detects(text: string): boolean {
+        if (!this.detector) return false;
+        text = normalise(text, false, /^/g);
+        return this.detector.test(text);
+    }
 
-        if (/^\|/.test(text)) return Language.phyrexian;
+    static detect(text: string): Language {
+        for (const language of Language.all()) {
+            if (language.detects(text)) {
+                return language;
+            }
+        }
 
         return Language.DEFAULT;
     }
