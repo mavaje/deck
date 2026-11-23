@@ -21,7 +21,7 @@ export class Language extends Designation {
     static phyrexian = new Language('Phyrexian', ['ph'], /^\|/, true);
     static quenya = new Language('Quenya', ['qya'], /[\uE000-\uE07F]/, true);
     static dwarvish = new Language('Dwarvish', ['dw'], /[\u16A0-\u16FF\uE080-\uE0FF]/);
-    static klingon = new Language('Klingon', ['tlh', 'kl'], /[\uF8D0–\uF8FF]/);
+    static klingon = new Language('Klingon', ['tlh', 'kl'], /[\uF8D0-\uF8FF]/);
 
     static DEFAULT = this.english;
 
