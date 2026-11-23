@@ -301,7 +301,7 @@ export class DeckCard extends Face {
             card ??= await API.card(set, collector_number);
         }
 
-        if (name) {
+        if (normalise(name)) {
             if (/^_{6,}$/.test(name) && !set) {
                 card ??= await API.first_card(`include:extras name:'${name}'`);
             }
@@ -370,44 +370,45 @@ export class DeckCard extends Face {
                 this.language = Language.match(card.lang);
             }
 
-            const first_name = this.name.split(/\s*\//)[0];
-            const normalised = normalise(first_name);
+            if (this.name) {
+                const first_name = this.name.split(/\s*\//)[0];
+                const normalised = normalise(first_name);
 
-            if (this.name && card.card_faces) {
+                if (card.card_faces) {
+                    let max_similarity = 0;
 
-                let max_similarity = 0;
+                    this.faces()
+                        .some((face, id) => [
+                            face.card_name(false),
+                            face.card_name(true),
+                        ].some((name, printed) => {
+                            const similarity = normalised === normalise(name)
+                                ? 1
+                                : trigram(normalised, normalise(name));
+                            if (similarity > max_similarity) {
+                                max_similarity = similarity;
+                                this.display_face_id = id;
+                                this.display_printed = Boolean(printed);
+                                return max_similarity === 1;
+                            }
+                        }));
 
-                this.faces()
-                    .some((face, id) => [
-                        face.card_name(false),
-                        face.card_name(true),
-                    ].some((name, printed) => {
-                        const similarity = normalised === normalise(name)
+                    if (!this.has_main_face()
+                        && this.display_face_id === 0
+                        && this.name.includes('/')
+                    ) {
+                        this.display_face_id = null;
+                    }
+                } else {
+                    const [printed, normal] = [true, false].map(printed => {
+                        const name = this.card_name(printed)
+                        return name === first_name
                             ? 1
                             : trigram(normalised, normalise(name));
-                        if (similarity > max_similarity) {
-                            max_similarity = similarity;
-                            this.display_face_id = id;
-                            this.display_printed = Boolean(printed);
-                            return max_similarity === 1;
-                        }
-                    }));
+                    });
 
-                if (!this.has_main_face()
-                    && this.display_face_id === 0
-                    && this.name.includes('/')
-                ) {
-                    this.display_face_id = null;
+                    this.display_printed = printed > normal;
                 }
-            } else {
-                const [printed, normal] = [true, false].map(printed => {
-                    const name = this.card_name(printed)
-                    return name === first_name
-                        ? 1
-                        : trigram(normalised, normalise(name));
-                });
-
-                this.display_printed = printed > normal;
             }
 
             this.name = this.deck_list_name();
