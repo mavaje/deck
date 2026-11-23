@@ -182,10 +182,8 @@ export class CardView {
                     tilt.style.setProperty('--cursor-x', `${dx}`);
                     tilt.style.setProperty('--cursor-y', `${dy}`);
                 },
-                onpointerenter: () => DeckView.focus(card),
-                onpointerleave: () => {
-                    DeckView.unfocus(card);
-                },
+                onpointerenter: in_deck_view && (() => DeckView.focus(card)),
+                onpointerleave: in_deck_view && (() => DeckView.unfocus(card)),
                 onclick: on_click && ((_, event) => {
                     event.stopPropagation();
                     on_click();
