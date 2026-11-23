@@ -2695,7 +2695,7 @@ var init_deck_card = __esm({
           return { set, collector_number };
         }
         if (this.name) {
-          const name = this.name.split(/\s*\/\/\s*/g)[0];
+          const name = this.name.split(/\s+\/+\s+/g)[0];
           return set ? { name, set } : { name };
         }
         return null;
@@ -2770,7 +2770,7 @@ var init_deck_card = __esm({
             this.language = Language.match(card.lang);
           }
           if (this.name) {
-            const first_name = this.name.split(/\s*\//)[0];
+            const first_name = this.name.split(/\s+\/+\s+/g)[0];
             const normalised = normalise(first_name);
             if (card.card_faces) {
               let max_similarity = 0;
@@ -2872,7 +2872,7 @@ var init_deck_card = __esm({
         return super.card_name(printed) ?? this.name;
       }
       all_names(printed = this.display_printed) {
-        return (this.faces().map((face) => face.card_name(printed)).filter(Boolean).join(" // ") || this.name)?.split(/\s*\/+\s*/g) ?? [];
+        return (this.faces().map((face) => face.card_name(printed)).filter(Boolean).join(" // ") || this.name)?.split(/\s+\/+\s+/g) ?? [];
       }
       selectable_names() {
         const names = {};

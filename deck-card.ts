@@ -270,7 +270,7 @@ export class DeckCard extends Face {
         }
 
         if (this.name) {
-            const name = this.name.split(/\s*\/\/\s*/g)[0];
+            const name = this.name.split(/\s+\/+\s+/g)[0];
             return set
                 ? {name, set}
                 : {name};
@@ -371,7 +371,7 @@ export class DeckCard extends Face {
             }
 
             if (this.name) {
-                const first_name = this.name.split(/\s*\//)[0];
+                const first_name = this.name.split(/\s+\/+\s+/g)[0];
                 const normalised = normalise(first_name);
 
                 if (card.card_faces) {
@@ -512,7 +512,7 @@ export class DeckCard extends Face {
             .map(face => face.card_name(printed))
             .filter(Boolean)
             .join(' // ') || this.name)
-            ?.split(/\s*\/+\s*/g) ?? [];
+            ?.split(/\s+\/+\s+/g) ?? [];
     }
 
     selectable_names(): Record<string, {
