@@ -45,6 +45,8 @@ export class Language extends Designation {
     }
 
     static detect(text: string): Language {
+        if (!text) return Language.DEFAULT;
+
         for (const language of Language.all()) {
             if (language.detects(text)) {
                 return language;
@@ -52,5 +54,10 @@ export class Language extends Designation {
         }
 
         return Language.DEFAULT;
+    }
+
+    static detect_font(text: string): Language {
+        const language = Language.detect(text);
+        return language.has_font ? language : null;
     }
 }

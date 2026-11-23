@@ -551,12 +551,17 @@ var init_language = __esm({
         return this.detector.test(text);
       }
       static detect(text) {
+        if (!text) return _Language.DEFAULT;
         for (const language of _Language.all()) {
           if (language.detects(text)) {
             return language;
           }
         }
         return _Language.DEFAULT;
+      }
+      static detect_font(text) {
+        const language = _Language.detect(text);
+        return language.has_font ? language : null;
       }
     };
   }
@@ -1469,6 +1474,7 @@ var init_card_view = __esm({
     init_skeleton();
     init_deck_view();
     init_card_panel();
+    init_language();
     CardView = class {
       static render(card, id = null, on_click = null, face_id = card.display_face_id, is_duplicate = false, in_deck_view = false) {
         const card_class = /* @__PURE__ */ new Set(["card", "fade-in"]);
@@ -1573,7 +1579,7 @@ var init_card_view = __esm({
             if (card.set && card.collector_number) {
               name ||= `[${card.set.toUpperCase()}:${card.collector_number}]`;
             }
-            if (card.language.has_font && card.language.detects(name)) {
+            if (Language.detect_font(name)) {
               name = null;
             }
             urls.push(data_url(skeleton(name)));
@@ -2013,6 +2019,7 @@ var Dropdown;
 var init_dropdown = __esm({
   "ui/dropdown.ts"() {
     init_xml();
+    init_language();
     Dropdown = class {
       constructor(attributes, on_select, options) {
         this.on_select = on_select;
@@ -2034,7 +2041,7 @@ var init_dropdown = __esm({
             option.disabled && "disabled",
             option.input_value === attributes.value && "selected"
           ],
-          lang: option.lang?.detects(option.label) ? option.lang.code() : null,
+          lang: Language.detect_font(option.label)?.code(),
           onclick: !option.disabled && (() => this.select(option))
         }, option.label))));
       }
@@ -2363,13 +2370,12 @@ var init_card_panel = __esm({
             id: "name-input",
             value: card.name || "",
             onchange: (input) => EditCardName.do(card, input.value || null),
-            lang: card.language.detects(card.name) ? card.language.code() : null
+            lang: Language.detect_font(card.name)?.code()
           },
           ({ label, value }) => EditCardName.do(card, label, value.face_id, value.printed),
           Object.entries(card.selectable_names()).map(([name, face]) => ({
             label: name,
-            value: face,
-            lang: card.language
+            value: face
           }))
         );
         HTML.input({

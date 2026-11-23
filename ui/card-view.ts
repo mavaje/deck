@@ -3,6 +3,7 @@ import {DeckCard} from "../deck-card";
 import {data_url, skeleton, skeleton_back} from "./skeleton";
 import {DeckView} from "./deck-view";
 import {CardPanel} from "./deck/card-panel";
+import {Language} from "../designation/language";
 
 export class CardView {
 
@@ -137,7 +138,7 @@ export class CardView {
                 if (card.set && card.collector_number) {
                     name ||= `[${card.set.toUpperCase()}:${card.collector_number}]`;
                 }
-                if (card.language.has_font && card.language.detects(name)) {
+                if (Language.detect_font(name)) {
                     name = null;
                 }
                 urls.push(data_url(skeleton(name)));

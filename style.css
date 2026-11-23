@@ -160,7 +160,7 @@ input:focus-visible,
 select:focus-visible,
 button:focus-visible {
     border-color: white;
-    background-color: rgba(var(--theme-rgb) / 25%);
+    background-color: rgba(var(--theme-rgb) / 20%);
     box-shadow: 0 0 4px 1px var(--theme), inset 0 0 4px 1px var(--theme);
     text-shadow: 0 0 2px var(--theme);
 }
@@ -169,7 +169,7 @@ input:hover,
 select:hover,
 button:hover {
     border-color: white;
-    background-color: rgba(var(--theme-rgb) / 50%);
+    background-color: rgba(var(--theme-rgb) / 30%);
     box-shadow: 0 0 4px 1px var(--theme), inset 0 0 4px 1px var(--theme);
     text-shadow: 0 0 2px var(--theme);
 }
@@ -179,7 +179,7 @@ select.error,
 button.danger:focus-visible,
 button.danger:hover {
     border-color: white;
-    background-color: rgba(var(--error-rgb) / 25%);
+    background-color: rgba(var(--error-rgb) / 20%);
     box-shadow: 0 0 4px 1px var(--error), inset 0 0 4px 1px var(--error);
     text-shadow: 0 0 2px var(--error);
     caret-color: var(--error);
@@ -188,7 +188,7 @@ button.danger:hover {
 input.error:hover,
 select.error:hover,
 button.danger:hover {
-    background-color: rgba(var(--error-rgb) / 50%);
+    background-color: rgba(var(--error-rgb) / 30%);
 }
 
 button {
@@ -278,7 +278,7 @@ button:disabled {
 }
 
 .dropdown .option.selected {
-    background-color: rgba(var(--theme-rgb) / 25%);
+    background-color: rgba(var(--theme-rgb) / 20%);
     text-shadow: 0 0 2px var(--theme);
 }
 
@@ -291,7 +291,7 @@ button:disabled {
 }
 
 .dropdown .option:hover {
-    background-color: rgba(var(--theme-rgb) / 50%);
+    background-color: rgba(var(--theme-rgb) / 30%);
     text-shadow: 0 0 2px var(--theme);
 }
 
@@ -490,11 +490,12 @@ div:has(> #delete-card) {
     transition-property: background-color;
 }
 
-#deck-info:has(
-    [contenteditable]:hover,
-    [contenteditable]:focus-visible
-) {
-    background-color: rgba(var(--theme-rgb) / 25%);
+#deck-info:has([contenteditable]:focus-visible) {
+    background-color: rgba(var(--theme-rgb) / 20%);
+}
+
+#deck-info:has([contenteditable]:hover) {
+    background-color: rgba(var(--theme-rgb) / 30%);
 }
 
 #deck-title {

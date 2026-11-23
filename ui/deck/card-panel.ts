@@ -72,13 +72,12 @@ export class CardPanel extends Panel {
                 id: 'name-input',
                 value: card.name || '',
                 onchange: input => EditCardName.do(card, input.value || null),
-                lang: card.language.detects(card.name) ? card.language.code() : null,
+                lang: Language.detect_font(card.name)?.code(),
             },
             ({label, value}) => EditCardName.do(card, label, value.face_id, value.printed),
             Object.entries(card.selectable_names()).map(([name, face]) => ({
                 label: name,
                 value: face,
-                lang: card.language,
             })),
         );
 

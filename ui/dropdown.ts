@@ -5,7 +5,6 @@ export type DropdownOption<T = any> = {
     label?: string;
     input_value?: string;
     value?: T;
-    lang?: Language;
     discouraged?: boolean;
     disabled?: boolean;
     element?: HTMLDivElement;
@@ -39,7 +38,7 @@ export class Dropdown<T = any> {
                     option.disabled && 'disabled',
                     option.input_value === attributes.value && 'selected',
                 ],
-                lang: option.lang?.detects(option.label) ? option.lang.code() : null,
+                lang: Language.detect_font(option.label)?.code(),
                 onclick: !option.disabled && (() => this.select(option)),
             }, option.label))));
     }
