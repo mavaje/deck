@@ -74,7 +74,7 @@ export class CardPanel extends Panel {
                 onchange: input => EditCardName.do(card, input.value || null),
                 lang: Language.detect_font(card.name)?.code(),
             },
-            ({label, value}) => EditCardName.do(card, label, value.face_id, value.printed),
+            ({label, value}) => EditCardName.do(card, label, value.face_id, value.name_key),
             Object.entries(card.selectable_names()).map(([name, face]) => ({
                 label: name,
                 value: face,
@@ -106,7 +106,7 @@ export class CardPanel extends Panel {
             disabled: !card.name,
             onclick: () => {
                 if (!card.name) return;
-                const name = card.card_name(false)
+                const name = card.card_name('name')
                     .replace(/^(.+) \/\/ \1$/, '$1');
                 let query = card.card
                     ? `!"${name}"`

@@ -2,6 +2,7 @@ import {Action} from "./action";
 import {DeckCard} from "../deck-card";
 import {Language} from "../designation/language";
 import {Deck} from "../deck";
+import {NameKey} from "../face";
 
 export class EditCardName extends Action {
 
@@ -12,18 +13,18 @@ export class EditCardName extends Action {
         private card: DeckCard,
         private name: string,
         private face_id: number = card.display_face_id,
-        private printed: boolean = card.display_printed,
+        private name_key: NameKey = card.display_name_key,
     ) {
         super();
     }
 
     message(): string {
-        const {name, face_id, printed} = this;
-        return `Set card name to ${name} (${face_id}:${printed})`;
+        const {name, face_id, name_key} = this;
+        return `Set card name to ${name} (${face_id}:${name_key})`;
     }
 
     execute(): void {
-        const {card, name, face_id, printed} = this;
+        const {card, name, face_id, name_key} = this;
         this.reset_card = !card.has_name(name);
         this.old_values = {
             name: card.name,
@@ -31,17 +32,17 @@ export class EditCardName extends Action {
             collector_number: card.collector_number,
             language: card.language,
             display_face_id: card.display_face_id,
-            display_printed: card.display_printed,
+            display_name_key: card.display_name_key,
         };
         card.name = name;
         card.display_face_id = face_id;
-        card.display_printed = printed;
+        card.display_name_key = name_key;
         if (this.reset_card) {
             card.set = null;
             card.collector_number = null;
             card.language = Language.DEFAULT;
             card.display_face_id = null;
-            card.display_printed = true;
+            card.display_name_key = 'flavor_name';
             card.reload(Deck.CURRENT.game);
         }
         card.render_hooks();
@@ -54,14 +55,14 @@ export class EditCardName extends Action {
             this.reset_card,
             this.name,
             this.face_id,
-            this.printed,
+            this.name_key,
         );
     }
 
     is_noop(): boolean {
         return this.name === this.card.name
             && this.face_id === this.card.display_face_id
-            && this.printed === this.card.display_printed;
+            && this.name_key === this.card.display_name_key;
     }
 }
 
@@ -73,7 +74,7 @@ class RevertCardName extends Action {
         private was_reset: boolean,
         private old_name: string,
         private old_face_id: number,
-        private old_printed: boolean,
+        private old_name_key: NameKey,
     ) {
         super();
     }
@@ -94,7 +95,7 @@ class RevertCardName extends Action {
             this.card,
             this.old_name,
             this.old_face_id,
-            this.old_printed,
+            this.old_name_key,
         );
     }
 }

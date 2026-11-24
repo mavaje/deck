@@ -10,7 +10,7 @@ import {Condition} from "./designation/condition";
 import {Finish} from "./designation/finish";
 import {Deck} from "./deck";
 import {Tag} from "./designation/tag";
-import {Face} from "./face";
+import {Face, NameKey} from "./face";
 import {DeckView} from "./ui/deck-view";
 import {CardPanel} from "./ui/deck/card-panel";
 import {Game} from "./game";
@@ -59,7 +59,7 @@ export class DeckCard extends Face {
     tags: Set<Tag> = new Set();
 
     display_face_id: number = null;
-    display_printed: boolean = true;
+    display_name_key: NameKey = 'flavor_name';
 
     constructor(card: Partial<DeckCard> = {}) {
         super(card.card);
@@ -242,8 +242,7 @@ export class DeckCard extends Face {
         } else if (this.name) {
             [
                 this.raw_name,
-                this.main_face(false).card_name(true),
-                this.main_face(true).card_name(true),
+                this.card_name(),
             ].forEach(name => {
                 if (name) {
                     keys.add(`${normalise(name)} (${game ?? ''}:${this.set ?? ''}:${this.language})`);
@@ -376,40 +375,31 @@ export class DeckCard extends Face {
                 const first_name = this.name.split(/\s+\/+\s+/g)[0];
                 const normalised = normalise(first_name);
 
-                if (card.card_faces) {
-                    let max_similarity = 0;
+                let max_similarity = 0;
 
-                    this.faces()
-                        .some((face, id) => [
-                            face.card_name(false),
-                            face.card_name(true),
-                        ].some((name, printed) => {
-                            const similarity = normalised === normalise(name)
-                                ? 1
-                                : trigram(normalised, normalise(name));
-                            if (similarity > max_similarity) {
-                                max_similarity = similarity;
-                                this.display_face_id = id;
-                                this.display_printed = Boolean(printed);
-                                return max_similarity === 1;
-                            }
-                        }));
-
-                    if (!this.has_main_face()
-                        && this.display_face_id === 0
-                        && this.name.includes('/')
-                    ) {
-                        this.display_face_id = null;
-                    }
-                } else {
-                    const [printed, normal] = [true, false].map(printed => {
-                        const name = this.card_name(printed)
-                        return name === first_name
+                this.faces()
+                    .some((face, id) => ([
+                        'flavor_name',
+                        'printed_name',
+                        'name',
+                    ] as NameKey[]).some(key => {
+                        const name = face.card_name(key);
+                        const similarity = name === first_name || normalise(name) === normalised
                             ? 1
                             : trigram(normalised, normalise(name));
-                    });
+                        if (similarity > max_similarity) {
+                            max_similarity = similarity;
+                            this.display_face_id = id;
+                            this.display_name_key = key;
+                            return max_similarity === 1;
+                        }
+                    }));
 
-                    this.display_printed = printed >= normal;
+                if (!this.has_main_face()
+                    && this.display_face_id === 0
+                    && this.name.includes('/')
+                ) {
+                    this.display_face_id = null;
                 }
             }
 
@@ -488,7 +478,7 @@ export class DeckCard extends Face {
             'condition',
             'is_foil',
             'display_face_id',
-            'display_printed',
+            'display_name_key',
         ] as (keyof DeckCard)[]) {
             if (this[field] !== card[field]) {
                 return false;
@@ -505,48 +495,45 @@ export class DeckCard extends Face {
         return zones.length === 0 || zones.includes(this.zone);
     }
 
-    card_name(printed: boolean = false): string {
-        return super.card_name(printed) ?? this.name;
+    card_name(key: NameKey = this.display_name_key): string {
+        return super.card_name(key) ?? this.name;
     }
 
-    all_names(printed: boolean = this.display_printed): string[] {
-        return (this.faces()
-            .map(face => face.card_name(printed))
-            .filter(Boolean)
-            .join(' // ') || this.name)
-            ?.split(/\s+\/+\s+/g) ?? [];
+    all_names(key: NameKey = this.display_name_key): string[] {
+        return this.card_name(key)?.split(/\s+\/+\s+/g) ?? [];
     }
 
     selectable_names(): Record<string, {
         face_id: number;
-        printed: boolean;
+        name_key: NameKey;
     }> {
         const names: Record<string, {
             face_id: number;
-            printed: boolean;
+            name_key: NameKey;
         }> = {};
 
-        [
-            true,
-            false,
-        ].forEach(printed => {
+        ([
+            'flavor_name',
+            'printed_name',
+            'name',
+        ] as NameKey[]).forEach(key => {
             if (!this.has_main_face()) {
-                names[this.card_name(printed)] ??= {
+                names[this.card_name(key)] ??= {
                     face_id: null,
-                    printed: printed,
+                    name_key: key,
                 };
             }
 
             if (this.is_layout('adventure', 'prepare')) {
-                names[this.main_face(false).card_name(printed)] ??= {
+                names[this.main_face(false).card_name(key)] ??= {
                     face_id: 0,
-                    printed: printed,
+                    name_key: key,
                 };
             } else {
-                this.all_names(printed).forEach((name, id) => {
+                this.all_names(key).forEach((name, id) => {
                     names[name] ??= {
                         face_id: id,
-                        printed: printed,
+                        name_key: key,
                     };
                 });
             }
@@ -557,15 +544,17 @@ export class DeckCard extends Face {
 
     has_name(name: string): boolean {
         return [
-            this.card_name(false),
-            this.card_name(true),
-            ...this.all_names(false),
-            ...this.all_names(true),
+            this.card_name('printed_name'),
+            this.card_name('flavor_name'),
+            this.card_name('name'),
+            ...this.all_names('printed_name'),
+            ...this.all_names('flavor_name'),
+            ...this.all_names('name'),
         ].includes(name);
     }
 
     deck_list_name(): string {
-        return this.main_face(true).card_name(this.display_printed) || this.name;
+        return this.main_face(true).card_name(this.display_name_key) || this.name;
     }
 
     is_basic_land(): boolean {
@@ -642,7 +631,7 @@ export class DeckCard extends Face {
                     .match(/Partner with (?<name>[^(]+) (\(|$)/);
                 const {name} = name_match.groups;
 
-                if (name === second.card_name()) {
+                if (second.has_name(name)) {
                     return true;
                 }
             }

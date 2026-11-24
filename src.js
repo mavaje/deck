@@ -1329,7 +1329,8 @@ var init_face = __esm({
         return this.face?.defense;
       }
       oracle() {
-        return (this.is_card() && !this.has_main_face() ? this.card.card_faces?.map((face) => face.oracle_text).join("\n") ?? this.card.oracle_text : this.face?.oracle_text)?.replaceAll(this.card_name(), "~").replaceAll(this.card_name().split(",")[0], "~");
+        const name = this.card_name("name");
+        return (this.is_card() && !this.has_main_face() ? this.card.card_faces?.map((face) => face.oracle_text).join("\n") ?? this.card.oracle_text : this.face?.oracle_text)?.replaceAll(name, "~").replaceAll(name.split(",")[0], "~");
       }
       has_ability(ability) {
         if (!(ability instanceof RegExp)) ability = new RegExp(`(^|\\n)${ability}(\u2014| [d{(]|$)`, "i");
@@ -1406,19 +1407,29 @@ var init_face = __esm({
         if (!id) return null;
         return `https://backs.scryfall.io/large/${id[0]}/${id[1]}/${id}.jpg`;
       }
-      printed_name() {
-        if (this.face?.flavor_name) return this.face.flavor_name;
-        if (this.face?.printed_name) return this.face.printed_name;
-        if (this.is_card() && this.card.card_faces) {
-          const names = this.faces().map((face) => face.printed_name()).filter(Boolean);
-          if (names.length > 0) {
-            return names.join(" // ");
+      card_name(key = "name") {
+        const get_name = (key2) => {
+          if (this.face?.[key2]) return this.face[key2];
+          if (this.is_card() && this.card.card_faces) {
+            const names = this.card.card_faces.map((face) => face[key2]).filter(Boolean);
+            if (names.length === this.card.card_faces.length) {
+              return names.join(" // ");
+            }
           }
+        };
+        let name;
+        switch (key) {
+          case "flavor_name":
+            name = get_name("flavor_name");
+            if (name) return name;
+          //fallthrough
+          case "printed_name":
+            name = get_name("printed_name");
+            if (name) return name;
+          //fallthrough
+          default:
+            return get_name("name");
         }
-        return null;
-      }
-      card_name(printed = false) {
-        return printed && this.printed_name() || this.face?.name;
       }
       artist() {
         return this.face?.artist ?? this.card?.artist;
@@ -1576,7 +1587,7 @@ var init_card_view = __esm({
           if (face_id2 === 0 || card.is_double_faced()) {
             const face = card.faces()[face_id2];
             urls.push(...face.image_urls());
-            let name = card.is_double_faced() && face.card_name(card.display_printed) || card.card_name(card.display_printed);
+            let name = card.is_double_faced() && face.card_name() || card.card_name();
             if (card.set && card.collector_number) {
               name ||= `[${card.set.toUpperCase()}:${card.collector_number}]`;
             }
@@ -2124,25 +2135,25 @@ var init_edit_card_name = __esm({
     init_language();
     init_deck();
     EditCardName = class extends Action {
-      constructor(card, name, face_id = card.display_face_id, printed = card.display_printed) {
+      constructor(card, name, face_id = card.display_face_id, name_key = card.display_name_key) {
         super();
         this.card = card;
         this.name = name;
         this.face_id = face_id;
-        this.printed = printed;
+        this.name_key = name_key;
       }
       card;
       name;
       face_id;
-      printed;
+      name_key;
       old_values;
       reset_card;
       message() {
-        const { name, face_id, printed } = this;
-        return `Set card name to ${name} (${face_id}:${printed})`;
+        const { name, face_id, name_key } = this;
+        return `Set card name to ${name} (${face_id}:${name_key})`;
       }
       execute() {
-        const { card, name, face_id, printed } = this;
+        const { card, name, face_id, name_key } = this;
         this.reset_card = !card.has_name(name);
         this.old_values = {
           name: card.name,
@@ -2150,17 +2161,17 @@ var init_edit_card_name = __esm({
           collector_number: card.collector_number,
           language: card.language,
           display_face_id: card.display_face_id,
-          display_printed: card.display_printed
+          display_name_key: card.display_name_key
         };
         card.name = name;
         card.display_face_id = face_id;
-        card.display_printed = printed;
+        card.display_name_key = name_key;
         if (this.reset_card) {
           card.set = null;
           card.collector_number = null;
           card.language = Language.DEFAULT;
           card.display_face_id = null;
-          card.display_printed = true;
+          card.display_name_key = "flavor_name";
           card.reload(Deck.CURRENT.game);
         }
         card.render_hooks();
@@ -2172,29 +2183,29 @@ var init_edit_card_name = __esm({
           this.reset_card,
           this.name,
           this.face_id,
-          this.printed
+          this.name_key
         );
       }
       is_noop() {
-        return this.name === this.card.name && this.face_id === this.card.display_face_id && this.printed === this.card.display_printed;
+        return this.name === this.card.name && this.face_id === this.card.display_face_id && this.name_key === this.card.display_name_key;
       }
     };
     RevertCardName = class extends Action {
-      constructor(card, values, was_reset, old_name, old_face_id, old_printed) {
+      constructor(card, values, was_reset, old_name, old_face_id, old_name_key) {
         super();
         this.card = card;
         this.values = values;
         this.was_reset = was_reset;
         this.old_name = old_name;
         this.old_face_id = old_face_id;
-        this.old_printed = old_printed;
+        this.old_name_key = old_name_key;
       }
       card;
       values;
       was_reset;
       old_name;
       old_face_id;
-      old_printed;
+      old_name_key;
       message() {
         return `Revert card name`;
       }
@@ -2209,7 +2220,7 @@ var init_edit_card_name = __esm({
           this.card,
           this.old_name,
           this.old_face_id,
-          this.old_printed
+          this.old_name_key
         );
       }
     };
@@ -2373,7 +2384,7 @@ var init_card_panel = __esm({
             onchange: (input) => EditCardName.do(card, input.value || null),
             lang: Language.detect_font(card.name)?.code()
           },
-          ({ label, value }) => EditCardName.do(card, label, value.face_id, value.printed),
+          ({ label, value }) => EditCardName.do(card, label, value.face_id, value.name_key),
           Object.entries(card.selectable_names()).map(([name, face]) => ({
             label: name,
             value: face
@@ -2402,7 +2413,7 @@ var init_card_panel = __esm({
           disabled: !card.name,
           onclick: () => {
             if (!card.name) return;
-            const name = card.card_name(false).replace(/^(.+) \/\/ \1$/, "$1");
+            const name = card.card_name("name").replace(/^(.+) \/\/ \1$/, "$1");
             let query = card.card ? `!"${name}"` : name;
             query += " unique:prints";
             if (!card.language.is_default()) query += ` lang:${card.language}`;
@@ -2529,7 +2540,7 @@ var init_deck_card = __esm({
       zone = Zone.DEFAULT;
       tags = /* @__PURE__ */ new Set();
       display_face_id = null;
-      display_printed = true;
+      display_name_key = "flavor_name";
       constructor(card = {}) {
         super(card.card);
         Object.assign(this, card);
@@ -2673,8 +2684,7 @@ var init_deck_card = __esm({
         } else if (this.name) {
           [
             this.raw_name,
-            this.main_face(false).card_name(true),
-            this.main_face(true).card_name(true)
+            this.card_name()
           ].forEach((name) => {
             if (name) {
               keys.add(`${normalise(name)} (${game ?? ""}:${this.set ?? ""}:${this.language})`);
@@ -2775,29 +2785,23 @@ var init_deck_card = __esm({
           if (this.name) {
             const first_name = this.name.split(/\s+\/+\s+/g)[0];
             const normalised = normalise(first_name);
-            if (card.card_faces) {
-              let max_similarity = 0;
-              this.faces().some((face, id) => [
-                face.card_name(false),
-                face.card_name(true)
-              ].some((name, printed) => {
-                const similarity = normalised === normalise(name) ? 1 : trigram(normalised, normalise(name));
-                if (similarity > max_similarity) {
-                  max_similarity = similarity;
-                  this.display_face_id = id;
-                  this.display_printed = Boolean(printed);
-                  return max_similarity === 1;
-                }
-              }));
-              if (!this.has_main_face() && this.display_face_id === 0 && this.name.includes("/")) {
-                this.display_face_id = null;
+            let max_similarity = 0;
+            this.faces().some((face, id) => [
+              "flavor_name",
+              "printed_name",
+              "name"
+            ].some((key) => {
+              const name = face.card_name(key);
+              const similarity = name === first_name || normalise(name) === normalised ? 1 : trigram(normalised, normalise(name));
+              if (similarity > max_similarity) {
+                max_similarity = similarity;
+                this.display_face_id = id;
+                this.display_name_key = key;
+                return max_similarity === 1;
               }
-            } else {
-              const [printed, normal] = [true, false].map((printed2) => {
-                const name = this.card_name(printed2);
-                return name === first_name ? 1 : trigram(normalised, normalise(name));
-              });
-              this.display_printed = printed >= normal;
+            }));
+            if (!this.has_main_face() && this.display_face_id === 0 && this.name.includes("/")) {
+              this.display_face_id = null;
             }
           }
           this.name = this.deck_list_name();
@@ -2860,7 +2864,7 @@ var init_deck_card = __esm({
           "condition",
           "is_foil",
           "display_face_id",
-          "display_printed"
+          "display_name_key"
         ]) {
           if (this[field] !== card[field]) {
             return false;
@@ -2871,34 +2875,35 @@ var init_deck_card = __esm({
       in_zone(...zones) {
         return zones.length === 0 || zones.includes(this.zone);
       }
-      card_name(printed = false) {
-        return super.card_name(printed) ?? this.name;
+      card_name(key = this.display_name_key) {
+        return super.card_name(key) ?? this.name;
       }
-      all_names(printed = this.display_printed) {
-        return (this.faces().map((face) => face.card_name(printed)).filter(Boolean).join(" // ") || this.name)?.split(/\s+\/+\s+/g) ?? [];
+      all_names(key = this.display_name_key) {
+        return this.card_name(key)?.split(/\s+\/+\s+/g) ?? [];
       }
       selectable_names() {
         const names = {};
         [
-          true,
-          false
-        ].forEach((printed) => {
+          "flavor_name",
+          "printed_name",
+          "name"
+        ].forEach((key) => {
           if (!this.has_main_face()) {
-            names[this.card_name(printed)] ??= {
+            names[this.card_name(key)] ??= {
               face_id: null,
-              printed
+              name_key: key
             };
           }
           if (this.is_layout("adventure", "prepare")) {
-            names[this.main_face(false).card_name(printed)] ??= {
+            names[this.main_face(false).card_name(key)] ??= {
               face_id: 0,
-              printed
+              name_key: key
             };
           } else {
-            this.all_names(printed).forEach((name, id) => {
+            this.all_names(key).forEach((name, id) => {
               names[name] ??= {
                 face_id: id,
-                printed
+                name_key: key
               };
             });
           }
@@ -2907,14 +2912,16 @@ var init_deck_card = __esm({
       }
       has_name(name) {
         return [
-          this.card_name(false),
-          this.card_name(true),
-          ...this.all_names(false),
-          ...this.all_names(true)
+          this.card_name("printed_name"),
+          this.card_name("flavor_name"),
+          this.card_name("name"),
+          ...this.all_names("printed_name"),
+          ...this.all_names("flavor_name"),
+          ...this.all_names("name")
         ].includes(name);
       }
       deck_list_name() {
-        return this.main_face(true).card_name(this.display_printed) || this.name;
+        return this.main_face(true).card_name(this.display_name_key) || this.name;
       }
       is_basic_land() {
         return super.is_basic_land() ?? (this.name && _DeckCard.BASIC_LAND_REGEXP.test(this.name));
@@ -2964,7 +2971,7 @@ var init_deck_card = __esm({
           if (this.has_keyword("Partner with")) {
             const name_match = this.oracle().match(/Partner with (?<name>[^(]+) (\(|$)/);
             const { name } = name_match.groups;
-            if (name === second.card_name()) {
+            if (second.has_name(name)) {
               return true;
             }
           }
@@ -4494,7 +4501,7 @@ var init_name = __esm({
     Name = class extends CardClassifier {
       static name = "Name";
       compare(a, b) {
-        return this.compare_card_string(a, b, (_, card) => card.main_face(true).card_name(true));
+        return this.compare_card_string(a, b, (_, card) => card.main_face(true).card_name("flavor_name"));
       }
     };
   }

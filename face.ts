@@ -5,6 +5,8 @@ import {Format} from "./format";
 import {ColorSet} from "./color-set";
 import {Game} from "./game";
 
+export type NameKey = 'name' | 'printed_name' | 'flavor_name';
+
 export class Face<T extends Card | CardFace = Card | CardFace> {
 
     static DEFAULT_CARD_BACK_ID = '0aeebaf5-8c7d-4636-9e82-8c27447861f7';
@@ -297,11 +299,12 @@ export class Face<T extends Card | CardFace = Card | CardFace> {
     }
 
     oracle(): string {
+        const name = this.card_name('name');
         return (this.is_card() && !this.has_main_face()
             ? (this.card.card_faces?.map(face => face.oracle_text).join('\n') ?? this.card.oracle_text)
             : this.face?.oracle_text)
-                ?.replaceAll(this.card_name(), '~')
-                .replaceAll(this.card_name().split(',')[0], '~');
+                ?.replaceAll(name, '~')
+                .replaceAll(name.split(',')[0], '~');
     }
 
     has_ability(ability: string | RegExp): boolean {
@@ -395,27 +398,32 @@ export class Face<T extends Card | CardFace = Card | CardFace> {
         return `https://backs.scryfall.io/large/${id[0]}/${id[1]}/${id}.jpg`;
     }
 
-    printed_name(): string {
-        if (this.face?.flavor_name) return this.face.flavor_name;
-
-        if (this.face?.printed_name) return this.face.printed_name;
-
-        if (this.is_card() && this.card.card_faces) {
-            const names = this.faces()
-                .map(face => face.printed_name())
-                .filter(Boolean);
-            if (names.length > 0) {
-                return names.join(' // ');
+    card_name(key: NameKey = 'name'): string {
+        const get_name = (key: NameKey) => {
+            if (this.face?.[key]) return this.face[key];
+            if (this.is_card() && this.card.card_faces) {
+                const names = this.card.card_faces
+                    .map(face => face[key])
+                    .filter(Boolean);
+                if (names.length === this.card.card_faces.length) {
+                    return names.join(' // ');
+                }
             }
         }
 
-        return null;
-    }
-
-    card_name(printed: boolean = false): string {
-        return printed
-            && this.printed_name()
-            || this.face?.name;
+        let name: string;
+        switch (key) {
+            case 'flavor_name':
+                name = get_name('flavor_name');
+                if (name) return name;
+                //fallthrough
+            case 'printed_name':
+                name = get_name('printed_name');
+                if (name) return name;
+                //fallthrough
+            default:
+                return get_name('name');
+        }
     }
 
     artist(): string {
