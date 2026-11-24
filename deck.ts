@@ -11,6 +11,7 @@ import {Game} from "./game";
 import {CardPanel} from "./ui/deck/card-panel";
 import {DeckPanel} from "./ui/deck/deck-panel";
 import {Storage} from "./storage";
+import {DeckValidator} from "./deck-validator";
 
 export type JSONDeck = {
     title: string;
@@ -107,6 +108,28 @@ export class Deck extends CardList {
                         && cards.every(card => !zone.can_include(card));
                 });
         } while (invalid_zones.length > 0);
+
+        let games = Game.all();
+        let formats = Format.all();
+        Deck.CURRENT.forEach(card => {
+            if (card.set && card.card) {
+                games = games.filter(game => card.is_available(game));
+            }
+            formats = formats.filter(format => card.is_legal(format));
+        });
+
+        if (games.length === 1) {
+            Deck.CURRENT.game = games[0];
+        }
+
+        if (formats.length === 1) {
+            Deck.CURRENT.format = formats[0];
+            if (!new DeckValidator(Deck.CURRENT).is_valid()) {
+                Deck.CURRENT.format = null;
+            }
+        }
+
+        DeckPanel.update();
 
         Storage.store_deck();
 

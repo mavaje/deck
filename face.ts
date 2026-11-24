@@ -67,7 +67,7 @@ export class Face<T extends Card | CardFace = Card | CardFace> {
     }
 
     legality(format: Format): Legality {
-        return this.card?.legalities[format?.code()];
+        return this.card?.legalities[format?.code()] ?? null;
     }
 
     is_legal(format: Format): boolean {

@@ -1154,7 +1154,7 @@ var init_face = __esm({
         return match?.groups ?? {};
       }
       legality(format) {
-        return this.card?.legalities[format?.code()];
+        return this.card?.legalities[format?.code()] ?? null;
       }
       is_legal(format) {
         return ![
@@ -3183,322 +3183,6 @@ var init_game = __esm({
   }
 });
 
-// deck.ts
-var deck_exports = {};
-__export(deck_exports, {
-  Deck: () => Deck
-});
-var Deck;
-var init_deck = __esm({
-  "deck.ts"() {
-    init_deck_card();
-    init_format();
-    init_api();
-    init_color_set();
-    init_zone();
-    init_card_list();
-    init_tag();
-    init_deck_view();
-    init_history();
-    init_game();
-    init_card_panel();
-    init_deck_panel();
-    init_storage();
-    Deck = class _Deck extends CardList {
-      static CURRENT = new _Deck();
-      raw;
-      title;
-      format = null;
-      game = null;
-      static parse(input, title, exclude_zones = []) {
-        const deck = new _Deck();
-        deck.title = title;
-        deck.raw = input;
-        let group_zone = Zone.DEFAULT;
-        let group_tag = null;
-        input.split("\n").forEach((line) => {
-          if (/^\s*$/.test(line)) {
-            group_zone = Zone.DEFAULT;
-            group_tag = null;
-            return;
-          }
-          const header_match = line.match(/^\s*(?<tag>\/\/|#)?\s*(?<header>\w.*?):?(\s*\(\d+\):?)?\s*$/i);
-          if (header_match) {
-            const { tag, header } = header_match.groups;
-            const zone = Zone.match(header, !tag);
-            if (zone && !exclude_zones.includes(zone)) {
-              group_zone = zone;
-              return;
-            }
-            if (tag || /^about$/i.test(header)) {
-              group_tag = Tag.match_or_new(header);
-              return;
-            }
-          }
-          const card = DeckCard.parse(line, deck, group_zone, exclude_zones);
-          if (card) {
-            if (group_tag) {
-              card.tags.add(group_tag);
-            }
-          } else {
-            console.error(`Failed to parse line "${line}"`);
-          }
-        });
-        return deck;
-      }
-      static async load_current(input, title) {
-        CardPanel.close();
-        History.reset();
-        DeckPanel.update();
-        let invalid_zones = [];
-        do {
-          Tag.clear();
-          _Deck.CURRENT = _Deck.parse(input, title, invalid_zones);
-          DeckView.render();
-          await _Deck.CURRENT.load(() => DeckView.render());
-          invalid_zones = Zone.all().filter((zone) => {
-            if (!zone.has_filter()) return false;
-            const cards = _Deck.CURRENT.zone(zone);
-            return cards.length > 0 && cards.every((card) => !zone.can_include(card));
-          });
-        } while (invalid_zones.length > 0);
-        Storage.store_deck();
-        return _Deck.CURRENT;
-      }
-      static async load_from_json(deck) {
-        _Deck.CURRENT = new _Deck();
-        _Deck.CURRENT.title = deck.title || null;
-        _Deck.CURRENT.format = Format.match(deck.format) ?? null;
-        _Deck.CURRENT.game = Game.match(deck.game) ?? null;
-        deck.tags.forEach((tag) => Tag.match_or_new(tag.name, tag.hex));
-        _Deck.CURRENT.push(...deck.cards.map((card, id) => DeckCard.from_json(card, id)));
-        DeckPanel.update();
-        DeckView.render();
-        await _Deck.CURRENT.load(() => DeckView.render());
-        return _Deck.CURRENT;
-      }
-      async load(on_progress = null) {
-        this.forEach((card) => card.load_from_cache(this.game));
-        on_progress?.();
-        const card_map = {};
-        this.forEach((card) => {
-          if (card.can_bulk_load()) {
-            const id = JSON.stringify(card.identifier());
-            card_map[id] ??= [];
-            card_map[id].push(card);
-          }
-        });
-        const unique_cards = Object.values(card_map);
-        for (let i = 0; i < unique_cards.length; i += API.CARDS_MAX) {
-          const chunk = unique_cards.slice(i, i + API.CARDS_MAX);
-          if (chunk.length < 2) break;
-          const card_list = await API.cards(chunk.map((c) => c[0].identifier()));
-          if (!card_list) break;
-          let index = 0;
-          for (const cards of chunk) {
-            const i1 = cards[0].identifier();
-            if (!card_list.not_found.some(
-              (i2) => Object.keys(i1).length === Object.keys(i2).length && Object.keys(i1).every((key) => i1[key] === i2[key])
-            )) {
-              cards.forEach((card) => card.hydrate(card_list.data[index]).cache());
-              index++;
-            }
-          }
-          on_progress?.();
-        }
-        await Promise.all(this.map(async (card) => {
-          await card.load(this.game);
-          on_progress?.();
-        }));
-        return this;
-      }
-      render_hooks() {
-        DeckView.render();
-      }
-      zone(...zones) {
-        return this.filter((card) => card.in_zone(...zones));
-      }
-      color_identity() {
-        const commanders = this.zone(Zone.commander).skip_empty();
-        if (commanders.count() === 0) return null;
-        let color_identity = ColorSet.colors.c;
-        commanders.forEach((card) => color_identity = color_identity.plus(card.color_identity()));
-        return color_identity;
-      }
-      to_string(card_format) {
-        return Zone.all().filter((zone) => this.zone(zone).length > 0).map((zone) => `# ${zone.name}
-` + this.zone(zone).map((card) => card.to_string(card_format)).join("\n") + "\n").join("\n");
-      }
-      toString() {
-        return this.to_string();
-      }
-      json() {
-        return {
-          title: this.title || null,
-          format: this.format?.code() ?? null,
-          game: this.game?.code() ?? null,
-          tags: Tag.all().map((tag) => ({
-            name: tag.name,
-            hex: tag.hex
-          })),
-          cards: this.map((card) => card.json())
-        };
-      }
-    };
-  }
-});
-
-// card-classifier/face-selector.ts
-var FaceSelector;
-var init_face_selector = __esm({
-  "card-classifier/face-selector.ts"() {
-    FaceSelector = class _FaceSelector {
-      constructor(name, get) {
-        this.name = name;
-        this.get = get;
-      }
-      name;
-      get;
-      static front = new _FaceSelector("Front", (card) => [card?.main_face()]);
-      static display = new _FaceSelector("Display", (card) => [card?.main_face(true)]);
-      static any = new _FaceSelector("Any Faces", (card) => card?.all_faces() ?? []);
-      static all() {
-        return Object.fromEntries(
-          Object.entries(this).filter(([_, value]) => value instanceof this)
-        );
-      }
-    };
-  }
-});
-
-// card-classifier/group.ts
-var Group;
-var init_group = __esm({
-  "card-classifier/group.ts"() {
-    Group = class {
-      name;
-      value;
-      icon;
-      color;
-      cards;
-      groups;
-      constructor(group) {
-        Object.assign(this, group);
-      }
-      count() {
-        let count = this.cards?.count() ?? 0;
-        this.groups?.forEach((group) => count += group.count());
-        return count;
-      }
-    };
-  }
-});
-
-// card-classifier/card-classifier.ts
-var CardClassifier;
-var init_card_classifier = __esm({
-  "card-classifier/card-classifier.ts"() {
-    init_value();
-    init_card_list();
-    init_deck_view();
-    init_face_selector();
-    init_group();
-    init_text();
-    CardClassifier = class {
-      constructor(cards) {
-        this.cards = cards;
-      }
-      cards;
-      static name = "None";
-      static ungrouped_name = "Unknown";
-      split_by_face = false;
-      groups() {
-        return [
-          new Group({ cards: this.cards.copy() })
-        ];
-      }
-      match_face(face, value) {
-        return true;
-      }
-      face_id(card, value) {
-        if (this.split_by_face && DeckView.FACE_SELECTOR === FaceSelector.front) {
-          return 0;
-        } else if (this.match_face(card.main_face(true), value)) {
-          return card.display_face_id;
-        } else {
-          const face_id = card.faces().findIndex((face) => this.match_face(face, value));
-          return face_id >= 0 ? face_id : 0;
-        }
-      }
-      group_by_face(get, group, groups) {
-        return this.group_by(
-          (card) => DeckView.FACE_SELECTOR.get(card).flatMap(get),
-          group,
-          groups
-        );
-      }
-      group_by(get, group = (value) => new Group({ name: String(value), value }), groups = {}) {
-        this.cards.map((card) => {
-          let values = get(card);
-          if (!Array.isArray(values)) values = [values];
-          [...new Set(values)].forEach((value) => {
-            if (is_nullish(value)) return;
-            const g = group(value, card);
-            if (g) {
-              groups[value] ??= new Group(g);
-              groups[value].cards ??= new CardList();
-              groups[value].cards.push(card);
-            }
-          });
-        });
-        return Object.values(groups).filter(Boolean).sort((g1, g2) => {
-          const a = g1.cards?.[0];
-          const b = g2.cards?.[0];
-          return a && b ? this.compare(a, b) : 0;
-        });
-      }
-      compare(a, b) {
-        return 0;
-      }
-      compare_card_number(a, b, get) {
-        const value_a = get(DeckView.FACE_SELECTOR.get(a)[0], a);
-        const value_b = get(DeckView.FACE_SELECTOR.get(b)[0], b);
-        return this.nulls_last(value_a, value_b) || value_a - value_b;
-      }
-      compare_card_string(a, b, get) {
-        const value_a = get(DeckView.FACE_SELECTOR.get(a)[0], a);
-        const value_b = get(DeckView.FACE_SELECTOR.get(b)[0], b);
-        return this.nulls_last(value_a, value_b) || compare(value_a, value_b);
-      }
-      compare_card_index(a, b, get, ordering) {
-        const value_a = get(DeckView.FACE_SELECTOR.get(a)[0], a);
-        const value_b = get(DeckView.FACE_SELECTOR.get(b)[0], b);
-        return this.compare_index(value_a, value_b, ordering);
-      }
-      compare_index(a, b, ordering) {
-        let index_a = ordering.indexOf(a);
-        if (index_a < 0) index_a = Infinity;
-        let index_b = ordering.indexOf(b);
-        if (index_b < 0) index_b = Infinity;
-        return index_a - index_b || 0;
-      }
-      lands_first(a, b) {
-        const land_a = DeckView.FACE_SELECTOR.get(a)[0]?.is_type("Land") ? 1 : 0;
-        const land_b = DeckView.FACE_SELECTOR.get(b)[0]?.is_type("Land") ? 1 : 0;
-        return land_b - land_a;
-      }
-      nulls_first(a, b) {
-        return this.nulls_last(b, a);
-      }
-      nulls_last(a, b) {
-        const null_a = is_nullish(a) ? 1 : 0;
-        const null_b = is_nullish(b) ? 1 : 0;
-        return null_a - null_b;
-      }
-    };
-  }
-});
-
 // deck-validator.ts
 var DeckValidator;
 var init_deck_validator = __esm({
@@ -3847,6 +3531,341 @@ var init_deck_validator = __esm({
           }
         }
         return [];
+      }
+    };
+  }
+});
+
+// deck.ts
+var deck_exports = {};
+__export(deck_exports, {
+  Deck: () => Deck
+});
+var Deck;
+var init_deck = __esm({
+  "deck.ts"() {
+    init_deck_card();
+    init_format();
+    init_api();
+    init_color_set();
+    init_zone();
+    init_card_list();
+    init_tag();
+    init_deck_view();
+    init_history();
+    init_game();
+    init_card_panel();
+    init_deck_panel();
+    init_storage();
+    init_deck_validator();
+    Deck = class _Deck extends CardList {
+      static CURRENT = new _Deck();
+      raw;
+      title;
+      format = null;
+      game = null;
+      static parse(input, title, exclude_zones = []) {
+        const deck = new _Deck();
+        deck.title = title;
+        deck.raw = input;
+        let group_zone = Zone.DEFAULT;
+        let group_tag = null;
+        input.split("\n").forEach((line) => {
+          if (/^\s*$/.test(line)) {
+            group_zone = Zone.DEFAULT;
+            group_tag = null;
+            return;
+          }
+          const header_match = line.match(/^\s*(?<tag>\/\/|#)?\s*(?<header>\w.*?):?(\s*\(\d+\):?)?\s*$/i);
+          if (header_match) {
+            const { tag, header } = header_match.groups;
+            const zone = Zone.match(header, !tag);
+            if (zone && !exclude_zones.includes(zone)) {
+              group_zone = zone;
+              return;
+            }
+            if (tag || /^about$/i.test(header)) {
+              group_tag = Tag.match_or_new(header);
+              return;
+            }
+          }
+          const card = DeckCard.parse(line, deck, group_zone, exclude_zones);
+          if (card) {
+            if (group_tag) {
+              card.tags.add(group_tag);
+            }
+          } else {
+            console.error(`Failed to parse line "${line}"`);
+          }
+        });
+        return deck;
+      }
+      static async load_current(input, title) {
+        CardPanel.close();
+        History.reset();
+        DeckPanel.update();
+        let invalid_zones = [];
+        do {
+          Tag.clear();
+          _Deck.CURRENT = _Deck.parse(input, title, invalid_zones);
+          DeckView.render();
+          await _Deck.CURRENT.load(() => DeckView.render());
+          invalid_zones = Zone.all().filter((zone) => {
+            if (!zone.has_filter()) return false;
+            const cards = _Deck.CURRENT.zone(zone);
+            return cards.length > 0 && cards.every((card) => !zone.can_include(card));
+          });
+        } while (invalid_zones.length > 0);
+        let games = Game.all();
+        let formats = Format.all();
+        _Deck.CURRENT.forEach((card) => {
+          if (card.set && card.card) {
+            games = games.filter((game) => card.is_available(game));
+          }
+          formats = formats.filter((format) => card.is_legal(format));
+        });
+        if (games.length === 1) {
+          _Deck.CURRENT.game = games[0];
+        }
+        if (formats.length === 1) {
+          _Deck.CURRENT.format = formats[0];
+          if (!new DeckValidator(_Deck.CURRENT).is_valid()) {
+            _Deck.CURRENT.format = null;
+          }
+        }
+        DeckPanel.update();
+        Storage.store_deck();
+        return _Deck.CURRENT;
+      }
+      static async load_from_json(deck) {
+        _Deck.CURRENT = new _Deck();
+        _Deck.CURRENT.title = deck.title || null;
+        _Deck.CURRENT.format = Format.match(deck.format) ?? null;
+        _Deck.CURRENT.game = Game.match(deck.game) ?? null;
+        deck.tags.forEach((tag) => Tag.match_or_new(tag.name, tag.hex));
+        _Deck.CURRENT.push(...deck.cards.map((card, id) => DeckCard.from_json(card, id)));
+        DeckPanel.update();
+        DeckView.render();
+        await _Deck.CURRENT.load(() => DeckView.render());
+        return _Deck.CURRENT;
+      }
+      async load(on_progress = null) {
+        this.forEach((card) => card.load_from_cache(this.game));
+        on_progress?.();
+        const card_map = {};
+        this.forEach((card) => {
+          if (card.can_bulk_load()) {
+            const id = JSON.stringify(card.identifier());
+            card_map[id] ??= [];
+            card_map[id].push(card);
+          }
+        });
+        const unique_cards = Object.values(card_map);
+        for (let i = 0; i < unique_cards.length; i += API.CARDS_MAX) {
+          const chunk = unique_cards.slice(i, i + API.CARDS_MAX);
+          if (chunk.length < 2) break;
+          const card_list = await API.cards(chunk.map((c) => c[0].identifier()));
+          if (!card_list) break;
+          let index = 0;
+          for (const cards of chunk) {
+            const i1 = cards[0].identifier();
+            if (!card_list.not_found.some(
+              (i2) => Object.keys(i1).length === Object.keys(i2).length && Object.keys(i1).every((key) => i1[key] === i2[key])
+            )) {
+              cards.forEach((card) => card.hydrate(card_list.data[index]).cache());
+              index++;
+            }
+          }
+          on_progress?.();
+        }
+        await Promise.all(this.map(async (card) => {
+          await card.load(this.game);
+          on_progress?.();
+        }));
+        return this;
+      }
+      render_hooks() {
+        DeckView.render();
+      }
+      zone(...zones) {
+        return this.filter((card) => card.in_zone(...zones));
+      }
+      color_identity() {
+        const commanders = this.zone(Zone.commander).skip_empty();
+        if (commanders.count() === 0) return null;
+        let color_identity = ColorSet.colors.c;
+        commanders.forEach((card) => color_identity = color_identity.plus(card.color_identity()));
+        return color_identity;
+      }
+      to_string(card_format) {
+        return Zone.all().filter((zone) => this.zone(zone).length > 0).map((zone) => `# ${zone.name}
+` + this.zone(zone).map((card) => card.to_string(card_format)).join("\n") + "\n").join("\n");
+      }
+      toString() {
+        return this.to_string();
+      }
+      json() {
+        return {
+          title: this.title || null,
+          format: this.format?.code() ?? null,
+          game: this.game?.code() ?? null,
+          tags: Tag.all().map((tag) => ({
+            name: tag.name,
+            hex: tag.hex
+          })),
+          cards: this.map((card) => card.json())
+        };
+      }
+    };
+  }
+});
+
+// card-classifier/face-selector.ts
+var FaceSelector;
+var init_face_selector = __esm({
+  "card-classifier/face-selector.ts"() {
+    FaceSelector = class _FaceSelector {
+      constructor(name, get) {
+        this.name = name;
+        this.get = get;
+      }
+      name;
+      get;
+      static front = new _FaceSelector("Front", (card) => [card?.main_face()]);
+      static display = new _FaceSelector("Display", (card) => [card?.main_face(true)]);
+      static any = new _FaceSelector("Any Faces", (card) => card?.all_faces() ?? []);
+      static all() {
+        return Object.fromEntries(
+          Object.entries(this).filter(([_, value]) => value instanceof this)
+        );
+      }
+    };
+  }
+});
+
+// card-classifier/group.ts
+var Group;
+var init_group = __esm({
+  "card-classifier/group.ts"() {
+    Group = class {
+      name;
+      value;
+      icon;
+      color;
+      cards;
+      groups;
+      constructor(group) {
+        Object.assign(this, group);
+      }
+      count() {
+        let count = this.cards?.count() ?? 0;
+        this.groups?.forEach((group) => count += group.count());
+        return count;
+      }
+    };
+  }
+});
+
+// card-classifier/card-classifier.ts
+var CardClassifier;
+var init_card_classifier = __esm({
+  "card-classifier/card-classifier.ts"() {
+    init_value();
+    init_card_list();
+    init_deck_view();
+    init_face_selector();
+    init_group();
+    init_text();
+    CardClassifier = class {
+      constructor(cards) {
+        this.cards = cards;
+      }
+      cards;
+      static name = "None";
+      static ungrouped_name = "Unknown";
+      split_by_face = false;
+      groups() {
+        return [
+          new Group({ cards: this.cards.copy() })
+        ];
+      }
+      match_face(face, value) {
+        return true;
+      }
+      face_id(card, value) {
+        if (this.split_by_face && DeckView.FACE_SELECTOR === FaceSelector.front) {
+          return 0;
+        } else if (this.match_face(card.main_face(true), value)) {
+          return card.display_face_id;
+        } else {
+          const face_id = card.faces().findIndex((face) => this.match_face(face, value));
+          return face_id >= 0 ? face_id : 0;
+        }
+      }
+      group_by_face(get, group, groups) {
+        return this.group_by(
+          (card) => DeckView.FACE_SELECTOR.get(card).flatMap(get),
+          group,
+          groups
+        );
+      }
+      group_by(get, group = (value) => new Group({ name: String(value), value }), groups = {}) {
+        this.cards.map((card) => {
+          let values = get(card);
+          if (!Array.isArray(values)) values = [values];
+          [...new Set(values)].forEach((value) => {
+            if (is_nullish(value)) return;
+            const g = group(value, card);
+            if (g) {
+              groups[value] ??= new Group(g);
+              groups[value].cards ??= new CardList();
+              groups[value].cards.push(card);
+            }
+          });
+        });
+        return Object.values(groups).filter(Boolean).sort((g1, g2) => {
+          const a = g1.cards?.[0];
+          const b = g2.cards?.[0];
+          return a && b ? this.compare(a, b) : 0;
+        });
+      }
+      compare(a, b) {
+        return 0;
+      }
+      compare_card_number(a, b, get) {
+        const value_a = get(DeckView.FACE_SELECTOR.get(a)[0], a);
+        const value_b = get(DeckView.FACE_SELECTOR.get(b)[0], b);
+        return this.nulls_last(value_a, value_b) || value_a - value_b;
+      }
+      compare_card_string(a, b, get) {
+        const value_a = get(DeckView.FACE_SELECTOR.get(a)[0], a);
+        const value_b = get(DeckView.FACE_SELECTOR.get(b)[0], b);
+        return this.nulls_last(value_a, value_b) || compare(value_a, value_b);
+      }
+      compare_card_index(a, b, get, ordering) {
+        const value_a = get(DeckView.FACE_SELECTOR.get(a)[0], a);
+        const value_b = get(DeckView.FACE_SELECTOR.get(b)[0], b);
+        return this.compare_index(value_a, value_b, ordering);
+      }
+      compare_index(a, b, ordering) {
+        let index_a = ordering.indexOf(a);
+        if (index_a < 0) index_a = Infinity;
+        let index_b = ordering.indexOf(b);
+        if (index_b < 0) index_b = Infinity;
+        return index_a - index_b || 0;
+      }
+      lands_first(a, b) {
+        const land_a = DeckView.FACE_SELECTOR.get(a)[0]?.is_type("Land") ? 1 : 0;
+        const land_b = DeckView.FACE_SELECTOR.get(b)[0]?.is_type("Land") ? 1 : 0;
+        return land_b - land_a;
+      }
+      nulls_first(a, b) {
+        return this.nulls_last(b, a);
+      }
+      nulls_last(a, b) {
+        const null_a = is_nullish(a) ? 1 : 0;
+        const null_b = is_nullish(b) ? 1 : 0;
+        return null_a - null_b;
       }
     };
   }
