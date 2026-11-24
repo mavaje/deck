@@ -124,16 +124,15 @@ export class Search extends Panel {
             HTML.div({id: 'search-results', class: []}, HTML.div(
                 {class: 'groups'},
                 card_list.data
-                    .map(card => DeckCard.from_card(card, true))
-                    .map((card, i) =>
-                        HTML.div({id: `search-stack-${i}`, class: 'stack'},
-                            CardView.render(card, `search-result-${i}`, () => {
-                                if (card.oracle_ids().some(id => CardPanel.SELECTED.oracle_ids().includes(id))) {
-                                    SetCardPrinting.do(CardPanel.SELECTED, card.card);
-                                }
-                            }),
-                        )
-                    ),
+                    .map(card => DeckCard.from_card(card))
+                    .map((card, i) => HTML.div(
+                        {id: `search-stack-${i}`, class: 'stack'},
+                        CardView.render(card, `search-result-${i}`, () => {
+                            if (card.oracle_ids().some(id => CardPanel.SELECTED.oracle_ids().includes(id))) {
+                                SetCardPrinting.do(CardPanel.SELECTED, card.card);
+                            }
+                        }),
+                    )),
             ));
         } else {
             this.close();

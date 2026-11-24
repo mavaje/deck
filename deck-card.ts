@@ -197,21 +197,14 @@ export class DeckCard extends Face {
         return card;
     }
 
-    static from_card(card: Card, exact: boolean = false): DeckCard {
-        const deck_card = new DeckCard({
+    static from_card(card: Card): DeckCard {
+        return new DeckCard({
             card,
+            set: API.SETS.normalise(card.set),
+            collector_number: card.collector_number,
             language: Language.match(card.lang) ?? Language.DEFAULT,
             finish: Finish.first_for_card(card) ?? Finish.DEFAULT,
-        });
-
-        deck_card.hydrate(card);
-
-        if (exact) {
-            deck_card.set = API.SETS.normalise(card.set);
-            deck_card.collector_number = card.collector_number;
-        }
-
-        return deck_card;
+        }).hydrate();
     }
 
     static from_json(json: JSONCard, id?: number): DeckCard {
@@ -392,8 +385,6 @@ export class DeckCard extends Face {
                             return max_similarity === 1;
                         }
                     });
-            } else {
-                this.display_face_id = this.has_main_face() ? 0 : null;
             }
 
             this.name = this.deck_list_name();
@@ -729,7 +720,7 @@ export class DeckCard extends Face {
                 .replace(/^(\/+\s*)(back)$/i, (_, slash, back) =>
                     this.display_face_id === null ? ''
                         : this.all_names()
-                            .filter((_, i) => i !== (this.display_face_id ?? 0))
+                            .filter((_, i) => i !== this.display_face_id)
                             .map(face => slash + preserve_case(face, back))
                             .join(''))
                 .replace(/^(set)(\?)?$/i, (_, set, opt) =>

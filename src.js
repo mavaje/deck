@@ -1501,6 +1501,7 @@ var init_card_view = __esm({
           if (card === CardPanel.SELECTED) card_class.add("select");
         }
         const faces = [];
+        const face_shadows = [];
         switch (card.layout()) {
           case "transform":
           case "modal_dfc":
@@ -1514,13 +1515,39 @@ var init_card_view = __esm({
             if (card.has_keyword("Aftermath")) {
               card_class.add("aftermath");
               if (face_id === 1) card_class.add("invert");
+              face_shadows[0] = HTML.div({
+                id: `${id}-face-0-shadow`,
+                class: ["face-shadow", "aftermath", `face-${face_id ?? "all"}`]
+              });
             } else {
               card_class.add("landscape");
+              if (card.card.card_faces.length === 2) {
+                face_shadows[0] = HTML.div({
+                  id: `${id}-face-0-shadow`,
+                  class: ["face-shadow", "split", `face-${face_id ?? "all"}`]
+                });
+              }
             }
             break;
           case "flip":
             card_class.add("flip");
             if (face_id === 1) card_class.add("invert");
+            face_shadows[0] = HTML.div({
+              id: `${id}-face-0-shadow`,
+              class: ["face-shadow", "flip", `face-${face_id ?? "all"}`]
+            });
+            break;
+          case "adventure":
+            face_shadows[0] = HTML.div({
+              id: `${id}-face-0-shadow`,
+              class: ["face-shadow", "adventure", `face-${face_id ?? "all"}`]
+            });
+            break;
+          case "prepare":
+            face_shadows[0] = HTML.div({
+              id: `${id}-face-0-shadow`,
+              class: ["face-shadow", "prepare", `face-${face_id ?? "all"}`]
+            });
             break;
           case "meld":
             const parts = card.card.all_parts;
@@ -1611,7 +1638,7 @@ var init_card_view = __esm({
             }
           }
           faces.push(HTML.div({
-            id: `${id}-face-${faces.length}`,
+            id: `${id}-face-${face_id2}`,
             class: [
               "card-face",
               ["front", "back"][face_id2],
@@ -1621,7 +1648,7 @@ var init_card_view = __esm({
               background_image: urls.map((url) => `url(${url})`).join(", "),
               ...face_style[face_id2] ?? {}
             }
-          }));
+          }, face_shadows[face_id2]));
         });
         let tilt = null;
         let remove_timeout = null;
@@ -2009,16 +2036,14 @@ var init_search = __esm({
           HTML.div({ id: "search-status" }, `Found ${count_plural(card_list.total_cards, "card")}`);
           HTML.div({ id: "search-results", class: [] }, HTML.div(
             { class: "groups" },
-            card_list.data.map((card) => DeckCard.from_card(card, true)).map(
-              (card, i) => HTML.div(
-                { id: `search-stack-${i}`, class: "stack" },
-                CardView.render(card, `search-result-${i}`, () => {
-                  if (card.oracle_ids().some((id) => CardPanel.SELECTED.oracle_ids().includes(id))) {
-                    SetCardPrinting.do(CardPanel.SELECTED, card.card);
-                  }
-                })
-              )
-            )
+            card_list.data.map((card) => DeckCard.from_card(card)).map((card, i) => HTML.div(
+              { id: `search-stack-${i}`, class: "stack" },
+              CardView.render(card, `search-result-${i}`, () => {
+                if (card.oracle_ids().some((id) => CardPanel.SELECTED.oracle_ids().includes(id))) {
+                  SetCardPrinting.do(CardPanel.SELECTED, card.card);
+                }
+              })
+            ))
           ));
         } else {
           this.close();
@@ -2650,18 +2675,14 @@ var init_deck_card = __esm({
         }
         return card;
       }
-      static from_card(card, exact = false) {
-        const deck_card = new _DeckCard({
+      static from_card(card) {
+        return new _DeckCard({
           card,
+          set: API.SETS.normalise(card.set),
+          collector_number: card.collector_number,
           language: Language.match(card.lang) ?? Language.DEFAULT,
           finish: Finish.first_for_card(card) ?? Finish.DEFAULT
-        });
-        deck_card.hydrate(card);
-        if (exact) {
-          deck_card.set = API.SETS.normalise(card.set);
-          deck_card.collector_number = card.collector_number;
-        }
-        return deck_card;
+        }).hydrate();
       }
       static from_json(json, id) {
         return new _DeckCard({
@@ -2799,8 +2820,6 @@ var init_deck_card = __esm({
                 return max_similarity === 1;
               }
             });
-          } else {
-            this.display_face_id = this.has_main_face() ? 0 : null;
           }
           this.name = this.deck_list_name();
         }
@@ -3024,7 +3043,7 @@ var init_deck_card = __esm({
             } else {
               return full;
             }
-          }).replace(/^(name)\??$/i, (_, name) => preserve_case(this.deck_list_name(), name)).replace(/^(\/+\s*)(back)$/i, (_, slash, back) => this.display_face_id === null ? "" : this.all_names().filter((_2, i) => i !== (this.display_face_id ?? 0)).map((face) => slash + preserve_case(face, back)).join("")).replace(/^(set)(\?)?$/i, (_, set, opt) => opt && !(this.card?.set ?? this.set) ? "" : preserve_case(this.card?.set ?? this.set, set))
+          }).replace(/^(name)\??$/i, (_, name) => preserve_case(this.deck_list_name(), name)).replace(/^(\/+\s*)(back)$/i, (_, slash, back) => this.display_face_id === null ? "" : this.all_names().filter((_2, i) => i !== this.display_face_id).map((face) => slash + preserve_case(face, back)).join("")).replace(/^(set)(\?)?$/i, (_, set, opt) => opt && !(this.card?.set ?? this.set) ? "" : preserve_case(this.card?.set ?? this.set, set))
         ).replaceAll(/\s+/g, " ").replaceAll(/^\s|\s$/g, "");
       }
       toString() {

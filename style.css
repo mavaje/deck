@@ -886,6 +886,7 @@ div:has(> #delete-card) {
     filter: contrast(100%);
     transition-property: filter, opacity;
     user-select: none;
+    overflow: hidden;
 }
 
 .card-face.back {
@@ -904,7 +905,6 @@ div:has(> #delete-card) {
     position: absolute;
     width: 100%;
     height: 100%;
-    border-radius: var(--card-radius);
     background-size: var(--foil-scale) var(--foil-scale);
     mix-blend-mode: overlay;
     opacity: 25%;
@@ -942,7 +942,6 @@ div:has(> #delete-card) {
     position: absolute;
     width: 100%;
     height: 100%;
-    border-radius: var(--card-radius);
     background: radial-gradient(
             circle at var(--specular-x) var(--specular-y),
             white 0,
@@ -1005,4 +1004,90 @@ div:has(> #delete-card) {
 
 .card.select .card-faces {
     box-shadow: 0 0 2px 2px white, 0 0 8px 4px var(--theme);
+}
+
+@property --face-shadow-0 {
+    syntax: '<color>';
+    initial-value: black;
+    inherits: false;
+}
+
+@property --face-shadow-1 {
+    syntax: '<color>';
+    initial-value: black;
+    inherits: false;
+}
+
+.face-shadow {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    mix-blend-mode: darken;
+    filter: invert(50%) brightness(200%);
+    opacity: 50%;
+    transition-property: opacity, filter;
+}
+
+.card:hover .face-shadow {
+    opacity: 0;
+}
+
+.face-shadow.face-0 {
+    filter: invert(0) brightness(100%);
+}
+
+.face-shadow.face-1 {
+    filter: invert(100%) brightness(100%);
+}
+
+.face-shadow.split {
+    background-image: linear-gradient(
+        to top,
+        white calc(17 * var(--card-scale)),
+        black calc(18 * var(--card-scale))
+    );
+}
+
+.face-shadow.aftermath {
+    background-image: linear-gradient(
+        to bottom,
+        white calc(18.5 * var(--card-scale)),
+        black calc(19.5 * var(--card-scale))
+    );
+}
+
+.face-shadow.flip {
+    background-image: linear-gradient(
+        to bottom,
+        white calc(10 * var(--card-scale)),
+        transparent calc(11 * var(--card-scale)),
+        transparent calc(21 * var(--card-scale)),
+        black calc(22 * var(--card-scale))
+    );
+}
+
+.face-shadow.adventure {
+    background-image: linear-gradient(
+        to bottom,
+        white calc(21.5 * var(--card-scale)),
+        black calc(22.5 * var(--card-scale))
+    ), linear-gradient(
+        to left,
+        white calc(12 * var(--card-scale)),
+        black calc(13 * var(--card-scale))
+    );
+    background-blend-mode: screen;
+}
+
+.face-shadow.prepare {
+    background-image: linear-gradient(
+        to bottom,
+        white calc(21.5 * var(--card-scale)),
+        black calc(22.5 * var(--card-scale))
+    ), linear-gradient(
+        to right,
+        white calc(12 * var(--card-scale)),
+        black calc(13 * var(--card-scale))
+    );
+    background-blend-mode: screen;
 }

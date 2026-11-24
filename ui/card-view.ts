@@ -25,6 +25,7 @@ export class CardView {
         }
 
         const faces: HTMLDivElement[] = [];
+        const face_shadows: HTMLDivElement[] = [];
 
         switch (card.layout()) {
             case 'transform':
@@ -40,14 +41,42 @@ export class CardView {
                 if (card.has_keyword('Aftermath')) {
                     card_class.add('aftermath');
                     if (face_id === 1) card_class.add('invert');
+                    face_shadows[0] = HTML.div({
+                        id: `${id}-face-0-shadow`,
+                        class: ['face-shadow', 'aftermath', `face-${face_id ?? 'all'}`],
+                    });
                 } else {
                     card_class.add('landscape');
+                    if (card.card.card_faces.length === 2) {
+                        face_shadows[0] = HTML.div({
+                            id: `${id}-face-0-shadow`,
+                            class: ['face-shadow', 'split', `face-${face_id ?? 'all'}`],
+                        });
+                    }
                 }
                 break;
 
             case 'flip':
                 card_class.add('flip');
                 if (face_id === 1) card_class.add('invert');
+                face_shadows[0] = HTML.div({
+                    id: `${id}-face-0-shadow`,
+                    class: ['face-shadow', 'flip', `face-${face_id ?? 'all'}`],
+                });
+                break;
+
+            case 'adventure':
+                face_shadows[0] = HTML.div({
+                    id: `${id}-face-0-shadow`,
+                    class: ['face-shadow', 'adventure', `face-${face_id ?? 'all'}`],
+                });
+                break;
+
+            case 'prepare':
+                face_shadows[0] = HTML.div({
+                    id: `${id}-face-0-shadow`,
+                    class: ['face-shadow', 'prepare', `face-${face_id ?? 'all'}`],
+                });
                 break;
 
             case 'meld':
@@ -155,7 +184,7 @@ export class CardView {
             }
 
             faces.push(HTML.div({
-                id: `${id}-face-${faces.length}`,
+                id: `${id}-face-${face_id}`,
                 class: [
                     'card-face',
                     ['front', 'back'][face_id],
@@ -167,7 +196,7 @@ export class CardView {
                         .join(', '),
                     ...face_style[face_id] ?? {},
                 },
-            }));
+            }, face_shadows[face_id]));
         });
 
         let tilt: HTMLDivElement = null;
