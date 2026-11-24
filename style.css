@@ -1,4 +1,6 @@
-* {
+*,
+*::before,
+*::after {
     --theme-rgb: 0 255 191;
     --theme: rgb(var(--theme-rgb));
 
@@ -976,7 +978,7 @@ div:has(> #delete-card) {
 }
 
 .card:hover .card-face:after {
-    opacity: 25%;
+    opacity: 50%;
 }
 
 #deck-cards.show-quantity .card.ghost:not(:hover) .count {
