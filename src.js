@@ -230,6 +230,8 @@ function preserve_case(target, template) {
   }
 }
 function trigram(a, b) {
+  if (!a || !b) return 0;
+  if (a === b) return 1;
   const [
     trigrams_a,
     trigrams_b
@@ -514,33 +516,35 @@ var init_language = __esm({
     init_designation();
     init_text();
     Language = class _Language extends Designation {
-      constructor(name, codes = [], detector = null, has_font = false) {
+      constructor(name, codes = [], is_latin = false, detector = null, has_font = false) {
         super(name, codes);
+        this.is_latin = is_latin;
         this.detector = detector;
         this.has_font = has_font;
       }
+      is_latin;
       detector;
       has_font;
-      static english = new _Language("English", ["en"]);
-      static spanish = new _Language("Spanish", ["es", "sp"]);
-      static french = new _Language("French", ["fr"]);
-      static german = new _Language("German", ["de", "ge"]);
-      static italian = new _Language("Italian", ["it"]);
-      static portuguese = new _Language("Portuguese", ["pt"]);
-      static korean = new _Language("Korean", ["ko", "kr"], /[\u1100-\u11FF\u3130-\u318F\uA960-\uA97F\uAC00-\uD7AF\uD7B0-\uD7FF]/);
-      static japanese = new _Language("Japanese", ["ja", "jp"], /[\u3040-\u309F\u30A0-\u30FA\u30FC-\u30FF\u31F0-\u31FF\uFF66-\uFF9F\u3005]/);
-      static russian = new _Language("Russian", ["ru", "rs"], /[\u0400-\u04FF]/);
-      static chinese_simplified = new _Language("Simplified Chinese", ["zhs", "cs"], /[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\u{20000}-\u{3134F}]/u);
-      static chinese_traditional = new _Language("Traditional Chinese", ["zht", "ct"]);
-      static hebrew = new _Language("Hebrew", ["he"], /[\u0590-\u05FF\uFB1D-\uFB4F]/);
-      static latin = new _Language("Latin", ["la"]);
-      static ancient_greek = new _Language("Ancient Greek", ["grc", "ag"], /[\u0370-\u03FF\u1F00-\u1FFF]/);
-      static arabic = new _Language("Arabic", ["ar"], /[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/);
-      static sanskrit = new _Language("Sanskrit", ["sa"], /[\u0900-\u097F\uA8E0-\uA8FF\u1CD0-\u1CFF]/);
-      static phyrexian = new _Language("Phyrexian", ["ph"], /^\|/, true);
-      static quenya = new _Language("Quenya", ["qya"], /[\uE000-\uE07F]/, true);
-      static dwarvish = new _Language("Dwarvish", ["dw"], /[\u16A0-\u16FF\uE080-\uE0FF]/);
-      static klingon = new _Language("Klingon", ["tlh", "kl"], /[\uF8D0-\uF8FF]/);
+      static english = new _Language("English", ["en"], true);
+      static spanish = new _Language("Spanish", ["es", "sp"], true);
+      static french = new _Language("French", ["fr"], true);
+      static german = new _Language("German", ["de", "ge"], true);
+      static italian = new _Language("Italian", ["it"], true);
+      static portuguese = new _Language("Portuguese", ["pt"], true);
+      static korean = new _Language("Korean", ["ko", "kr"], false, /[\u1100-\u11FF\u3130-\u318F\uA960-\uA97F\uAC00-\uD7AF\uD7B0-\uD7FF]/);
+      static japanese = new _Language("Japanese", ["ja", "jp"], false, /[\u3040-\u309F\u30A0-\u30FA\u30FC-\u30FF\u31F0-\u31FF\uFF66-\uFF9F\u3005]/);
+      static russian = new _Language("Russian", ["ru", "rs"], false, /[\u0400-\u04FF]/);
+      static chinese_simplified = new _Language("Simplified Chinese", ["zhs", "cs"], false, /[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\u{20000}-\u{3134F}]/u);
+      static chinese_traditional = new _Language("Traditional Chinese", ["zht", "ct"], false);
+      static hebrew = new _Language("Hebrew", ["he"], false, /[\u0590-\u05FF\uFB1D-\uFB4F]/);
+      static latin = new _Language("Latin", ["la"], true);
+      static ancient_greek = new _Language("Ancient Greek", ["grc", "ag"], false, /[\u0370-\u03FF\u1F00-\u1FFF]/);
+      static arabic = new _Language("Arabic", ["ar"], false, /[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/);
+      static sanskrit = new _Language("Sanskrit", ["sa"], false, /[\u0900-\u097F\uA8E0-\uA8FF\u1CD0-\u1CFF]/);
+      static phyrexian = new _Language("Phyrexian", ["ph"], false, /^\|/, true);
+      static quenya = new _Language("Quenya", ["qya"], false, /[\uE000-\uE07F]/, true);
+      static dwarvish = new _Language("Dwarvish", ["dw"], true, /[\u16A0-\u16FF\uE080-\uE0FF]/);
+      static klingon = new _Language("Klingon", ["tlh", "kl"], true, /[\uF8D0-\uF8FF]/);
       static DEFAULT = this.english;
       is_default() {
         return this === _Language.DEFAULT;
@@ -841,7 +845,7 @@ var init_rule_break = __esm({
         );
       }
       breaks_color_identity(card) {
-        if (card.main_face().mana_value() < this.min_mv) return false;
+        if (card.front_face().mana_value() < this.min_mv) return false;
         if (this.types && !card.is_any_type(this.types)) return false;
         return this.extra_colors > 0;
       }
@@ -2154,7 +2158,7 @@ var init_edit_card_name = __esm({
       }
       execute() {
         const { card, name, face_id, name_key } = this;
-        this.reset_card = !card.has_name(name);
+        this.reset_card = !card.selectable_names()[name];
         this.old_values = {
           name: card.name,
           set: card.set,
@@ -2417,7 +2421,7 @@ var init_card_panel = __esm({
             let query = card.card ? `!"${name}"` : name;
             query += " unique:prints";
             if (!card.language.is_default()) query += ` lang:${card.language}`;
-            card.main_face(true).oracle_ids().forEach((id) => {
+            card.display_face().oracle_ids().forEach((id) => {
               query += ` oracleid:${id}`;
             });
             Search.run(query);
@@ -2767,7 +2771,8 @@ var init_deck_card = __esm({
         return super.flush();
       }
       hydrate_printing(card) {
-        this.name = null;
+        this.card = card;
+        this.name = this.deck_list_name();
         this.set = card.set;
         this.collector_number = card.collector_number;
         this.language = Language.match(card.lang);
@@ -2783,26 +2788,19 @@ var init_deck_card = __esm({
             this.language = Language.match(card.lang);
           }
           if (this.name) {
-            const first_name = this.name.split(/\s+\/+\s+/g)[0];
-            const normalised = normalise(first_name);
             let max_similarity = 0;
-            this.faces().some((face, id) => [
-              "flavor_name",
-              "printed_name",
-              "name"
-            ].some((key) => {
-              const name = face.card_name(key);
-              const similarity = name === first_name || normalise(name) === normalised ? 1 : trigram(normalised, normalise(name));
+            Object.entries(this.selectable_names()).some(([name, { face_id, name_key }]) => {
+              const target = face_id === null ? this.name : this.name.split(/\s+\/+\s+/g)[0];
+              const similarity = name === target ? 1 : this.language.is_latin ? trigram(normalise(name), normalise(target)) : trigram(name, target);
               if (similarity > max_similarity) {
                 max_similarity = similarity;
-                this.display_face_id = id;
-                this.display_name_key = key;
+                this.display_face_id = face_id;
+                this.display_name_key = name_key;
                 return max_similarity === 1;
               }
-            }));
-            if (!this.has_main_face() && this.display_face_id === 0 && this.name.includes("/")) {
-              this.display_face_id = null;
-            }
+            });
+          } else {
+            this.display_face_id = this.has_main_face() ? 0 : null;
           }
           this.name = this.deck_list_name();
         }
@@ -2836,23 +2834,14 @@ var init_deck_card = __esm({
       set_code() {
         return API.SETS.normalise(this.set ?? this.card?.set);
       }
-      main_face(display = null) {
-        display ??= {
-          "double_faced_token": true,
-          "reversible_card": true,
-          "art_series": true
-        }[this.card?.layout] ?? false;
-        const face = display ? this.display_face_id : null;
-        return (face !== null || this.has_main_face()) && this.faces()[face ?? 0] || this;
+      front_face() {
+        return this.has_main_face() && this.faces()[0] || this;
       }
       back_face() {
         return this.faces()[1];
       }
-      all_faces() {
-        return [
-          ...this.faces(),
-          this
-        ];
+      display_face() {
+        return this.display_face_id !== null && this.faces()[this.display_face_id] || this;
       }
       matches(card) {
         for (const field of [
@@ -2888,40 +2877,22 @@ var init_deck_card = __esm({
           "printed_name",
           "name"
         ].forEach((key) => {
-          if (!this.has_main_face()) {
-            names[this.card_name(key)] ??= {
-              face_id: null,
+          names[this.card_name(key)] ??= {
+            face_id: null,
+            name_key: key
+          };
+          this.all_names(key).forEach((name, id) => {
+            if (this.is_layout("prepare") && id > 0) return;
+            names[name] ??= {
+              face_id: id,
               name_key: key
             };
-          }
-          if (this.is_layout("adventure", "prepare")) {
-            names[this.main_face(false).card_name(key)] ??= {
-              face_id: 0,
-              name_key: key
-            };
-          } else {
-            this.all_names(key).forEach((name, id) => {
-              names[name] ??= {
-                face_id: id,
-                name_key: key
-              };
-            });
-          }
+          });
         });
         return names;
       }
-      has_name(name) {
-        return [
-          this.card_name("printed_name"),
-          this.card_name("flavor_name"),
-          this.card_name("name"),
-          ...this.all_names("printed_name"),
-          ...this.all_names("flavor_name"),
-          ...this.all_names("name")
-        ].includes(name);
-      }
       deck_list_name() {
-        return this.main_face(true).card_name(this.display_name_key) || this.name;
+        return this.display_face().card_name(this.display_name_key) || this.name;
       }
       is_basic_land() {
         return super.is_basic_land() ?? (this.name && _DeckCard.BASIC_LAND_REGEXP.test(this.name));
@@ -2930,7 +2901,7 @@ var init_deck_card = __esm({
         return format.has_commander && this.can_be_commander() || format.has_brawler && this.can_be_brawler() || format.has_oathbreaker && this.can_be_oathbreaker();
       }
       can_be_commander() {
-        const card = this.main_face();
+        const card = this.front_face();
         return Boolean(card.is_type("Legendary") && card.power() && card.toughness()) || /~ can be your commander\./.test(this.oracle());
       }
       can_be_brawler() {
@@ -2950,7 +2921,7 @@ var init_deck_card = __esm({
           if (this.is_basic_land()) {
             return Infinity;
           }
-          const limit_match = this.main_face().oracle().match(/A deck can have (?<any>(any number of)|(up to|only) (?<limit>[0-9a-z ]+)) cards? named ~\./);
+          const limit_match = this.front_face().oracle().match(/A deck can have (?<any>(any number of)|(up to|only) (?<limit>[0-9a-z ]+)) cards? named ~\./);
           if (limit_match) {
             const { any, limit } = limit_match.groups;
             return any ? Infinity : Number.parseInt(limit) || words_to_number(limit);
@@ -2971,7 +2942,7 @@ var init_deck_card = __esm({
           if (this.has_keyword("Partner with")) {
             const name_match = this.oracle().match(/Partner with (?<name>[^(]+) (\(|$)/);
             const { name } = name_match.groups;
-            if (second.has_name(name)) {
+            if (name === second.card_name("name")) {
               return true;
             }
           }
@@ -2981,7 +2952,7 @@ var init_deck_card = __esm({
           if (this.has_keyword("Choose a background") && second.is_type("Legendary", "Enchantment", "Background")) {
             return true;
           }
-          if (this.has_ability("Legendary partner") && !second.is_type("Legendary") && second.main_face().power() && second.main_face().toughness()) {
+          if (this.has_ability("Legendary partner") && !second.is_type("Legendary") && second.front_face().power() && second.front_face().toughness()) {
             return true;
           }
           const free_match = this.oracle().match(/You may play ~ and any other legend with (?<id>\w+|\d+) color identity or less as your commanders as though they each had partner\./);
@@ -2996,7 +2967,7 @@ var init_deck_card = __esm({
         return false;
       }
       rulebreaks() {
-        const oracle = this.main_face().oracle();
+        const oracle = this.front_face().oracle();
         if (!oracle) return [];
         const breaks = [];
         const additional_color_id_match = oracle.match(/If ~ is your commander, choose a color before the game begins. ~ is the chosen color\./) ?? oracle.match(/If ~ is your commander, the color identity of (?<type_1>[\w\s]+) cards in your deck can include one color of your choice not in your commander's color identity, and your deck can have any (?<type_2>[\w\s]+) cards\./);
@@ -3053,7 +3024,7 @@ var init_deck_card = __esm({
             } else {
               return full;
             }
-          }).replace(/^(name)\??$/i, (_, name) => preserve_case(this.deck_list_name(), name)).replace(/^(\/+\s*)(back)$/i, (_, slash, back) => !this.has_main_face() && this.display_face_id === null ? "" : this.all_names().filter((_2, i) => i !== (this.display_face_id ?? 0)).map((face) => slash + preserve_case(face, back)).join("")).replace(/^(set)(\?)?$/i, (_, set, opt) => opt && !(this.card?.set ?? this.set) ? "" : preserve_case(this.card?.set ?? this.set, set))
+          }).replace(/^(name)\??$/i, (_, name) => preserve_case(this.deck_list_name(), name)).replace(/^(\/+\s*)(back)$/i, (_, slash, back) => this.display_face_id === null ? "" : this.all_names().filter((_2, i) => i !== (this.display_face_id ?? 0)).map((face) => slash + preserve_case(face, back)).join("")).replace(/^(set)(\?)?$/i, (_, set, opt) => opt && !(this.card?.set ?? this.set) ? "" : preserve_case(this.card?.set ?? this.set, set))
         ).replaceAll(/\s+/g, " ").replaceAll(/^\s|\s$/g, "");
       }
       toString() {
@@ -3406,13 +3377,13 @@ var init_deck_validator = __esm({
           if (mana_value_match) {
             const { parity, mv, dir, lands, description } = mana_value_match.groups;
             if (parity) {
-              deck = deck.filter((card2) => card2.main_face().mana_value() % 2 !== (parity === "even" ? 0 : 1));
+              deck = deck.filter((card2) => card2.front_face().mana_value() % 2 !== (parity === "even" ? 0 : 1));
             }
             if (mv) {
               if (dir === "less") {
-                deck = deck.filter((card2) => card2.main_face().mana_value() > parseInt(mv));
+                deck = deck.filter((card2) => card2.front_face().mana_value() > parseInt(mv));
               } else {
-                deck = deck.filter((card2) => card2.main_face().mana_value() < parseInt(mv));
+                deck = deck.filter((card2) => card2.front_face().mana_value() < parseInt(mv));
               }
             }
             if (lands) {
@@ -3475,9 +3446,9 @@ var init_deck_validator = __esm({
               const { mv, dir } = mv_match.groups;
               if (mv) {
                 if (dir === "less") {
-                  deck = deck.filter((card2) => card2.main_face().mana_value() > parseInt(mv));
+                  deck = deck.filter((card2) => card2.front_face().mana_value() > parseInt(mv));
                 } else {
-                  deck = deck.filter((card2) => card2.main_face().mana_value() < parseInt(mv));
+                  deck = deck.filter((card2) => card2.front_face().mana_value() < parseInt(mv));
                 }
               }
               return deck.count() > 0 ? [{
@@ -3738,9 +3709,12 @@ var init_face_selector = __esm({
       }
       name;
       get;
-      static front = new _FaceSelector("Front", (card) => [card?.main_face()]);
-      static display = new _FaceSelector("Display", (card) => [card?.main_face(true)]);
-      static any = new _FaceSelector("Any Faces", (card) => card?.all_faces() ?? []);
+      static front = new _FaceSelector("Front", (card) => [card?.front_face()]);
+      static display = new _FaceSelector("Display", (card) => [card?.display_face()]);
+      static any = new _FaceSelector("Any Faces", (card) => [
+        card,
+        ...card?.faces() ?? []
+      ]);
       static all() {
         return Object.fromEntries(
           Object.entries(this).filter(([_, value]) => value instanceof this)
@@ -3801,12 +3775,16 @@ var init_card_classifier = __esm({
       }
       face_id(card, value) {
         if (this.split_by_face && DeckView.FACE_SELECTOR === FaceSelector.front) {
-          return 0;
-        } else if (this.match_face(card.main_face(true), value)) {
+          return card.has_main_face() ? 0 : null;
+        } else if (this.match_face(card.display_face(), value)) {
           return card.display_face_id;
         } else {
-          const face_id = card.faces().findIndex((face) => this.match_face(face, value));
-          return face_id >= 0 ? face_id : 0;
+          if (this.match_face(card, value)) {
+            return null;
+          } else {
+            const face_id = card.faces().findIndex((face) => this.match_face(face, value));
+            return face_id >= 0 ? face_id : 0;
+          }
         }
       }
       group_by_face(get, group, groups) {
@@ -4501,7 +4479,7 @@ var init_name = __esm({
     Name = class extends CardClassifier {
       static name = "Name";
       compare(a, b) {
-        return this.compare_card_string(a, b, (_, card) => card.main_face(true).card_name("flavor_name"));
+        return this.compare_card_string(a, b, (_, card) => card.deck_list_name());
       }
     };
   }
@@ -4949,7 +4927,7 @@ var init_deck_panel = __esm({
         HTML.h2({ id: "deck-format", value: Deck.CURRENT.format?.name ?? "" });
         HTML.h2({ id: "deck-game", value: Deck.CURRENT.game?.name ?? "" });
         for (let i = 0; i < Deck.CURRENT.length; i++) {
-          const url = Deck.CURRENT[i].main_face().face?.image_uris.art;
+          const url = Deck.CURRENT[i].display_face().face?.image_uris.art;
           if (url) {
             HTML.div({
               id: "background",

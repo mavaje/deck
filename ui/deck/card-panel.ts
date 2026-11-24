@@ -113,7 +113,7 @@ export class CardPanel extends Panel {
                     : name;
                 query += ' unique:prints';
                 if (!card.language.is_default()) query += ` lang:${card.language}`;
-                card.main_face(true).oracle_ids().forEach(id => {
+                card.display_face().oracle_ids().forEach(id => {
                     query += ` oracleid:${id}`;
                 });
                 Search.run(query);

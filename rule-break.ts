@@ -56,7 +56,7 @@ export class RuleBreak {
     }
 
     breaks_color_identity(card: DeckCard): boolean {
-        if (card.main_face().mana_value() < this.min_mv) return false;
+        if (card.front_face().mana_value() < this.min_mv) return false;
 
         if (this.types && !card.is_any_type(this.types)) return false;
 

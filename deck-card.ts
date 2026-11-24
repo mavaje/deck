@@ -353,7 +353,8 @@ export class DeckCard extends Face {
     }
 
     hydrate_printing(card: Card) {
-        this.name = null;
+        this.card = card;
+        this.name = this.deck_list_name();
         this.set = card.set;
         this.collector_number = card.collector_number;
         this.language = Language.match(card.lang);
@@ -372,35 +373,27 @@ export class DeckCard extends Face {
             }
 
             if (this.name) {
-                const first_name = this.name.split(/\s+\/+\s+/g)[0];
-                const normalised = normalise(first_name);
-
                 let max_similarity = 0;
 
-                this.faces()
-                    .some((face, id) => ([
-                        'flavor_name',
-                        'printed_name',
-                        'name',
-                    ] as NameKey[]).some(key => {
-                        const name = face.card_name(key);
-                        const similarity = name === first_name || normalise(name) === normalised
+                Object.entries(this.selectable_names())
+                    .some(([name, {face_id, name_key}]) => {
+                        const target = face_id === null
+                            ? this.name
+                            : this.name.split(/\s+\/+\s+/g)[0];
+                        const similarity = name === target
                             ? 1
-                            : trigram(normalised, normalise(name));
+                            : this.language.is_latin
+                                ? trigram(normalise(name), normalise(target))
+                                : trigram(name, target);
                         if (similarity > max_similarity) {
                             max_similarity = similarity;
-                            this.display_face_id = id;
-                            this.display_name_key = key;
+                            this.display_face_id = face_id;
+                            this.display_name_key = name_key;
                             return max_similarity === 1;
                         }
-                    }));
-
-                if (!this.has_main_face()
-                    && this.display_face_id === 0
-                    && this.name.includes('/')
-                ) {
-                    this.display_face_id = null;
-                }
+                    });
+            } else {
+                this.display_face_id = this.has_main_face() ? 0 : null;
             }
 
             this.name = this.deck_list_name();
@@ -445,15 +438,9 @@ export class DeckCard extends Face {
         return API.SETS.normalise(this.set ?? this.card?.set);
     }
 
-    main_face(display: boolean = null): Face {
-        display ??= {
-            'double_faced_token': true,
-            'reversible_card': true,
-            'art_series': true,
-        }[this.card?.layout] ?? false;
-        const face = display ? this.display_face_id : null;
-        return (face !== null || this.has_main_face())
-            && this.faces()[face ?? 0]
+    front_face(): Face {
+        return this.has_main_face()
+            && this.faces()[0]
             || this;
     }
 
@@ -461,11 +448,10 @@ export class DeckCard extends Face {
         return this.faces()[1];
     }
 
-    all_faces(): Face[] {
-        return [
-            ...this.faces(),
-            this,
-        ];
+    display_face(): Face {
+        return this.display_face_id !== null
+            && this.faces()[this.display_face_id]
+            || this;
     }
 
     matches(card: DeckCard) {
@@ -517,44 +503,25 @@ export class DeckCard extends Face {
             'printed_name',
             'name',
         ] as NameKey[]).forEach(key => {
-            if (!this.has_main_face()) {
-                names[this.card_name(key)] ??= {
-                    face_id: null,
-                    name_key: key,
-                };
-            }
+            names[this.card_name(key)] ??= {
+                face_id: null,
+                name_key: key,
+            };
 
-            if (this.is_layout('adventure', 'prepare')) {
-                names[this.main_face(false).card_name(key)] ??= {
-                    face_id: 0,
+            this.all_names(key).forEach((name, id) => {
+                if (this.is_layout('prepare') && id > 0) return;
+                names[name] ??= {
+                    face_id: id,
                     name_key: key,
                 };
-            } else {
-                this.all_names(key).forEach((name, id) => {
-                    names[name] ??= {
-                        face_id: id,
-                        name_key: key,
-                    };
-                });
-            }
+            });
         });
 
         return names;
     }
 
-    has_name(name: string): boolean {
-        return [
-            this.card_name('printed_name'),
-            this.card_name('flavor_name'),
-            this.card_name('name'),
-            ...this.all_names('printed_name'),
-            ...this.all_names('flavor_name'),
-            ...this.all_names('name'),
-        ].includes(name);
-    }
-
     deck_list_name(): string {
-        return this.main_face(true).card_name(this.display_name_key) || this.name;
+        return this.display_face().card_name(this.display_name_key) || this.name;
     }
 
     is_basic_land(): boolean {
@@ -568,7 +535,7 @@ export class DeckCard extends Face {
     }
 
     can_be_commander(): boolean {
-        const card = this.main_face();
+        const card = this.front_face();
         return Boolean(card.is_type('Legendary') && card.power() && card.toughness())
             || /~ can be your commander\./.test(this.oracle());
     }
@@ -597,7 +564,7 @@ export class DeckCard extends Face {
                 return Infinity;
             }
 
-            const limit_match = this.main_face().oracle().match(/A deck can have (?<any>(any number of)|(up to|only) (?<limit>[0-9a-z ]+)) cards? named ~\./);
+            const limit_match = this.front_face().oracle().match(/A deck can have (?<any>(any number of)|(up to|only) (?<limit>[0-9a-z ]+)) cards? named ~\./);
             if (limit_match) {
                 const {any, limit} = limit_match.groups;
                 return any
@@ -631,7 +598,7 @@ export class DeckCard extends Face {
                     .match(/Partner with (?<name>[^(]+) (\(|$)/);
                 const {name} = name_match.groups;
 
-                if (second.has_name(name)) {
+                if (name === second.card_name('name')) {
                     return true;
                 }
             }
@@ -648,7 +615,7 @@ export class DeckCard extends Face {
 
             if (this.has_ability('Legendary partner')
                 && !second.is_type('Legendary')
-                && second.main_face().power() && second.main_face().toughness()) {
+                && second.front_face().power() && second.front_face().toughness()) {
                 return true;
             }
 
@@ -666,7 +633,7 @@ export class DeckCard extends Face {
     }
 
     rulebreaks(): RuleBreak[] {
-        const oracle = this.main_face().oracle();
+        const oracle = this.front_face().oracle();
         if (!oracle) return [];
 
         const breaks: RuleBreak[] = [];
@@ -760,7 +727,7 @@ export class DeckCard extends Face {
                 .replace(/^(name)\??$/i, (_, name) =>
                     preserve_case(this.deck_list_name(), name))
                 .replace(/^(\/+\s*)(back)$/i, (_, slash, back) =>
-                    !this.has_main_face() && this.display_face_id === null ? ''
+                    this.display_face_id === null ? ''
                         : this.all_names()
                             .filter((_, i) => i !== (this.display_face_id ?? 0))
                             .map(face => slash + preserve_case(face, back))

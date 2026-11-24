@@ -27,12 +27,16 @@ export abstract class CardClassifier<T extends string | number = string | number
 
     face_id(card: DeckCard, value: T): number {
         if (this.split_by_face && DeckView.FACE_SELECTOR === FaceSelector.front) {
-            return 0;
-        } else if (this.match_face(card.main_face(true), value)) {
+            return card.has_main_face() ? 0 : null;
+        } else if (this.match_face(card.display_face(), value)) {
             return card.display_face_id;
         } else {
-            const face_id = card.faces().findIndex(face => this.match_face(face, value));
-            return face_id >= 0 ? face_id : 0;
+            if (this.match_face(card, value)) {
+                return null;
+            } else {
+                const face_id = card.faces().findIndex(face => this.match_face(face, value));
+                return face_id >= 0 ? face_id : 0;
+            }
         }
     }
 

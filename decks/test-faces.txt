@@ -1,34 +1,40 @@
 Dusk // Dawn
 Dusk
 Dawn
-Dawn // Dusk
 
 Turn // Burn
 Turn
 Burn
-Burn // Turn
 
 Nezumi Graverobber // Nighteyes the Desecrator
 Nezumi Graverobber
 Nighteyes the Desecrator
-Nighteyes the Desecrator // Nezumi Graverobber
 
 Etali, Primal Conqueror // Etali, Primal Sickness
 Etali, Primal Conqueror
 Etali, Primal Sickness
-Etali, Primal Sickness // Etali, Primal Conqueror
 
 Blightstep Pathway // Searstep Pathway
 Blightstep Pathway
 Searstep Pathway
-Searstep Pathway // Blightstep Pathway
+
+Bonecrusher Giant // Stomp
+Bonecrusher Giant
+Stomp
+
+Rampant Growth
+Studious First-Year
+Studious First-Year // Rampant Growth
 
 Dinosaur // Treasure (F17:11)
 Dinosaur (F17:11)
 Treasure (F17:11)
-Treasure // Dinosaur (F17:11)
 
 Monster // Sorcerer
 Monster
 Sorcerer
-Sorcerer // Monster
+
+Megatron // Megatron (SLD) 1079 *F*
+Megatron (SLD) 1079 *F*
+Blightsteel Colossus // Blightsteel Colossus (SLD) 1079 *F*
+Blightsteel Colossus (SLD) 1079 *F*

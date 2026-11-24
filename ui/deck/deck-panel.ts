@@ -192,7 +192,7 @@ export class DeckPanel extends Panel {
         HTML.h2({id: 'deck-game', value: Deck.CURRENT.game?.name ?? ''});
 
         for (let i = 0; i < Deck.CURRENT.length; i++) {
-            const url = Deck.CURRENT[i].main_face().face?.image_uris.art;
+            const url = Deck.CURRENT[i].display_face().face?.image_uris.art;
             if (url) {
                 HTML.div({
                     id: 'background', style: {

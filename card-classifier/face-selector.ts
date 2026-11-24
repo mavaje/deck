@@ -2,9 +2,12 @@ import {DeckCard} from "../deck-card";
 import {Face} from "../face";
 
 export class FaceSelector {
-    static front = new FaceSelector('Front', card => [card?.main_face()]);
-    static display = new FaceSelector('Display', card => [card?.main_face(true)]);
-    static any = new FaceSelector('Any Faces', card => card?.all_faces() ?? []);
+    static front = new FaceSelector('Front', card => [card?.front_face()]);
+    static display = new FaceSelector('Display', card => [card?.display_face()]);
+    static any = new FaceSelector('Any Faces', card => [
+        card,
+        ...card?.faces() ?? [],
+    ]);
 
     constructor(
         public name: string,

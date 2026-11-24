@@ -25,7 +25,7 @@ export class EditCardName extends Action {
 
     execute(): void {
         const {card, name, face_id, name_key} = this;
-        this.reset_card = !card.has_name(name);
+        this.reset_card = !card.selectable_names()[name];
         this.old_values = {
             name: card.name,
             set: card.set,

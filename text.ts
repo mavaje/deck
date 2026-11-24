@@ -144,6 +144,8 @@ export function trigram(
     a: string,
     b: string,
 ): number {
+    if (!a || !b) return 0;
+    if (a === b) return 1;
     const [
         trigrams_a,
         trigrams_b,
