@@ -301,13 +301,15 @@ export class DeckCard extends Face {
             card ??= await API.card(set, collector_number);
         }
 
-        if (normalise(name)) {
-            if (/^_{6,}$/.test(name) && !set) {
-                card ??= await API.first_card(`include:extras name:'${name}'`);
+        if (name) {
+            if (!/[A-Z]/i.test(name)) {
+                let query = `name:'${name}' include:extras`;
+                if (!language.is_default()) query += ` lang:${language}`;
+                card ??= await API.first_card(query);
             }
 
             if (is_alchemy_set) {
-                card ??= await API.first_card(`st:alchemy name:'${name}'`);
+                card ??= await API.first_card(`name:'${name}' settype:alchemy`);
             } else if (set && !collector_number) {
                 card ??= await API.card_named(name, set);
             }

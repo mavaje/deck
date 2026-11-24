@@ -160,6 +160,7 @@ export class API {
         set?: string,
         exact: boolean = false,
     ): Promise<Card> {
+        if (!normalise(name)) return null;
         return this.get<Card>(this.card_named_url(name, set, exact));
     }
 
