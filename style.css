@@ -111,12 +111,7 @@ label {
     margin: 4px;
 }
 
-input[type=file] {
-    display: none;
-}
-
-input,
-select {
+input {
     margin: 4px;
     padding: 4px 8px;
     height: 16px;
@@ -129,13 +124,13 @@ select {
     transition-property: background-color, border-color, box-shadow, text-shadow;
 }
 
-select {
-    padding: 4px 4px;
-    cursor: pointer;
+input[type=file] {
+    display: none;
 }
 
 input[readonly] {
     cursor: pointer;
+    caret-color: transparent;
 }
 
 input::placeholder {
@@ -159,7 +154,6 @@ input[type=number] {
 }
 
 input:focus-visible,
-select:focus-visible,
 button:focus-visible {
     border-color: white;
     background-color: rgba(var(--theme-rgb) / 20%);
@@ -168,7 +162,6 @@ button:focus-visible {
 }
 
 input:hover,
-select:hover,
 button:hover {
     border-color: white;
     background-color: rgba(var(--theme-rgb) / 30%);
@@ -177,7 +170,6 @@ button:hover {
 }
 
 input.error,
-select.error,
 button.danger:focus-visible,
 button.danger:hover {
     border-color: white;
@@ -188,7 +180,6 @@ button.danger:hover {
 }
 
 input.error:hover,
-select.error:hover,
 button.danger:hover {
     background-color: rgba(var(--error-rgb) / 30%);
 }
