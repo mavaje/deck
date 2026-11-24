@@ -1517,14 +1517,16 @@ var init_card_view = __esm({
               if (face_id === 1) card_class.add("invert");
               face_shadows[0] = HTML.div({
                 id: `${id}-face-0-shadow`,
-                class: ["face-shadow", "aftermath", `face-${face_id ?? "all"}`]
+                class: ["face-shadow", "aftermath", `face-${face_id ?? "all"}`],
+                style: null
               });
             } else {
               card_class.add("landscape");
               if (card.card.card_faces.length === 2) {
                 face_shadows[0] = HTML.div({
                   id: `${id}-face-0-shadow`,
-                  class: ["face-shadow", "split", `face-${face_id ?? "all"}`]
+                  class: ["face-shadow", "split", `face-${face_id ?? "all"}`],
+                  style: null
                 });
               }
             }
@@ -1534,19 +1536,22 @@ var init_card_view = __esm({
             if (face_id === 1) card_class.add("invert");
             face_shadows[0] = HTML.div({
               id: `${id}-face-0-shadow`,
-              class: ["face-shadow", "flip", `face-${face_id ?? "all"}`]
+              class: ["face-shadow", "flip", `face-${face_id ?? "all"}`],
+              style: null
             });
             break;
           case "adventure":
             face_shadows[0] = HTML.div({
               id: `${id}-face-0-shadow`,
-              class: ["face-shadow", "adventure", `face-${face_id ?? "all"}`]
+              class: ["face-shadow", "adventure", `face-${face_id ?? "all"}`],
+              style: null
             });
             break;
           case "prepare":
             face_shadows[0] = HTML.div({
               id: `${id}-face-0-shadow`,
-              class: ["face-shadow", "prepare", `face-${face_id ?? "all"}`]
+              class: ["face-shadow", "prepare", `face-${face_id ?? "all"}`],
+              style: null
             });
             break;
           case "meld":
@@ -1591,6 +1596,20 @@ var init_card_view = __esm({
           case "4516f30c-fb21-4371-818f-7dd211612a72":
             card_class.add("flip");
             card_class.add("invert");
+            break;
+          // Curse of the Fire Penguin // Curse of the Fire Penguin Creature
+          case "8d8b9933-d7a2-4adc-85ee-ac62b23e784f":
+            face_shadows[0] = HTML.div({
+              id: `${id}-face-0-shadow`,
+              class: ["face-shadow", `face-${face_id ?? "all"}`],
+              style: {
+                background_image: `linear-gradient(
+                            to bottom,
+                            white calc(23 * var(--card-scale)),
+                            black calc(24 * var(--card-scale))
+                        )`
+              }
+            });
             break;
           // Burning Cinder Fury of Crimson Chaos Fire
           case "9716976e-1b52-4351-932e-b99fe206afbd":

@@ -997,23 +997,11 @@ div:has(> #delete-card) {
     box-shadow: 0 0 2px 2px white, 0 0 8px 4px var(--theme);
 }
 
-@property --face-shadow-0 {
-    syntax: '<color>';
-    initial-value: black;
-    inherits: false;
-}
-
-@property --face-shadow-1 {
-    syntax: '<color>';
-    initial-value: black;
-    inherits: false;
-}
-
 .face-shadow {
     position: absolute;
     width: 100%;
     height: 100%;
-    mix-blend-mode: darken;
+    mix-blend-mode: multiply;
     filter: invert(50%) brightness(200%);
     opacity: 50%;
     transition-property: opacity, filter;
@@ -1051,17 +1039,16 @@ div:has(> #delete-card) {
     background-image: linear-gradient(
         to bottom,
         white calc(10 * var(--card-scale)),
-        transparent calc(11 * var(--card-scale)),
-        transparent calc(21 * var(--card-scale)),
-        black calc(22 * var(--card-scale))
+        transparent calc(17.5 * var(--card-scale)),
+        black calc(25 * var(--card-scale))
     );
 }
 
 .face-shadow.adventure {
     background-image: linear-gradient(
         to bottom,
-        white calc(21.5 * var(--card-scale)),
-        black calc(22.5 * var(--card-scale))
+        white calc(21 * var(--card-scale)),
+        black calc(22 * var(--card-scale))
     ), linear-gradient(
         to left,
         white calc(12 * var(--card-scale)),

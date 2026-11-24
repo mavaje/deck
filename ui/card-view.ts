@@ -44,6 +44,7 @@ export class CardView {
                     face_shadows[0] = HTML.div({
                         id: `${id}-face-0-shadow`,
                         class: ['face-shadow', 'aftermath', `face-${face_id ?? 'all'}`],
+                        style: null,
                     });
                 } else {
                     card_class.add('landscape');
@@ -51,6 +52,7 @@ export class CardView {
                         face_shadows[0] = HTML.div({
                             id: `${id}-face-0-shadow`,
                             class: ['face-shadow', 'split', `face-${face_id ?? 'all'}`],
+                            style: null,
                         });
                     }
                 }
@@ -62,6 +64,7 @@ export class CardView {
                 face_shadows[0] = HTML.div({
                     id: `${id}-face-0-shadow`,
                     class: ['face-shadow', 'flip', `face-${face_id ?? 'all'}`],
+                    style: null,
                 });
                 break;
 
@@ -69,6 +72,7 @@ export class CardView {
                 face_shadows[0] = HTML.div({
                     id: `${id}-face-0-shadow`,
                     class: ['face-shadow', 'adventure', `face-${face_id ?? 'all'}`],
+                    style: null,
                 });
                 break;
 
@@ -76,6 +80,7 @@ export class CardView {
                 face_shadows[0] = HTML.div({
                     id: `${id}-face-0-shadow`,
                     class: ['face-shadow', 'prepare', `face-${face_id ?? 'all'}`],
+                    style: null,
                 });
                 break;
 
@@ -128,6 +133,21 @@ export class CardView {
             case '4516f30c-fb21-4371-818f-7dd211612a72':
                 card_class.add('flip');
                 card_class.add('invert');
+                break;
+
+            // Curse of the Fire Penguin // Curse of the Fire Penguin Creature
+            case '8d8b9933-d7a2-4adc-85ee-ac62b23e784f':
+                face_shadows[0] = HTML.div({
+                    id: `${id}-face-0-shadow`,
+                    class: ['face-shadow', `face-${face_id ?? 'all'}`],
+                    style: {
+                        background_image: `linear-gradient(
+                            to bottom,
+                            white calc(23 * var(--card-scale)),
+                            black calc(24 * var(--card-scale))
+                        )`,
+                    },
+                });
                 break;
 
             // Burning Cinder Fury of Crimson Chaos Fire
