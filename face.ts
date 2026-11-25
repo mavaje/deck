@@ -399,7 +399,13 @@ export class Face<T extends Card | CardFace = Card | CardFace> {
     }
 
     card_name(key: NameKey = 'name'): string {
-        const get_name = (key: NameKey) => {
+        const keys = {
+            'flavor_name': ['flavor_name', 'printed_name', 'name'] as NameKey[],
+            'printed_name': ['printed_name', 'flavor_name', 'name'] as NameKey[],
+            'name': ['name'] as NameKey[],
+        }[key];
+
+        for (const key of keys) {
             if (this.face?.[key]) return this.face[key];
             if (this.is_card() && this.card.card_faces) {
                 const names = this.card.card_faces
@@ -409,20 +415,6 @@ export class Face<T extends Card | CardFace = Card | CardFace> {
                     return names.join(' // ');
                 }
             }
-        }
-
-        let name: string;
-        switch (key) {
-            case 'flavor_name':
-                name = get_name('flavor_name');
-                if (name) return name;
-                //fallthrough
-            case 'printed_name':
-                name = get_name('printed_name');
-                if (name) return name;
-                //fallthrough
-            default:
-                return get_name('name');
         }
     }
 

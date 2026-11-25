@@ -11,7 +11,7 @@ import {Finish} from "./designation/finish";
 import {Deck} from "./deck";
 import {Tag} from "./designation/tag";
 import {Face, NameKey} from "./face";
-import {DeckView} from "./ui/deck-view";
+import {DeckView} from "./ui/deck/deck-view";
 import {CardPanel} from "./ui/deck/card-panel";
 import {Game} from "./game";
 
@@ -494,14 +494,14 @@ export class DeckCard extends Face {
             'printed_name',
             'name',
         ] as NameKey[]).forEach(key => {
-            names[this.card_name(key)] ??= {
+            names[this.card_name(key)] = {
                 face_id: null,
                 name_key: key,
             };
 
             this.all_names(key).forEach((name, id) => {
                 if (this.is_layout('prepare') && id > 0) return;
-                names[name] ??= {
+                names[name] = {
                     face_id: id,
                     name_key: key,
                 };

@@ -2,7 +2,7 @@ import {DeckCard} from "../deck-card";
 import {is_nullish} from "../value";
 import {CardList} from "../card-list";
 import {Face} from "../face";
-import {DeckView} from "../ui/deck-view";
+import {DeckView} from "../ui/deck/deck-view";
 import {FaceSelector} from "./face-selector";
 import {Group} from "./group";
 import {compare} from "../text";

@@ -3,7 +3,7 @@ import {CardClassifier} from "./card-classifier";
 import {Type} from "./type";
 import {MTG_COLORS} from "../color";
 import {Face} from "../face";
-import {DeckView} from "../ui/deck-view";
+import {DeckView} from "../ui/deck/deck-view";
 import {Group} from "./group";
 
 export class Subtype extends CardClassifier {

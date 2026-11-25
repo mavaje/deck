@@ -15,6 +15,8 @@ export class Search extends Panel {
     static HISTORY_INDEX: number = 0;
     static CURRENT_VALUE: string = '';
 
+    static RUNNING_QUERY: string = null;
+
     static initialise() {
         HTML.button({
             id: 'search-collapse',
@@ -93,15 +95,19 @@ export class Search extends Panel {
             },
         });
 
+        console.log(`rendering ${Math.max(Math.ceil(window.innerWidth / 208), 5)} cards`);
+
         this.open();
         HTML.div({id: 'search-status'}, 'Searching...');
         HTML.div({id: 'search-results', class: 'searching'}, HTML.div(
             {class: 'groups'},
-            [...Array(5)]
+            [...Array(Math.max(Math.ceil(window.innerWidth / 208), 3))]
                 .map((_, i) =>
-                    HTML.div({id: `search-stack-${i}`, class: 'stack'},
-                        CardView.render(DeckCard.empty(), `search-result-${i}`),
-                    )
+                    HTML.div({
+                        id: `search-stack-${i}`,
+                        class: 'stack',
+                        style: {'animation_delay': `${i * 0.2}s`},
+                    }, [])
                 ),
         ));
 
@@ -118,7 +124,10 @@ export class Search extends Panel {
             query += ` id:${color_id.code()}`;
         }
 
+        Search.RUNNING_QUERY = query;
         const card_list = await API.card_search(query);
+        if (Search.RUNNING_QUERY !== query) return;
+
         if (card_list) {
             HTML.div({id: 'search-status'}, `Found ${count_plural(card_list.total_cards, 'card')}`);
             HTML.div({id: 'search-results', class: []}, HTML.div(
@@ -127,10 +136,13 @@ export class Search extends Panel {
                     .map(card => DeckCard.from_card(card))
                     .map((card, i) => HTML.div(
                         {id: `search-stack-${i}`, class: 'stack'},
-                        CardView.render(card, `search-result-${i}`, () => {
-                            if (card.oracle_ids().some(id => CardPanel.SELECTED.oracle_ids().includes(id))) {
-                                SetCardPrinting.do(CardPanel.SELECTED, card.card);
-                            }
+                        CardView.render(card, `search-result-${i}`, {
+                            on_click: () => {
+                                if (card.oracle_ids().some(id => CardPanel.SELECTED.oracle_ids().includes(id))) {
+                                    SetCardPrinting.do(CardPanel.SELECTED, card.card);
+                                }
+                            },
+                            on_drag: () => {},
                         }),
                     )),
             ));

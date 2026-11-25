@@ -1,7 +1,7 @@
 import {Action} from "./action";
 import {Deck} from "../deck";
 import {DeckPanel} from "../ui/deck/deck-panel";
-import {DeckView} from "../ui/deck-view";
+import {DeckView} from "../ui/deck/deck-view";
 
 export class EditDeckField<K extends keyof Deck & string> extends Action {
 

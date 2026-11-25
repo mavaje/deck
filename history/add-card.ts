@@ -1,7 +1,7 @@
 import {Action} from "./action";
 import {DeckCard} from "../deck-card";
 import {Deck} from "../deck";
-import {DeckView} from "../ui/deck-view";
+import {DeckView} from "../ui/deck/deck-view";
 import {DeleteCard} from "./delete-card";
 
 export class AddCard extends Action {

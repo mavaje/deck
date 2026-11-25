@@ -1,5 +1,5 @@
 import {HTML} from "../xml";
-import {DeckView} from "../deck-view";
+import {DeckView} from "./deck-view";
 import {Type} from "../../card-classifier/type";
 import {Color} from "../../card-classifier/color";
 import {ColorIdentity} from "../../card-classifier/color-identity";

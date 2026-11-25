@@ -1,15 +1,15 @@
-import {HTML} from "./xml";
-import {Zone} from "../designation/zone";
-import {Deck} from "../deck";
-import {CardView} from "./card-view";
-import {DeckCard} from "../deck-card";
-import {CardClassifier} from "../card-classifier/card-classifier";
-import {CardList} from "../card-list";
-import {FaceSelector} from "../card-classifier/face-selector";
-import {Group} from "../card-classifier/group";
-import {CardPanel} from "./deck/card-panel";
-import {DeckError, DeckValidator} from "../deck-validator";
-import {Zone as ZoneGrouping} from '../card-classifier/zone';
+import {HTML} from "../xml";
+import {Zone} from "../../designation/zone";
+import {Deck} from "../../deck";
+import {CardView} from "../card-view";
+import {DeckCard} from "../../deck-card";
+import {CardClassifier} from "../../card-classifier/card-classifier";
+import {CardList} from "../../card-list";
+import {FaceSelector} from "../../card-classifier/face-selector";
+import {Group} from "../../card-classifier/group";
+import {CardPanel} from "./card-panel";
+import {DeckError, DeckValidator} from "../../deck-validator";
+import {Zone as ZoneGrouping} from '../../card-classifier/zone';
 
 export class DeckView {
 
@@ -22,6 +22,7 @@ export class DeckView {
     static FACE_SELECTOR: FaceSelector = FaceSelector.front;
 
     static DECK_ELEMENT = HTML.div({id: 'deck'});
+    static DECK_CARDS = HTML.div({id: 'deck-cards'});
 
     static render(deck: Deck = Deck.CURRENT): HTMLDivElement {
         this.errors = new DeckValidator(deck).validate();
@@ -152,10 +153,13 @@ export class DeckView {
                             elements.push(CardView.render(
                                 card,
                                 `${id}-card-${card.id}-${quantity - 1 - j}`,
-                                () => CardPanel.open(card),
-                                grouping?.face_id(card, group.value),
-                                !last_of_card,
-                                true,
+                                {
+                                    face_id: grouping?.face_id(card, group.value),
+                                    is_duplicate: !last_of_card,
+                                    in_deck_view: true,
+                                    on_click: () => CardPanel.open(card),
+                                    on_drag: () => {},
+                                },
                             ));
                         }
 

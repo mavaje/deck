@@ -1,7 +1,7 @@
 import {Action} from "./action";
 import {DeckCard} from "../deck-card";
 import {Deck} from "../deck";
-import {DeckView} from "../ui/deck-view";
+import {DeckView} from "../ui/deck/deck-view";
 import {CardPanel} from "../ui/deck/card-panel";
 import {AddCard} from "./add-card";
 

@@ -365,15 +365,14 @@ button:disabled {
     z-index: 1;
 }
 
-#search-results.searching .card {
-    pointer-events: none;
+#search-results.searching .stack {
+    animation: searching-fade 1.5s infinite;
 }
 
-#search-results.searching .stack:nth-child(2) .card {opacity: 80%;}
-#search-results.searching .stack:nth-child(2) .card {opacity: 40%;}
-#search-results.searching .stack:nth-child(3) .card {opacity: 20%;}
-#search-results.searching .stack:nth-child(4) .card {opacity: 10%;}
-#search-results.searching .stack:nth-child(5) .card {opacity: 5%;}
+@keyframes searching-fade {
+    0%, 100% { opacity: 100% }
+    50% { opacity: 0% }
+}
 
 #deck {
     flex: 1;
@@ -496,6 +495,25 @@ div:has(> #delete-card) {
     margin: 0 4px;
 }
 
+#drag-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 8;
+}
+
+#drag-layer.dragging {
+    pointer-events: all;
+}
+
+#drag-layer .card,
+#drag-layer .trigger {
+    pointer-events: none;
+}
+
 #deck-cards {
     overflow: auto;
     width: 100%;
@@ -613,7 +631,24 @@ div:has(> #delete-card) {
 }
 
 .stack {
+    position: relative;
     padding-block: 12px;
+    margin-inline: 8px;
+    min-width: calc(25 * var(--card-scale));
+}
+
+.stack::before {
+    content: "";
+    position: absolute;
+    width: calc(25 * var(--card-scale) - 4px);
+    height: calc(35 * var(--card-scale) - 4px);
+    border-radius: calc(1.25 * var(--card-scale));
+    border: 2px dashed transparent;
+    transition-property: border-color;
+}
+
+.stack:not(:has(.card))::before {
+    border-color: #ffffff7f;
 }
 
 #deck .stack {
@@ -630,12 +665,15 @@ div:has(> #delete-card) {
     width: var(--card-width);
     height: var(--card-height);
     margin-bottom: calc(var(--card-title-height) - var(--card-height));
-    margin-inline: 8px;
     transform: perspective(1024px);
     transform-origin: 50% calc(8 * var(--card-scale));
     transform-style: preserve-3d;
-    cursor: pointer;
     transition-property: width, height, margin, opacity;
+}
+
+#search-results .card,
+#deck-cards .card {
+    cursor: pointer;
 }
 
 .card.double {
@@ -728,6 +766,10 @@ div:has(> #delete-card) {
     transform: translateZ(100px);
 }
 
+.card.dragging .card-shift {
+    transform: translateZ(200px);
+}
+
 .card .count {
     margin-left: -40px;
     padding: calc(var(--card-title-height) / 2 - 4px) 8px 0 0;
@@ -783,11 +825,8 @@ div:has(> #delete-card) {
     transform: var(--transform-compact);
 }
 
+.card.invert .card-faces,
 .card:has(.trigger:hover) .card-faces {
-    transform: var(--transform-final);
-}
-
-.card.invert .card-faces {
     transform: var(--transform-final);
 }
 
@@ -987,7 +1026,7 @@ div:has(> #delete-card) {
     --theme: var(--error);
 }
 
-.card:hover .card-faces,
+#deck-cards .card:hover .card-faces,
 .card.focus .card-faces,
 .card.error .card-faces {
     box-shadow: 0 0 2px 1px white, 0 0 8px 2px var(--theme);

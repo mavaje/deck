@@ -10,7 +10,7 @@ import {CardView} from "../card-view";
 import {DeckPanel} from "./deck-panel";
 import {Panel} from "../panel";
 import {Search} from "../search/search";
-import {DeckView} from "../deck-view";
+import {DeckView} from "./deck-view";
 import {Dropdown} from "../dropdown";
 import {EditCardName} from "../../history/edit-card-name";
 import {Deck} from "../../deck";

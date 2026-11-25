@@ -5,7 +5,7 @@ import {ColorSet} from "./color-set";
 import {Zone} from "./designation/zone";
 import {CardList} from "./card-list";
 import {Tag} from "./designation/tag";
-import {DeckView} from "./ui/deck-view";
+import {DeckView} from "./ui/deck/deck-view";
 import {History} from "./history/history";
 import {Game} from "./game";
 import {CardPanel} from "./ui/deck/card-panel";

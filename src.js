@@ -76,7 +76,7 @@ function create_element(tag, parameters, namespace) {
           previous_child.after(new_child);
         }
       } else {
-        let first_child = element.childNodes[0];
+        let first_child = element.firstChild;
         while (ignore_children.has(first_child)) {
           first_child = first_child.nextSibling;
         }
@@ -1412,7 +1412,12 @@ var init_face = __esm({
         return `https://backs.scryfall.io/large/${id[0]}/${id[1]}/${id}.jpg`;
       }
       card_name(key = "name") {
-        const get_name = (key2) => {
+        const keys = {
+          "flavor_name": ["flavor_name", "printed_name", "name"],
+          "printed_name": ["printed_name", "flavor_name", "name"],
+          "name": ["name"]
+        }[key];
+        for (const key2 of keys) {
           if (this.face?.[key2]) return this.face[key2];
           if (this.is_card() && this.card.card_faces) {
             const names = this.card.card_faces.map((face) => face[key2]).filter(Boolean);
@@ -1420,19 +1425,6 @@ var init_face = __esm({
               return names.join(" // ");
             }
           }
-        };
-        let name;
-        switch (key) {
-          case "flavor_name":
-            name = get_name("flavor_name");
-            if (name) return name;
-          //fallthrough
-          case "printed_name":
-            name = get_name("printed_name");
-            if (name) return name;
-          //fallthrough
-          default:
-            return get_name("name");
         }
       }
       artist() {
@@ -1482,6 +1474,63 @@ var init_skeleton = __esm({
   }
 });
 
+// ui/dragger.ts
+var Dragger;
+var init_dragger = __esm({
+  "ui/dragger.ts"() {
+    init_xml();
+    init_deck_view();
+    Dragger = class _Dragger {
+      static LAYER = HTML.div({ id: "drag-layer" });
+      static CARD = null;
+      static ORIGIN = null;
+      static ORIGIN_BEFORE = null;
+      static grab(card, event) {
+        console.log("dragging start");
+        _Dragger.CARD = card;
+        _Dragger.ORIGIN = card.parentElement;
+        _Dragger.ORIGIN_BEFORE = card.previousSibling;
+      }
+      static drag(event) {
+        const card = _Dragger.CARD;
+        if (card) {
+          if (card.parentElement !== _Dragger.LAYER) {
+            _Dragger.LAYER.append(card);
+          }
+          _Dragger.LAYER.classList.add("dragging");
+          DeckView.DECK_CARDS.classList.remove("hoverable");
+          console.log("dragging");
+          const shift = HTML.div({ id: `${card.id}-shift` });
+          shift.style.setProperty("left", `${event.x}px`);
+          shift.style.setProperty("top", `${event.y}px`);
+        }
+      }
+      static drop(event) {
+        if (_Dragger.CARD?.parentElement === _Dragger.LAYER) {
+          console.log("dragging stop");
+          const card = _Dragger.CARD;
+          const shift = HTML.div({ id: `${card.id}-shift` });
+          _Dragger.LAYER.classList.remove("dragging");
+          shift.style.removeProperty("left");
+          shift.style.removeProperty("top");
+          if (_Dragger.ORIGIN_BEFORE) {
+            _Dragger.ORIGIN_BEFORE.after(card);
+          } else {
+            _Dragger.ORIGIN.insertBefore(card, _Dragger.ORIGIN.firstChild);
+          }
+        }
+        DeckView.DECK_CARDS.classList.add("hoverable");
+        _Dragger.CARD = null;
+        _Dragger.ORIGIN = null;
+        _Dragger.ORIGIN_BEFORE = null;
+      }
+    };
+    document.addEventListener("pointermove", Dragger.drag);
+    document.addEventListener("pointerup", Dragger.drop);
+    document.addEventListener("pointercancel", Dragger.drop);
+  }
+});
+
 // ui/card-view.ts
 var CardView;
 var init_card_view = __esm({
@@ -1491,10 +1540,18 @@ var init_card_view = __esm({
     init_deck_view();
     init_card_panel();
     init_language();
+    init_dragger();
     CardView = class {
-      static render(card, id = null, on_click = null, face_id = card.display_face_id, is_duplicate = false, in_deck_view = false) {
+      static render(card, id = null, options = {}) {
+        const {
+          location,
+          face_id = card.display_face_id,
+          is_duplicate = false,
+          on_click = null,
+          on_drag = null
+        } = options;
         const card_class = /* @__PURE__ */ new Set(["card", "fade-in"]);
-        if (in_deck_view) {
+        if (location === "deck") {
           if (is_duplicate) card_class.add("duplicate");
           if (card.quantity < 1) card_class.add("ghost");
           if (DeckView.errors.some((error) => error.cards?.includes(card))) card_class.add("error");
@@ -1675,7 +1732,9 @@ var init_card_view = __esm({
           {
             id,
             class: [...card_class],
+            onpointerdown: on_drag && Dragger.grab,
             onpointermove: (card_view, { x, y }) => {
+              if (Dragger.CARD === card_view) return;
               const { top, left, width, height } = card_view.getBoundingClientRect();
               const effective_height = height + Number.parseFloat(getComputedStyle(card_view).marginBottom);
               const dx = x - left - width / 2;
@@ -1683,8 +1742,8 @@ var init_card_view = __esm({
               tilt.style.setProperty("--cursor-x", `${dx}`);
               tilt.style.setProperty("--cursor-y", `${dy}`);
             },
-            onpointerenter: in_deck_view && (() => DeckView.focus(card)),
-            onpointerleave: in_deck_view && (() => DeckView.unfocus(card)),
+            onpointerenter: location === "deck" && (() => DeckView.focus(card)),
+            onpointerleave: location === "deck" && (() => DeckView.unfocus(card)),
             onclick: on_click && ((_, event) => {
               event.stopPropagation();
               on_click();
@@ -1704,7 +1763,7 @@ var init_card_view = __esm({
               id: id && `${id}-shift`,
               class: "card-shift"
             },
-            in_deck_view && !is_duplicate && HTML.div({ class: "count" }, `${card.quantity}\xD7`),
+            location === "deck" && !is_duplicate && HTML.div({ class: "count" }, `${card.quantity}\xD7`),
             tilt = HTML.div(
               {
                 id: id && `${id}-tilt`,
@@ -1958,11 +2017,12 @@ var init_search = __esm({
     init_card_panel();
     init_set_card_printing();
     init_deck();
-    Search = class extends Panel {
+    Search = class _Search extends Panel {
       static id = "search-results";
       static HISTORY = /* @__PURE__ */ new Set();
       static HISTORY_INDEX = 0;
       static CURRENT_VALUE = "";
+      static RUNNING_QUERY = null;
       static initialise() {
         HTML.button({
           id: "search-collapse",
@@ -2029,15 +2089,17 @@ var init_search = __esm({
             }
           }
         });
+        console.log(`rendering ${Math.max(Math.ceil(window.innerWidth / 208), 5)} cards`);
         this.open();
         HTML.div({ id: "search-status" }, "Searching...");
         HTML.div({ id: "search-results", class: "searching" }, HTML.div(
           { class: "groups" },
-          [...Array(5)].map(
-            (_, i) => HTML.div(
-              { id: `search-stack-${i}`, class: "stack" },
-              CardView.render(DeckCard.empty(), `search-result-${i}`)
-            )
+          [...Array(Math.max(Math.ceil(window.innerWidth / 208), 5))].map(
+            (_, i) => HTML.div({
+              id: `search-stack-${i}`,
+              class: "stack",
+              style: { "animation_delay": `${i * 0.2}s` }
+            }, [])
           )
         ));
         if (Deck.CURRENT.format) {
@@ -2050,16 +2112,22 @@ var init_search = __esm({
         if (color_id) {
           query += ` id:${color_id.code()}`;
         }
+        _Search.RUNNING_QUERY = query;
         const card_list = await API.card_search(query);
+        if (_Search.RUNNING_QUERY !== query) return;
         if (card_list) {
           HTML.div({ id: "search-status" }, `Found ${count_plural(card_list.total_cards, "card")}`);
           HTML.div({ id: "search-results", class: [] }, HTML.div(
             { class: "groups" },
             card_list.data.map((card) => DeckCard.from_card(card)).map((card, i) => HTML.div(
               { id: `search-stack-${i}`, class: "stack" },
-              CardView.render(card, `search-result-${i}`, () => {
-                if (card.oracle_ids().some((id) => CardPanel.SELECTED.oracle_ids().includes(id))) {
-                  SetCardPrinting.do(CardPanel.SELECTED, card.card);
+              CardView.render(card, `search-result-${i}`, {
+                on_click: () => {
+                  if (card.oracle_ids().some((id) => CardPanel.SELECTED.oracle_ids().includes(id))) {
+                    SetCardPrinting.do(CardPanel.SELECTED, card.card);
+                  }
+                },
+                on_drag: () => {
                 }
               })
             ))
@@ -2915,13 +2983,13 @@ var init_deck_card = __esm({
           "printed_name",
           "name"
         ].forEach((key) => {
-          names[this.card_name(key)] ??= {
+          names[this.card_name(key)] = {
             face_id: null,
             name_key: key
           };
           this.all_names(key).forEach((name, id) => {
             if (this.is_layout("prepare") && id > 0) return;
-            names[name] ??= {
+            names[name] = {
               face_id: id,
               name_key: key
             };
@@ -3919,10 +3987,10 @@ var init_zone2 = __esm({
   }
 });
 
-// ui/deck-view.ts
+// ui/deck/deck-view.ts
 var DeckView;
 var init_deck_view = __esm({
-  "ui/deck-view.ts"() {
+  "ui/deck/deck-view.ts"() {
     init_xml();
     init_zone();
     init_deck();
@@ -3941,6 +4009,7 @@ var init_deck_view = __esm({
       static ORDERING = CardClassifier;
       static FACE_SELECTOR = FaceSelector.front;
       static DECK_ELEMENT = HTML.div({ id: "deck" });
+      static DECK_CARDS = HTML.div({ id: "deck-cards" });
       static render(deck = Deck.CURRENT) {
         this.errors = new DeckValidator(deck).validate();
         _DeckView.card_views = /* @__PURE__ */ new WeakMap();
@@ -4042,10 +4111,14 @@ var init_deck_view = __esm({
                 elements.push(CardView.render(
                   card,
                   `${id}-card-${card.id}-${quantity - 1 - j}`,
-                  () => CardPanel.open(card),
-                  grouping?.face_id(card, group.value),
-                  !last_of_card,
-                  true
+                  {
+                    face_id: grouping?.face_id(card, group.value),
+                    is_duplicate: !last_of_card,
+                    in_deck_view: true,
+                    on_click: () => CardPanel.open(card),
+                    on_drag: () => {
+                    }
+                  }
                 ));
               }
               const card_views = _DeckView.card_views.get(card) ?? [];

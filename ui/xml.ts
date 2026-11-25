@@ -89,7 +89,7 @@ function create_element<T extends string>(
                     previous_child.after(new_child);
                 }
             } else {
-                let first_child = element.childNodes[0];
+                let first_child = element.firstChild;
                 while (ignore_children.has(first_child)) {
                     first_child = first_child.nextSibling;
                 }

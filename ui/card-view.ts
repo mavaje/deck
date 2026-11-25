@@ -1,23 +1,38 @@
 import {HTML} from "./xml";
 import {DeckCard} from "../deck-card";
 import {data_url, skeleton, skeleton_back} from "./skeleton";
-import {DeckView} from "./deck-view";
+import {DeckView} from "./deck/deck-view";
 import {CardPanel} from "./deck/card-panel";
 import {Language} from "../designation/language";
+import {Dragger} from "./dragger";
+
+export type CardViewOptions = {
+    location?: 'deck' | 'search' | 'panel';
+    face_id?: number;
+    is_duplicate?: boolean;
+    on_click?: () => any;
+    on_drag?: () => any;
+    in_deck_view?: boolean;
+};
 
 export class CardView {
 
     static render(
         card: DeckCard,
         id: number | string = null,
-        on_click: () => any = null,
-        face_id: number = card.display_face_id,
-        is_duplicate: boolean = false,
-        in_deck_view: boolean = false,
+        options: CardViewOptions = {},
     ): HTMLDivElement {
+        const {
+            location,
+            face_id = card.display_face_id,
+            is_duplicate = false,
+            on_click = null,
+            on_drag = null,
+        } = options;
+
         const card_class: Set<string> = new Set(['card', 'fade-in']);
 
-        if (in_deck_view) {
+        if (location === 'deck') {
             if (is_duplicate) card_class.add('duplicate');
             if (card.quantity < 1) card_class.add('ghost');
             if (DeckView.errors.some(error => error.cards?.includes(card))) card_class.add('error');
@@ -225,7 +240,10 @@ export class CardView {
             {
                 id,
                 class: [...card_class],
+                onpointerdown: on_drag && Dragger.grab,
                 onpointermove: (card_view, {x, y}) => {
+                    if (Dragger.CARD === card_view) return;
+
                     const {top, left, width, height} = card_view.getBoundingClientRect();
                     const effective_height = height
                         + Number.parseFloat(getComputedStyle(card_view).marginBottom);
@@ -235,8 +253,8 @@ export class CardView {
                     tilt.style.setProperty('--cursor-x', `${dx}`);
                     tilt.style.setProperty('--cursor-y', `${dy}`);
                 },
-                onpointerenter: in_deck_view && (() => DeckView.focus(card)),
-                onpointerleave: in_deck_view && (() => DeckView.unfocus(card)),
+                onpointerenter: location === 'deck' && (() => DeckView.focus(card)),
+                onpointerleave: location === 'deck' && (() => DeckView.unfocus(card)),
                 onclick: on_click && ((_, event) => {
                     event.stopPropagation();
                     on_click();
@@ -256,7 +274,7 @@ export class CardView {
                     id: id && `${id}-shift`,
                     class: 'card-shift',
                 },
-                in_deck_view && !is_duplicate
+                location === 'deck' && !is_duplicate
                     && HTML.div({class: 'count'}, `${card.quantity}×`),
                 tilt = HTML.div(
                     {
