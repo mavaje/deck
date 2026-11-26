@@ -22,6 +22,14 @@ export class CardPanel extends Panel {
 
     static SELECTED: DeckCard = null;
 
+    static {
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Backspace') {
+                console.log('delete card');
+            }
+        });
+    }
+
     static open(card: DeckCard): void {
         DeckView.deselect(this.SELECTED);
         DeckView.select(card);
@@ -36,7 +44,7 @@ export class CardPanel extends Panel {
             CardView.render(card, `card-panel-card`, {location: 'panel'}),
         );
 
-        const onkeypress: (input: HTMLInputElement, event: KeyboardEvent) => void = (input, {key}) => {
+        const onkeydown: (input: HTMLInputElement, event: KeyboardEvent) => void = (input, {key}) => {
             if (key === 'Enter') {
                 input.blur();
             }
@@ -51,7 +59,7 @@ export class CardPanel extends Panel {
                 EditCardFields.do(card, {quantity});
                 input.value = `${quantity}`;
             },
-            onkeypress,
+            onkeydown,
         });
 
         HTML.button({
@@ -89,7 +97,7 @@ export class CardPanel extends Panel {
                 EditCardFields.do(card, {set: set || null});
                 input.value = set.toUpperCase();
             },
-            onkeypress,
+            onkeydown,
         });
 
         HTML.input({
@@ -97,7 +105,7 @@ export class CardPanel extends Panel {
             class: card.invalid_collector_number() && 'error',
             value: card.collector_number ?? '',
             onchange: input => EditCardFields.do(card, {collector_number: input.value || null}),
-            onkeypress,
+            onkeydown,
         });
 
         HTML.button({

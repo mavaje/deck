@@ -81,7 +81,7 @@ export class DeckPanel extends Panel {
             id: 'deck-title',
             contenteditable: true,
             onblur: element => EditDeckField.do('title', element.innerText),
-            onkeypress: (element, event) => {
+            onkeydown: (element, event) => {
                 if (event.key === 'Enter') {
                     element.blur();
                     event.preventDefault();

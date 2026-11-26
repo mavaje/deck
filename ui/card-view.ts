@@ -7,7 +7,7 @@ import {Language} from "../designation/language";
 import {Dragger} from "./dragger";
 
 export type CardViewOptions = {
-    location?: 'deck' | 'search' | 'panel';
+    location?: 'deck' | 'search' | 'panel' | 'dragger';
     face_id?: number;
     is_duplicate?: boolean;
     on_click?: () => any;
@@ -32,7 +32,10 @@ export class CardView {
 
         const card_class: Set<string> = new Set(['card', 'fade-in']);
 
-        if (Dragger.card === card && Dragger.dragging?.id !== id) {
+        if (Dragger.dragging
+            && Dragger.card === card
+            && Dragger.dragging.id !== id
+        ) {
             card_class.add('dragged');
         }
 
@@ -244,7 +247,7 @@ export class CardView {
             {
                 id,
                 class: [...card_class],
-                onpointerdown: on_drag && (card_view => Dragger.grab(card, card_view)),
+                onpointerdown: on_drag && (card_view => Dragger.grab(card, card_view, location)),
                 onpointermove: (card_view, {x, y}) => {
                     const {top, left, width, height} = card_view.getBoundingClientRect();
                     const effective_height = height
@@ -276,7 +279,7 @@ export class CardView {
                     id: id && `${id}-shift`,
                     class: 'card-shift',
                 },
-                location === 'deck' && !is_duplicate
+                ['deck', 'dragger'].includes(location) && !is_duplicate
                     && HTML.div({class: 'count'}, `${card.quantity}×`),
                 tilt = HTML.div(
                     {

@@ -4,9 +4,8 @@ import {DeckCard} from "../../deck-card";
 import {CardView} from "../card-view";
 import {count_plural} from "../../text";
 import {Panel} from "../panel";
-import {CardPanel} from "../deck/card-panel";
-import {SetCardPrinting} from "../../history/set-card-printing";
 import {Deck} from "../../deck";
+import {DeckView} from "../deck/deck-view";
 
 export class Search extends Panel {
     static id: string = 'search-results';
@@ -139,9 +138,18 @@ export class Search extends Panel {
                         CardView.render(card, `search-result-${i}`, {
                             location: 'search',
                             on_click: () => {
-                                if (card.oracle_ids().some(id => CardPanel.SELECTED.oracle_ids().includes(id))) {
-                                    SetCardPrinting.do(CardPanel.SELECTED, card.card);
+                                add_card:
+                                {
+                                    for (const existing of Deck.CURRENT) {
+                                        if (card.matches(existing)) {
+                                            existing.quantity += card.quantity;
+                                            break add_card;
+                                        }
+                                    }
+                                    Deck.CURRENT.push(DeckCard.from_card(card.card));
                                 }
+
+                                DeckView.render();
                             },
                             on_drag: () => {},
                         }),

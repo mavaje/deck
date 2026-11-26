@@ -189,22 +189,23 @@ export class DeckCard extends Face {
             }
         }
 
-        if (deck) {
-            card.id = deck.length;
-            deck.push(card);
-        }
+        deck?.push(card);
 
         return card;
     }
 
     static from_card(card: Card): DeckCard {
-        return new DeckCard({
+        const deck_card = new DeckCard({
             card,
             set: API.SETS.normalise(card.set),
             collector_number: card.collector_number,
             language: Language.match(card.lang) ?? Language.DEFAULT,
             finish: Finish.first_for_card(card) ?? Finish.DEFAULT,
         }).hydrate();
+
+        deck_card.zone = Zone.default_for(deck_card);
+
+        return deck_card;
     }
 
     static from_json(json: JSONCard, id?: number): DeckCard {
@@ -351,9 +352,7 @@ export class DeckCard extends Face {
         this.set = card.set;
         this.collector_number = card.collector_number;
         this.language = Language.match(card.lang);
-        if (!card.finishes.includes(this.finish.sf_finish())) {
-            this.finish = Finish.first_for_card(card) ?? this.finish;
-        }
+        this.finish = Finish.first_for_card(card) ?? Finish.DEFAULT;
         this.hydrate(card);
     }
 
@@ -447,24 +446,23 @@ export class DeckCard extends Face {
     }
 
     matches(card: DeckCard) {
+        if (card === this) {
+            return true;
+        }
+
         for (const field of [
             'name',
             'set',
             'collector_number',
             'language',
             'zone',
-            'condition',
-            'is_foil',
-            'display_face_id',
-            'display_name_key',
         ] as (keyof DeckCard)[]) {
             if (this[field] !== card[field]) {
                 return false;
             }
         }
 
-        return this.tags.size === card.tags.size
-            && [...this.tags].every(tag => card.tags.has(tag));
+        return true;
     }
 
     in_zone(zone: Zone): boolean;

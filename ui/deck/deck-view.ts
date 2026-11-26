@@ -63,6 +63,7 @@ export class DeckView {
             {
                 id,
                 class: 'group',
+                data_zone: zone.code(),
             },
             zone && HTML.div({
                 id: `${id}-label`,
@@ -86,12 +87,16 @@ export class DeckView {
                 id,
                 class: 'groups',
             },
-            ...grouping.groups()
-                .map((group, j) => this.render_group(group, `${id}-group-${j}`, grouping)),
-            this.render_group(new Group({
-                name: this.GROUPING.ungrouped_name,
-                cards: cards.filter(card => !DeckView.card_views.has(card)),
-            }), `${id}-ungrouped`),
+            [
+                ...grouping.groups()
+                    .filter(group =>
+                        group?.cards?.length > 0 || group?.groups?.length > 0)
+                    .map((group, j) => this.render_group(group, `${id}-group-${j}`, grouping)),
+                this.render_group(new Group({
+                    name: this.GROUPING.ungrouped_name,
+                    cards: cards.filter(card => !DeckView.card_views.has(card)),
+                }), `${id}-ungrouped`),
+            ]
         );
     }
 

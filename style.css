@@ -507,6 +507,11 @@ div:has(> #delete-card) {
 
 #drag-layer:has(.card) {
     pointer-events: all;
+    cursor: grabbing;
+}
+
+body.dragging {
+    user-select: none;
 }
 
 @property --drag-x {
@@ -563,14 +568,6 @@ div:has(> #delete-card) {
     z-index: 2;
 }
 
-#deck-groups > .group:first-child {
-    padding-inline-start: 12px;
-}
-
-#deck-groups > .group:last-child {
-    padding-inline-end: 12px;
-}
-
 @media (min-width: 424px) {
     #deck-groups > .group:first-child {
         padding-inline-start: calc(var(--deck-panel-width) + 12px);
@@ -586,7 +583,7 @@ div:has(> #delete-card) {
 }
 
 #deck:has(#card-panel.collapsed) #deck-groups > .group:last-child {
-    padding-inline-end: 12px;
+    padding-inline-end: calc(15 * var(--card-scale) + 12px);
 }
 
 .label {
@@ -951,7 +948,7 @@ div:has(> #delete-card) {
     transform: translateZ(-1px) rotateX(180deg);
 }
 
-.card.invert:has(.card-face.back) .card-face {
+.card.invert:has(.card-face.back) .card-face.front {
     transform: translateZ(1px);
 }
 

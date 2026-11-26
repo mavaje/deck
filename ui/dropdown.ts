@@ -48,15 +48,14 @@ export class Dropdown<T = any> {
             onfocus: target => this.open(target),
             onclick: target => this.open(target),
             onblur: () => this.close(),
-            onkeypress: (input, {key}) => {
-                if (key === 'Enter') {
-                    input.blur();
-                }
-            },
             onkeydown: (target, event) => {
                 let index = this.options
                     .findIndex(({input_value}) => input_value === this.input.value);
                 switch (event.key) {
+                    case 'Enter':
+                        target.blur();
+                        return;
+
                     case 'ArrowUp':
                         index = index < 0
                             ? this.options.length - 1
@@ -65,6 +64,7 @@ export class Dropdown<T = any> {
                         this.open(target, true);
                         event.preventDefault();
                         return;
+
                     case 'ArrowDown':
                         index = index < 0
                             ? 0
@@ -73,9 +73,9 @@ export class Dropdown<T = any> {
                         this.open(target, true);
                         event.preventDefault();
                         return;
-                }
-                if (event.key !== 'Enter') {
-                    this.open(target);
+
+                    default:
+                        this.open(target);
                 }
             }
         }
