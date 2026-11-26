@@ -16,7 +16,6 @@ import {EditCardName} from "../../history/edit-card-name";
 import {Deck} from "../../deck";
 import {DeleteCard} from "../../history/delete-card";
 import {EditCardFields} from "../../history/edit-card-fields";
-import {compare} from "../../text";
 
 export class CardPanel extends Panel {
     static id: string = 'card-panel';
@@ -34,7 +33,7 @@ export class CardPanel extends Panel {
 
         HTML.div(
             {id: 'card-panel-card-container'},
-            CardView.render(card, `card-panel-card`),
+            CardView.render(card, `card-panel-card`, {location: 'panel'}),
         );
 
         const onkeypress: (input: HTMLInputElement, event: KeyboardEvent) => void = (input, {key}) => {
@@ -112,7 +111,7 @@ export class CardPanel extends Panel {
                     ? `!"${name}"`
                     : name;
                 query += ' unique:prints';
-                if (!card.language.is_default()) query += ` lang:${card.language}`;
+                if (!card.language.ignore_for_search) query += ` lang:${card.language}`;
                 card.display_face().oracle_ids().forEach(id => {
                     query += ` oracleid:${id}`;
                 });
@@ -135,7 +134,6 @@ export class CardPanel extends Panel {
             },
             ({value}) => EditCardFields.do(card, {language: value}),
             Language.all()
-                .sort((a, b) => compare(a.name, b.name))
                 .map(language => ({
                     label: language.name,
                     value: language,

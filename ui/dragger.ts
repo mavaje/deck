@@ -1,56 +1,74 @@
 import {HTML} from "./xml";
+import {DeckCard} from "../deck-card";
 import {DeckView} from "./deck/deck-view";
 
 export class Dragger {
 
     static LAYER = HTML.div({id: 'drag-layer'});
 
-    static CARD: HTMLDivElement = null;
+    static card: DeckCard = null;
+    static card_views: HTMLDivElement[] = null;
 
-    private static ORIGIN: HTMLElement = null;
-    private static ORIGIN_BEFORE: ChildNode = null;
+    static dragging: HTMLDivElement = null;
 
-    static grab(card: HTMLDivElement, event: PointerEvent) {
+    static origin: HTMLElement = null;
+    static origin_before: ChildNode = null;
+
+    static grab(card: DeckCard, card_view: HTMLDivElement) {
         console.log('dragging start');
-        Dragger.CARD = card;
-        Dragger.ORIGIN = card.parentElement;
-        Dragger.ORIGIN_BEFORE = card.previousSibling;
+
+        Dragger.drop();
+        Dragger.card = card;
+        Dragger.card_views = DeckView.card_views.get(Dragger.card) ?? [card_view];
     }
 
     static drag(event: PointerEvent) {
-        const card = Dragger.CARD;
-        if (card) {
-            if (card.parentElement !== Dragger.LAYER) {
-                Dragger.LAYER.append(card);
-            }
-            Dragger.LAYER.classList.add('dragging');
-            DeckView.DECK_CARDS.classList.remove('hoverable');
+        if (Dragger.card) {
             console.log('dragging');
-            const shift = HTML.div({id: `${card.id}-shift`});
-            shift.style.setProperty('left', `${event.x}px`);
-            shift.style.setProperty('top', `${event.y}px`);
+
+            if (!Dragger.dragging) {
+                Dragger.dragging = Dragger.card_views[Dragger.card_views.length - 1];
+                Dragger.origin = Dragger.dragging.parentElement;
+                Dragger.origin_before = Dragger.dragging.previousSibling;
+
+                const {width, height} = Dragger.dragging.getBoundingClientRect();
+                Dragger.origin.style.setProperty('--stack-width', `${width}px`);
+                Dragger.origin.style.setProperty('--stack-height', `${height}px`);
+
+                Dragger.LAYER.classList.toggle('show-quantity', Dragger.card_views.length > 1);
+
+                Dragger.card_views.forEach(card_view => {
+                    if (card_view !== Dragger.dragging) {
+                        card_view.classList.add('dragged');
+                    }
+                });
+
+                Dragger.LAYER.append(Dragger.dragging);
+            }
+
+            Dragger.LAYER.style.setProperty('--drag-x', `${event.x}px`);
+            Dragger.LAYER.style.setProperty('--drag-y', `${event.y}px`);
         }
     }
 
-    static drop(event: PointerEvent) {
-        if (Dragger.CARD?.parentElement === Dragger.LAYER) {
+    static drop(event?: PointerEvent) {
+        if (Dragger.dragging) {
             console.log('dragging stop');
-            const card = Dragger.CARD;
-            const shift = HTML.div({id: `${card.id}-shift`});
-            Dragger.LAYER.classList.remove('dragging');
-            shift.style.removeProperty('left');
-            shift.style.removeProperty('top');
 
-            if (Dragger.ORIGIN_BEFORE) {
-                Dragger.ORIGIN_BEFORE.after(card);
+            Dragger.card_views.forEach(card_view => card_view.classList.remove('dragged'));
+
+            if (Dragger.origin_before) {
+                Dragger.origin_before.after(Dragger.dragging);
             } else {
-                Dragger.ORIGIN.insertBefore(card, Dragger.ORIGIN.firstChild);
+                Dragger.origin.insertBefore(Dragger.dragging, Dragger.origin.firstChild);
             }
         }
-        DeckView.DECK_CARDS.classList.add('hoverable');
-        Dragger.CARD = null;
-        Dragger.ORIGIN = null;
-        Dragger.ORIGIN_BEFORE = null;
+
+        Dragger.card = null;
+        Dragger.card_views = null;
+        Dragger.dragging = null;
+        Dragger.origin = null;
+        Dragger.origin_before = null;
     }
 }
 

@@ -10,6 +10,7 @@ import {Group} from "../../card-classifier/group";
 import {CardPanel} from "./card-panel";
 import {DeckError, DeckValidator} from "../../deck-validator";
 import {Zone as ZoneGrouping} from '../../card-classifier/zone';
+import {Dragger} from "../dragger";
 
 export class DeckView {
 
@@ -22,7 +23,6 @@ export class DeckView {
     static FACE_SELECTOR: FaceSelector = FaceSelector.front;
 
     static DECK_ELEMENT = HTML.div({id: 'deck'});
-    static DECK_CARDS = HTML.div({id: 'deck-cards'});
 
     static render(deck: Deck = Deck.CURRENT): HTMLDivElement {
         this.errors = new DeckValidator(deck).validate();
@@ -154,6 +154,7 @@ export class DeckView {
                                 card,
                                 `${id}-card-${card.id}-${quantity - 1 - j}`,
                                 {
+                                    location: 'deck',
                                     face_id: grouping?.face_id(card, group.value),
                                     is_duplicate: !last_of_card,
                                     in_deck_view: true,
@@ -167,7 +168,7 @@ export class DeckView {
                         card_views.push(...elements);
                         DeckView.card_views.set(card, card_views);
 
-                        return elements;
+                        return elements.filter(card_view => card_view !== Dragger.dragging);
                     }),
             ),
         );

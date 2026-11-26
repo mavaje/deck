@@ -371,7 +371,7 @@ button:disabled {
 
 @keyframes searching-fade {
     0%, 100% { opacity: 100% }
-    50% { opacity: 0% }
+    50% { opacity: 0 }
 }
 
 #deck {
@@ -505,13 +505,38 @@ div:has(> #delete-card) {
     z-index: 8;
 }
 
-#drag-layer.dragging {
+#drag-layer:has(.card) {
     pointer-events: all;
 }
 
-#drag-layer .card,
+@property --drag-x {
+    syntax: "<length>";
+    initial-value: 0;
+    inherits: true;
+}
+
+@property --drag-y {
+    syntax: "<length>";
+    initial-value: 0;
+    inherits: true;
+}
+
+#drag-layer .card {
+    top: var(--drag-y);
+    left: var(--drag-x);
+    pointer-events: none;
+}
+
 #drag-layer .trigger {
     pointer-events: none;
+}
+
+#drag-layer .card-shift {
+    transform: translateZ(100px);
+}
+
+#drag-layer .card-faces {
+    box-shadow: 0 0 2px 2px white, 0 0 8px 4px var(--theme);
 }
 
 #deck-cards {
@@ -631,23 +656,26 @@ div:has(> #delete-card) {
 }
 
 .stack {
+    --stack-width: calc(25 * var(--card-scale));
+    --stack-height: calc(35 * var(--card-scale));
+
     position: relative;
     padding-block: 12px;
     margin-inline: 8px;
-    min-width: calc(25 * var(--card-scale));
+    min-width: var(--stack-width);
 }
 
 .stack::before {
     content: "";
     position: absolute;
-    width: calc(25 * var(--card-scale) - 4px);
-    height: calc(35 * var(--card-scale) - 4px);
+    width: calc(var(--stack-width) - 4px);
+    height: calc(var(--stack-height) - 4px);
     border-radius: calc(1.25 * var(--card-scale));
     border: 2px dashed transparent;
     transition-property: border-color;
 }
 
-.stack:not(:has(.card))::before {
+.stack:not(:has(.card:not(.dragged)))::before {
     border-color: #ffffff7f;
 }
 
@@ -684,6 +712,7 @@ div:has(> #delete-card) {
     --card-title-height: calc(5 * var(--card-scale));
 }
 
+.card.dragged,
 .show-quantity .card.duplicate {
     height: 0 !important;
     margin-bottom: 0 !important;
@@ -756,18 +785,14 @@ div:has(> #delete-card) {
     top: 0;
     left: 0;
     width: 100%;
-    transition-property: transform;
     transform-style: preserve-3d;
     display: inline-flex;
     pointer-events: none;
+    transition-property: transform;
 }
 
 .card:hover .card-shift {
     transform: translateZ(100px);
-}
-
-.card.dragging .card-shift {
-    transform: translateZ(200px);
 }
 
 .card .count {
@@ -780,7 +805,7 @@ div:has(> #delete-card) {
     user-select: none;
 }
 
-#deck-cards.show-quantity .card .count {
+.show-quantity .card .count {
     opacity: 100%;
 }
 
@@ -912,9 +937,8 @@ div:has(> #delete-card) {
     background-position: 50% 50%;
     background-size: cover;
     border-radius: var(--card-radius);
-    transform: translateZ(1px);
     filter: contrast(100%);
-    transition-property: filter, opacity;
+    transition-property: filter, opacity, transform;
     user-select: none;
     overflow: hidden;
 }
@@ -925,6 +949,18 @@ div:has(> #delete-card) {
 
 .card.landscape.double .card-face.back {
     transform: translateZ(-1px) rotateX(180deg);
+}
+
+.card.invert:has(.card-face.back) .card-face {
+    transform: translateZ(1px);
+}
+
+.card.invert .card-face.back {
+    transform: translateZ(0) rotateY(180deg);
+}
+
+.card.landscape.double.invert .card-face.back {
+    transform: translateZ(0) rotateX(180deg);
 }
 
 .card-face.foil:before,
@@ -1010,7 +1046,7 @@ div:has(> #delete-card) {
     opacity: 50%;
 }
 
-#deck-cards.show-quantity .card.ghost:not(:hover) .count {
+.show-quantity .card.ghost:not(:hover) .count {
     opacity: 50%;
 }
 

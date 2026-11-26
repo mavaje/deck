@@ -32,6 +32,10 @@ export class CardView {
 
         const card_class: Set<string> = new Set(['card', 'fade-in']);
 
+        if (Dragger.card === card && Dragger.dragging?.id !== id) {
+            card_class.add('dragged');
+        }
+
         if (location === 'deck') {
             if (is_duplicate) card_class.add('duplicate');
             if (card.quantity < 1) card_class.add('ghost');
@@ -240,10 +244,8 @@ export class CardView {
             {
                 id,
                 class: [...card_class],
-                onpointerdown: on_drag && Dragger.grab,
+                onpointerdown: on_drag && (card_view => Dragger.grab(card, card_view)),
                 onpointermove: (card_view, {x, y}) => {
-                    if (Dragger.CARD === card_view) return;
-
                     const {top, left, width, height} = card_view.getBoundingClientRect();
                     const effective_height = height
                         + Number.parseFloat(getComputedStyle(card_view).marginBottom);

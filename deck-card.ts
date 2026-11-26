@@ -375,9 +375,10 @@ export class DeckCard extends Face {
                             : this.name.split(/\s+\/+\s+/g)[0];
                         const similarity = name === target
                             ? 1
-                            : this.language.is_latin
-                                ? trigram(normalise(name), normalise(target))
-                                : trigram(name, target);
+                            : trigram(
+                                normalise(name, null, /[^\s\d\p{L}]/giu),
+                                normalise(target, null, /[^\s\d\p{L}]/giu),
+                            );
                         if (similarity > max_similarity) {
                             max_similarity = similarity;
                             this.display_face_id = face_id;

@@ -212,9 +212,9 @@ function fraction(number) {
   }
   return `${number}`;
 }
-function normalise(text, uppercase = false, strip = /[^\w\s]/gi, separator = " ") {
+function normalise(text, uppercase = false, strip = /[^\s\w]/gi, separator = " ") {
   if (!text) return text;
-  return (uppercase ? text.toUpperCase() : text.toLowerCase()).normalize("NFKD").replaceAll("\xE6", "ae").replaceAll(strip, "").replaceAll(/^\s+|\s+$/g, "").replaceAll(/\s+/g, separator);
+  return (uppercase === null ? text : uppercase ? text.toUpperCase() : text.toLowerCase()).normalize("NFKD").replaceAll(strip, "").replaceAll(/^\s+|\s+$/g, "").replaceAll(/\s+/g, separator);
 }
 function preserve_case(target, template) {
   if (!target) return "";
@@ -516,33 +516,33 @@ var init_language = __esm({
     init_designation();
     init_text();
     Language = class _Language extends Designation {
-      constructor(name, codes = [], is_latin = false, detector = null, has_font = false) {
+      constructor(name, codes = [], ignore_for_search = false, detector = null, has_font = false) {
         super(name, codes);
-        this.is_latin = is_latin;
+        this.ignore_for_search = ignore_for_search;
         this.detector = detector;
         this.has_font = has_font;
       }
-      is_latin;
+      ignore_for_search;
       detector;
       has_font;
       static english = new _Language("English", ["en"], true);
-      static spanish = new _Language("Spanish", ["es", "sp"], true);
-      static french = new _Language("French", ["fr"], true);
-      static german = new _Language("German", ["de", "ge"], true);
-      static italian = new _Language("Italian", ["it"], true);
-      static portuguese = new _Language("Portuguese", ["pt"], true);
+      static spanish = new _Language("Spanish", ["es", "sp"]);
+      static french = new _Language("French", ["fr"]);
+      static german = new _Language("German", ["de", "ge"]);
+      static italian = new _Language("Italian", ["it"]);
+      static portuguese = new _Language("Portuguese", ["pt"]);
       static korean = new _Language("Korean", ["ko", "kr"], false, /[\u1100-\u11FF\u3130-\u318F\uA960-\uA97F\uAC00-\uD7AF\uD7B0-\uD7FF]/);
       static japanese = new _Language("Japanese", ["ja", "jp"], false, /[\u3040-\u309F\u30A0-\u30FA\u30FC-\u30FF\u31F0-\u31FF\uFF66-\uFF9F\u3005]/);
       static russian = new _Language("Russian", ["ru", "rs"], false, /[\u0400-\u04FF]/);
       static chinese_simplified = new _Language("Simplified Chinese", ["zhs", "cs"], false, /[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\u{20000}-\u{3134F}]/u);
       static chinese_traditional = new _Language("Traditional Chinese", ["zht", "ct"], false);
-      static hebrew = new _Language("Hebrew", ["he"], false, /[\u0590-\u05FF\uFB1D-\uFB4F]/);
+      static hebrew = new _Language("Hebrew", ["he"], true, /[\u0590-\u05FF\uFB1D-\uFB4F]/);
       static latin = new _Language("Latin", ["la"], true);
-      static ancient_greek = new _Language("Ancient Greek", ["grc", "ag"], false, /[\u0370-\u03FF\u1F00-\u1FFF]/);
-      static arabic = new _Language("Arabic", ["ar"], false, /[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/);
-      static sanskrit = new _Language("Sanskrit", ["sa"], false, /[\u0900-\u097F\uA8E0-\uA8FF\u1CD0-\u1CFF]/);
-      static phyrexian = new _Language("Phyrexian", ["ph"], false, /^\|/, true);
-      static quenya = new _Language("Quenya", ["qya"], false, /[\uE000-\uE07F]/, true);
+      static ancient_greek = new _Language("Ancient Greek", ["grc", "ag"], true, /[\u0370-\u03FF\u1F00-\u1FFF]/);
+      static arabic = new _Language("Arabic", ["ar"], true, /[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/);
+      static sanskrit = new _Language("Sanskrit", ["sa"], true, /[\u0900-\u097F\uA8E0-\uA8FF\u1CD0-\u1CFF]/);
+      static phyrexian = new _Language("Phyrexian", ["ph"], true, /^\|/, true);
+      static quenya = new _Language("Quenya", ["qya"], true, /[\uE000-\uE07F]/, true);
       static dwarvish = new _Language("Dwarvish", ["dw"], true, /[\u16A0-\u16FF\uE080-\uE0FF]/);
       static klingon = new _Language("Klingon", ["tlh", "kl"], true, /[\uF8D0-\uF8FF]/);
       static DEFAULT = this.english;
@@ -1482,47 +1482,54 @@ var init_dragger = __esm({
     init_deck_view();
     Dragger = class _Dragger {
       static LAYER = HTML.div({ id: "drag-layer" });
-      static CARD = null;
-      static ORIGIN = null;
-      static ORIGIN_BEFORE = null;
-      static grab(card, event) {
+      static card = null;
+      static card_views = null;
+      static dragging = null;
+      static origin = null;
+      static origin_before = null;
+      static grab(card, card_view) {
         console.log("dragging start");
-        _Dragger.CARD = card;
-        _Dragger.ORIGIN = card.parentElement;
-        _Dragger.ORIGIN_BEFORE = card.previousSibling;
+        _Dragger.drop();
+        _Dragger.card = card;
+        _Dragger.card_views = DeckView.card_views.get(_Dragger.card) ?? [card_view];
       }
       static drag(event) {
-        const card = _Dragger.CARD;
-        if (card) {
-          if (card.parentElement !== _Dragger.LAYER) {
-            _Dragger.LAYER.append(card);
-          }
-          _Dragger.LAYER.classList.add("dragging");
-          DeckView.DECK_CARDS.classList.remove("hoverable");
+        if (_Dragger.card) {
           console.log("dragging");
-          const shift = HTML.div({ id: `${card.id}-shift` });
-          shift.style.setProperty("left", `${event.x}px`);
-          shift.style.setProperty("top", `${event.y}px`);
+          if (!_Dragger.dragging) {
+            _Dragger.dragging = _Dragger.card_views[_Dragger.card_views.length - 1];
+            _Dragger.origin = _Dragger.dragging.parentElement;
+            _Dragger.origin_before = _Dragger.dragging.previousSibling;
+            const { width, height } = _Dragger.dragging.getBoundingClientRect();
+            _Dragger.origin.style.setProperty("--stack-width", `${width}px`);
+            _Dragger.origin.style.setProperty("--stack-height", `${height}px`);
+            _Dragger.LAYER.classList.toggle("show-quantity", _Dragger.card_views.length > 1);
+            _Dragger.card_views.forEach((card_view) => {
+              if (card_view !== _Dragger.dragging) {
+                card_view.classList.add("dragged");
+              }
+            });
+            _Dragger.LAYER.append(_Dragger.dragging);
+          }
+          _Dragger.LAYER.style.setProperty("--drag-x", `${event.x}px`);
+          _Dragger.LAYER.style.setProperty("--drag-y", `${event.y}px`);
         }
       }
       static drop(event) {
-        if (_Dragger.CARD?.parentElement === _Dragger.LAYER) {
+        if (_Dragger.dragging) {
           console.log("dragging stop");
-          const card = _Dragger.CARD;
-          const shift = HTML.div({ id: `${card.id}-shift` });
-          _Dragger.LAYER.classList.remove("dragging");
-          shift.style.removeProperty("left");
-          shift.style.removeProperty("top");
-          if (_Dragger.ORIGIN_BEFORE) {
-            _Dragger.ORIGIN_BEFORE.after(card);
+          _Dragger.card_views.forEach((card_view) => card_view.classList.remove("dragged"));
+          if (_Dragger.origin_before) {
+            _Dragger.origin_before.after(_Dragger.dragging);
           } else {
-            _Dragger.ORIGIN.insertBefore(card, _Dragger.ORIGIN.firstChild);
+            _Dragger.origin.insertBefore(_Dragger.dragging, _Dragger.origin.firstChild);
           }
         }
-        DeckView.DECK_CARDS.classList.add("hoverable");
-        _Dragger.CARD = null;
-        _Dragger.ORIGIN = null;
-        _Dragger.ORIGIN_BEFORE = null;
+        _Dragger.card = null;
+        _Dragger.card_views = null;
+        _Dragger.dragging = null;
+        _Dragger.origin = null;
+        _Dragger.origin_before = null;
       }
     };
     document.addEventListener("pointermove", Dragger.drag);
@@ -1551,6 +1558,9 @@ var init_card_view = __esm({
           on_drag = null
         } = options;
         const card_class = /* @__PURE__ */ new Set(["card", "fade-in"]);
+        if (Dragger.card === card && Dragger.dragging?.id !== id) {
+          card_class.add("dragged");
+        }
         if (location === "deck") {
           if (is_duplicate) card_class.add("duplicate");
           if (card.quantity < 1) card_class.add("ghost");
@@ -1732,9 +1742,8 @@ var init_card_view = __esm({
           {
             id,
             class: [...card_class],
-            onpointerdown: on_drag && Dragger.grab,
+            onpointerdown: on_drag && ((card_view) => Dragger.grab(card, card_view)),
             onpointermove: (card_view, { x, y }) => {
-              if (Dragger.CARD === card_view) return;
               const { top, left, width, height } = card_view.getBoundingClientRect();
               const effective_height = height + Number.parseFloat(getComputedStyle(card_view).marginBottom);
               const dx = x - left - width / 2;
@@ -2094,7 +2103,7 @@ var init_search = __esm({
         HTML.div({ id: "search-status" }, "Searching...");
         HTML.div({ id: "search-results", class: "searching" }, HTML.div(
           { class: "groups" },
-          [...Array(Math.max(Math.ceil(window.innerWidth / 208), 5))].map(
+          [...Array(Math.max(Math.ceil(window.innerWidth / 208), 3))].map(
             (_, i) => HTML.div({
               id: `search-stack-${i}`,
               class: "stack",
@@ -2122,6 +2131,7 @@ var init_search = __esm({
             card_list.data.map((card) => DeckCard.from_card(card)).map((card, i) => HTML.div(
               { id: `search-stack-${i}`, class: "stack" },
               CardView.render(card, `search-result-${i}`, {
+                location: "search",
                 on_click: () => {
                   if (card.oracle_ids().some((id) => CardPanel.SELECTED.oracle_ids().includes(id))) {
                     SetCardPrinting.do(CardPanel.SELECTED, card.card);
@@ -2451,7 +2461,6 @@ var init_card_panel = __esm({
     init_deck();
     init_delete_card();
     init_edit_card_fields();
-    init_text();
     CardPanel = class extends Panel {
       static id = "card-panel";
       static SELECTED = null;
@@ -2465,7 +2474,7 @@ var init_card_panel = __esm({
         super.open();
         HTML.div(
           { id: "card-panel-card-container" },
-          CardView.render(card, `card-panel-card`)
+          CardView.render(card, `card-panel-card`, { location: "panel" })
         );
         const onkeypress = (input, { key }) => {
           if (key === "Enter") {
@@ -2532,7 +2541,7 @@ var init_card_panel = __esm({
             const name = card.card_name("name").replace(/^(.+) \/\/ \1$/, "$1");
             let query = card.card ? `!"${name}"` : name;
             query += " unique:prints";
-            if (!card.language.is_default()) query += ` lang:${card.language}`;
+            if (!card.language.ignore_for_search) query += ` lang:${card.language}`;
             card.display_face().oracle_ids().forEach((id) => {
               query += ` oracleid:${id}`;
             });
@@ -2552,7 +2561,7 @@ var init_card_panel = __esm({
             readonly: true
           },
           ({ value }) => EditCardFields.do(card, { language: value }),
-          Language.all().sort((a, b) => compare(a.name, b.name)).map((language) => ({
+          Language.all().map((language) => ({
             label: language.name,
             value: language
           }))
@@ -2899,7 +2908,10 @@ var init_deck_card = __esm({
             let max_similarity = 0;
             Object.entries(this.selectable_names()).some(([name, { face_id, name_key }]) => {
               const target = face_id === null ? this.name : this.name.split(/\s+\/+\s+/g)[0];
-              const similarity = name === target ? 1 : this.language.is_latin ? trigram(normalise(name), normalise(target)) : trigram(name, target);
+              const similarity = name === target ? 1 : trigram(
+                normalise(name, null, /[^\s\d\p{L}]/giu),
+                normalise(target, null, /[^\s\d\p{L}]/giu)
+              );
               if (similarity > max_similarity) {
                 max_similarity = similarity;
                 this.display_face_id = face_id;
@@ -4001,6 +4013,7 @@ var init_deck_view = __esm({
     init_card_panel();
     init_deck_validator();
     init_zone2();
+    init_dragger();
     DeckView = class _DeckView {
       static card_views = /* @__PURE__ */ new WeakMap();
       static errors = [];
@@ -4009,7 +4022,6 @@ var init_deck_view = __esm({
       static ORDERING = CardClassifier;
       static FACE_SELECTOR = FaceSelector.front;
       static DECK_ELEMENT = HTML.div({ id: "deck" });
-      static DECK_CARDS = HTML.div({ id: "deck-cards" });
       static render(deck = Deck.CURRENT) {
         this.errors = new DeckValidator(deck).validate();
         _DeckView.card_views = /* @__PURE__ */ new WeakMap();
@@ -4112,6 +4124,7 @@ var init_deck_view = __esm({
                   card,
                   `${id}-card-${card.id}-${quantity - 1 - j}`,
                   {
+                    location: "deck",
                     face_id: grouping?.face_id(card, group.value),
                     is_duplicate: !last_of_card,
                     in_deck_view: true,
@@ -4124,7 +4137,7 @@ var init_deck_view = __esm({
               const card_views = _DeckView.card_views.get(card) ?? [];
               card_views.push(...elements);
               _DeckView.card_views.set(card, card_views);
-              return elements;
+              return elements.filter((card_view) => card_view !== Dragger.dragging);
             })
           )
         );

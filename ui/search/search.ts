@@ -137,6 +137,7 @@ export class Search extends Panel {
                     .map((card, i) => HTML.div(
                         {id: `search-stack-${i}`, class: 'stack'},
                         CardView.render(card, `search-result-${i}`, {
+                            location: 'search',
                             on_click: () => {
                                 if (card.oracle_ids().some(id => CardPanel.SELECTED.oracle_ids().includes(id))) {
                                     SetCardPrinting.do(CardPanel.SELECTED, card.card);

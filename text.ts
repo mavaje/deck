@@ -84,16 +84,17 @@ export function fraction(number: number): string {
 export function normalise(
     text: string,
     uppercase: boolean = false,
-    strip: RegExp = /[^\w\s]/gi,
+    strip: RegExp = /[^\s\w]/gi,
     separator: string = ' ',
 ): string {
     if (!text) return text;
 
-    return (uppercase
-        ? text.toUpperCase()
-        : text.toLowerCase())
+    return (uppercase === null
+        ? text
+        : uppercase
+            ? text.toUpperCase()
+            : text.toLowerCase())
         .normalize('NFKD')
-        .replaceAll('æ', 'ae')
         .replaceAll(strip, '')
         .replaceAll(/^\s+|\s+$/g, '')
         .replaceAll(/\s+/g, separator);
