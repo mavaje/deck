@@ -6,8 +6,10 @@ import {CardPanel} from "./deck/card-panel";
 import {Language} from "../designation/language";
 import {Dragger} from "./dragger";
 
+export type CardLocation = 'deck' | 'search' | 'panel' | 'dragger';
+
 export type CardViewOptions = {
-    location?: 'deck' | 'search' | 'panel' | 'dragger';
+    location?: CardLocation;
     face_id?: number;
     is_duplicate?: boolean;
     on_click?: () => any;
@@ -32,18 +34,26 @@ export class CardView {
 
         const card_class: Set<string> = new Set(['card', 'fade-in']);
 
-        if (Dragger.dragging
-            && Dragger.card === card
-            && Dragger.dragging.id !== id
-        ) {
-            card_class.add('dragged');
-        }
-
         if (location === 'deck') {
-            if (is_duplicate) card_class.add('duplicate');
-            if (card.quantity < 1) card_class.add('ghost');
-            if (DeckView.errors.some(error => error.cards?.includes(card))) card_class.add('error');
-            if (card === CardPanel.SELECTED) card_class.add('select');
+            if (is_duplicate) {
+                card_class.add('duplicate');
+            }
+
+            if (card.quantity < 1) {
+                card_class.add('ghost');
+            }
+
+            if (DeckView.errors.some(error => error.cards?.includes(card))) {
+                card_class.add('error');
+            }
+
+            if (card === CardPanel.SELECTED) {
+                card_class.add('select');
+            }
+
+            if (Dragger.dragging && Dragger.card === card) {
+                card_class.add('dragged');
+            }
         }
 
         const faces: HTMLDivElement[] = [];
@@ -247,7 +257,7 @@ export class CardView {
             {
                 id,
                 class: [...card_class],
-                onpointerdown: on_drag && (card_view => Dragger.grab(card, card_view, location)),
+                onpointerdown: on_drag && ((card_view, event) => Dragger.grab(card, card_view, location, event)),
                 onpointermove: (card_view, {x, y}) => {
                     const {top, left, width, height} = card_view.getBoundingClientRect();
                     const effective_height = height

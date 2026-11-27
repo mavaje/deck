@@ -288,6 +288,10 @@ button:disabled {
     text-shadow: 0 0 2px var(--theme);
 }
 
+.dropdown .option > span {
+    display: inline-block;
+}
+
 #background {
     --card-image-url: none;
     width: 100%;
@@ -447,9 +451,30 @@ button:disabled {
     height: calc(49 * var(--card-scale));
 }
 
+#card-panel::before {
+    content: "";
+    position: absolute;
+    inset: 16px;
+    filter: blur(16px);
+    z-index: -1;
+    transition-property: background-color;
+}
+
+#card-panel[data-drop=deck]::before {
+    background-color: rgba(var(--theme-rgb) / 30%);
+}
+
+#card-panel[data-drop=search] .card-faces {
+    box-shadow: 0 0 2px 2px white, 0 0 8px 4px var(--theme);
+}
+
 #quantity-input {
     width: 3ch;
     text-align: center;
+}
+
+#delete-card {
+    margin-left: auto;
 }
 
 #name-input {
@@ -467,10 +492,6 @@ button:disabled {
 
 #print-search {
     flex: 0;
-}
-
-div:has(> #delete-card) {
-    align-self: end;
 }
 
 #deck-info {
@@ -510,7 +531,8 @@ div:has(> #delete-card) {
     cursor: grabbing;
 }
 
-body.dragging {
+body.dragging,
+body.dragging * {
     user-select: none;
 }
 
@@ -530,6 +552,7 @@ body.dragging {
     top: var(--drag-y);
     left: var(--drag-x);
     pointer-events: none;
+    transition-property: transform;
 }
 
 #drag-layer .trigger {
@@ -537,7 +560,7 @@ body.dragging {
 }
 
 #drag-layer .card-shift {
-    transform: translateZ(100px);
+    /*transform: translateZ(100px);*/
 }
 
 #drag-layer .card-faces {
@@ -819,7 +842,7 @@ body.dragging {
         calc(-1 * var(--cursor-y)),
         var(--cursor-x),
         0,
-        calc(-0.1deg * hypot(var(--cursor-x), var(--cursor-y)))
+        calc(-0.05deg * hypot(var(--cursor-x), var(--cursor-y)))
     );
 }
 
@@ -981,6 +1004,28 @@ body.dragging {
         calc(1px * var(--cursor-y) / 2);
 }
 
+.card.landscape:hover .card-face:before,
+.card.landscape-front.invert:has(.trigger:hover) .card-face.front:before,
+.card.landscape-front:not(.invert):not(:has(.trigger:hover)):hover .card-face.front:before {
+    background-position:
+            calc(1px * var(--cursor-y) / 2)
+            calc(-1px * var(--cursor-x) / 2);
+}
+
+.card.flip:not(.invert):has(.trigger:hover) .card-face:before,
+.card.flip.invert:not(:has(.trigger:hover)):hover .card-face:before {
+    background-position:
+            calc(-1px * var(--cursor-x) / 2)
+            calc(-1px * var(--cursor-y) / 2);
+}
+
+.card.aftermath:not(.invert):has(.trigger:hover) .card-face:before,
+.card.aftermath.invert:not(:has(.trigger:hover)):hover .card-face:before {
+    background-position:
+            calc(-1px * var(--cursor-y) / 2)
+            calc(1px * var(--cursor-x) / 2);
+}
+
 @keyframes foil-animation {
     100% { background-position: var(--foil-scale) var(--foil-scale) }
 }
@@ -1052,13 +1097,14 @@ body.dragging {
 }
 
 .card.ghost:not(:hover) .card-face {
-    filter: contrast(25%);
+    filter: contrast(40%);
 }
 
 .card.error .card-faces {
     --theme: var(--error);
 }
 
+#search-results .card:hover .card-faces,
 #deck-cards .card:hover .card-faces,
 .card.focus .card-faces,
 .card.error .card-faces {
@@ -1075,7 +1121,7 @@ body.dragging {
     height: 100%;
     mix-blend-mode: multiply;
     filter: invert(50%) brightness(200%);
-    opacity: 50%;
+    opacity: 60%;
     transition-property: opacity, filter;
 }
 

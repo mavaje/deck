@@ -6,6 +6,6 @@ export class Name extends CardClassifier {
 
     compare(a: DeckCard, b: DeckCard): number {
         return this.compare_card_string(a, b, (_, card) => card
-            .deck_list_name());
+            .display_name());
     }
 }

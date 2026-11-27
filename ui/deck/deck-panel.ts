@@ -20,7 +20,7 @@ import {Panel} from "../panel";
 import {Deck} from "../../deck";
 import {DeckCard} from "../../deck-card";
 import {Dropdown} from "../dropdown";
-import {EditDeckField} from "../../history/edit-deck-field";
+import {DeckEditField} from "../../history/deck-edit-field";
 import {Format} from "../../format";
 import {Game} from "../../game";
 
@@ -80,7 +80,7 @@ export class DeckPanel extends Panel {
         HTML.h2({
             id: 'deck-title',
             contenteditable: true,
-            onblur: element => EditDeckField.do('title', element.innerText),
+            onblur: element => DeckEditField.do('title', element.innerText),
             onkeydown: (element, event) => {
                 if (event.key === 'Enter') {
                     element.blur();
@@ -149,7 +149,7 @@ export class DeckPanel extends Panel {
                 value: Deck.CURRENT.format?.name ?? '',
                 readonly: true,
             },
-            ({value}) => EditDeckField.do('format', value),
+            ({value}) => DeckEditField.do('format', value),
             [
                 {
                     label: 'Unspecified',
@@ -170,7 +170,7 @@ export class DeckPanel extends Panel {
                 value: Deck.CURRENT.game?.name ?? '',
                 readonly: true,
             },
-            ({value}) => EditDeckField.do('game', value),
+            ({value}) => DeckEditField.do('game', value),
             [
                 {
                     label: 'Unspecified',

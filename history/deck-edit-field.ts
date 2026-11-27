@@ -3,7 +3,7 @@ import {Deck} from "../deck";
 import {DeckPanel} from "../ui/deck/deck-panel";
 import {DeckView} from "../ui/deck/deck-view";
 
-export class EditDeckField<K extends keyof Deck & string> extends Action {
+export class DeckEditField<K extends keyof Deck & string> extends Action {
 
     private old_value: Deck[K];
 
@@ -30,7 +30,7 @@ export class EditDeckField<K extends keyof Deck & string> extends Action {
     }
 
     reverse(): Action {
-        return new EditDeckField(
+        return new DeckEditField(
             this.field,
             this.old_value,
         );

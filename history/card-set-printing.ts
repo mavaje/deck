@@ -1,9 +1,9 @@
 import {Action} from "./action";
 import {DeckCard} from "../deck-card";
 import {Card} from "../scryfall/types";
-import {EditCardFields} from "./edit-card-fields";
+import {CardEditFields} from "./card-edit-fields";
 
-export class SetCardPrinting extends Action {
+export class CardSetPrinting extends Action {
 
     private old_values: Partial<DeckCard>;
 
@@ -33,7 +33,7 @@ export class SetCardPrinting extends Action {
     }
 
     reverse(): Action {
-        return new EditCardFields(
+        return new CardEditFields(
             this.card,
             this.old_values,
         );

@@ -90,6 +90,7 @@ function create_element(tag, parameters, namespace) {
   const listeners = EVENT_LISTENERS.get(element) ?? {};
   listeners.refresh?.(void 0);
   Object.entries(attributes).forEach(([key, value]) => {
+    key = key.replaceAll("_", "-");
     if (is_nullish(value) || value === false) {
       if (key.startsWith("on")) {
         const event = key.slice(2);
@@ -100,7 +101,6 @@ function create_element(tag, parameters, namespace) {
       }
       return;
     }
-    key = key.replaceAll("_", "-");
     switch (key) {
       case "class":
         if (!Array.isArray(value)) value = value.split(/\s+/g);
@@ -383,7 +383,7 @@ var init_zone = __esm({
         this.copy_limit = copy_limit;
         this.card_types = card_types;
         if (this.card_types) {
-          this.filters.push((card) => this.card_types.some((type) => {
+          this.filters.push((card) => !card.card || this.card_types.some((type) => {
             const [card_type, subtype] = type.split(" - ");
             return card.is_card_type(card_type) && (!subtype || card.is_type(subtype));
           }));
@@ -1474,76 +1474,428 @@ var init_skeleton = __esm({
   }
 });
 
+// storage.ts
+var storage_exports = {};
+__export(storage_exports, {
+  Storage: () => Storage
+});
+var Storage;
+var init_storage = __esm({
+  "storage.ts"() {
+    init_deck();
+    Storage = class {
+      static store_deck() {
+        window.localStorage.setItem("deck", JSON.stringify(Deck.CURRENT.json()));
+      }
+      static async load_deck() {
+        const json = window.localStorage.getItem("deck");
+        if (json) await Deck.load_from_json(JSON.parse(json));
+      }
+    };
+  }
+});
+
+// history/history.ts
+var History;
+var init_history = __esm({
+  "history/history.ts"() {
+    init_storage();
+    History = class {
+      static past = [];
+      static future = [];
+      static reset() {
+        this.past = [];
+        this.future = [];
+      }
+      static undo() {
+        const action = this.past.pop();
+        if (action) {
+          const reverse = action.reverse();
+          console.log("undid", action.message(), "by", reverse.message());
+          reverse.execute();
+          this.future.push(reverse);
+          Storage.store_deck();
+        }
+      }
+      static redo() {
+        const action = this.future.pop();
+        if (action) {
+          const reverse = action.reverse();
+          console.log("redid", reverse.message(), ", undoing", action.message());
+          reverse.execute();
+          this.past.push(reverse);
+          Storage.store_deck();
+        }
+      }
+      static shift(backwards = false) {
+        if (backwards) {
+          this.redo();
+        } else {
+          this.undo();
+        }
+      }
+      static record(action) {
+        this.past.push(action);
+        this.future = [];
+        Storage.store_deck();
+      }
+    };
+    window.addEventListener("keydown", (event) => {
+      if (event.target instanceof HTMLInputElement) return;
+      if (event.ctrlKey || event.metaKey) {
+        switch (event.key) {
+          case "y":
+            History.shift(!event.shiftKey);
+            event.preventDefault();
+            break;
+          case "z":
+            History.shift(event.shiftKey);
+            event.preventDefault();
+            break;
+        }
+      }
+    });
+  }
+});
+
+// history/action.ts
+var Action;
+var init_action = __esm({
+  "history/action.ts"() {
+    init_history();
+    Action = class {
+      is_noop() {
+        return false;
+      }
+      do() {
+        if (!this.is_noop()) {
+          console.log(this.message());
+          this.execute();
+          History.record(this);
+        }
+      }
+      static do(...parameters) {
+        new this(...parameters).do();
+      }
+    };
+  }
+});
+
+// history/deck-delete-card.ts
+var DeckDeleteCard;
+var init_deck_delete_card = __esm({
+  "history/deck-delete-card.ts"() {
+    init_action();
+    init_deck_view();
+    init_card_panel();
+    init_deck_add_card();
+    DeckDeleteCard = class extends Action {
+      constructor(deck, card) {
+        super();
+        this.deck = deck;
+        this.card = card;
+      }
+      deck;
+      card;
+      index;
+      message() {
+        return `Delete card "${this.card.name}"`;
+      }
+      execute() {
+        const { deck, card } = this;
+        this.index = deck.indexOf(card);
+        if (this.index > -1) {
+          deck.splice(this.index, 1);
+          DeckView.render();
+          if (card === CardPanel.SELECTED) {
+            CardPanel.close();
+          }
+        }
+      }
+      reverse() {
+        return new DeckAddCard(
+          this.deck,
+          this.card,
+          this.index
+        );
+      }
+      is_noop() {
+        const { deck, card } = this;
+        return deck.indexOf(card) < 0;
+      }
+    };
+  }
+});
+
+// history/card-edit-fields.ts
+var CardEditFields;
+var init_card_edit_fields = __esm({
+  "history/card-edit-fields.ts"() {
+    init_action();
+    init_deck();
+    CardEditFields = class _CardEditFields extends Action {
+      constructor(card, fields) {
+        super();
+        this.card = card;
+        this.fields = fields;
+      }
+      card;
+      fields;
+      old_fields;
+      message() {
+        return `Set card ${Object.entries(this.fields).map(([key, value]) => `${key} to ${value}`).join(", ")}`;
+      }
+      execute() {
+        const { card, fields } = this;
+        this.old_fields = {};
+        Object.keys(fields).forEach((key) => this.old_fields[key] = card[key]);
+        Object.assign(card, fields);
+        if ([
+          "name",
+          "set",
+          "collector_number",
+          "language"
+        ].some((field) => field in fields)) {
+          card.reload(Deck.CURRENT.game);
+        }
+        card.render_hooks();
+      }
+      reverse() {
+        return new _CardEditFields(
+          this.card,
+          this.old_fields
+        );
+      }
+      is_noop() {
+        return Object.entries(this.fields).every(([key, value]) => this.card[key] === value);
+      }
+    };
+  }
+});
+
+// history/deck-add-card.ts
+var DeckAddCard;
+var init_deck_add_card = __esm({
+  "history/deck-add-card.ts"() {
+    init_action();
+    init_deck_view();
+    init_deck_delete_card();
+    init_card_edit_fields();
+    DeckAddCard = class extends Action {
+      constructor(deck, card, index = null, match_existing = null) {
+        super();
+        this.deck = deck;
+        this.card = card;
+        this.index = index;
+        this.match_existing = match_existing;
+      }
+      deck;
+      card;
+      index;
+      match_existing;
+      original_quantity = null;
+      message() {
+        return `Add card "${this.card.name}"`;
+      }
+      execute() {
+        const { deck, card, index, match_existing } = this;
+        if (match_existing) {
+          for (const existing_card of deck) {
+            if (match_existing(card, existing_card)) {
+              this.original_quantity = existing_card.quantity;
+              existing_card.quantity += card.quantity;
+              this.card = existing_card;
+              this.card.render_hooks();
+              return;
+            }
+          }
+        }
+        if (index === null) {
+          deck.push(card);
+        } else {
+          deck.splice(index, 0, card);
+        }
+        DeckView.render();
+      }
+      reverse() {
+        if (this.original_quantity === null) {
+          return new DeckDeleteCard(
+            this.deck,
+            this.card
+          );
+        } else {
+          return new CardEditFields(
+            this.card,
+            { quantity: this.original_quantity }
+          );
+        }
+      }
+      is_noop() {
+        const { deck, card } = this;
+        return deck.includes(card);
+      }
+    };
+  }
+});
+
+// history/card-set-printing.ts
+var CardSetPrinting;
+var init_card_set_printing = __esm({
+  "history/card-set-printing.ts"() {
+    init_action();
+    init_card_edit_fields();
+    CardSetPrinting = class extends Action {
+      constructor(card, printing) {
+        super();
+        this.card = card;
+        this.printing = printing;
+      }
+      card;
+      printing;
+      old_values;
+      message() {
+        const { set, collector_number } = this.printing;
+        return `Set card printing to ${set}:${collector_number}`;
+      }
+      execute() {
+        const { card, printing } = this;
+        this.old_values = {
+          name: card.name,
+          set: card.set,
+          collector_number: card.collector_number,
+          language: card.language,
+          finish: card.finish,
+          card: card.card
+        };
+        card.hydrate_printing(printing);
+      }
+      reverse() {
+        return new CardEditFields(
+          this.card,
+          this.old_values
+        );
+      }
+      is_noop() {
+        const { card, printing } = this;
+        return printing.id === card.card?.id && printing.name === card.card_name() && printing.set === card.set && printing.collector_number === card.collector_number && printing.lang === card.language.code() && printing.finishes.includes(card.finish.sf_finish());
+      }
+    };
+  }
+});
+
 // ui/dragger.ts
 var Dragger;
 var init_dragger = __esm({
   "ui/dragger.ts"() {
     init_xml();
-    init_deck_card();
     init_deck_view();
     init_deck();
     init_card_view();
+    init_card_panel();
+    init_deck_add_card();
+    init_card_set_printing();
     Dragger = class _Dragger {
       static LAYER = HTML.div({ id: "drag-layer" });
       static card = null;
+      static card_view = null;
       static card_views = null;
+      static origin_element = null;
       static origin = null;
-      static location = null;
+      static destination = null;
+      static starting_position = null;
       static dragging = null;
-      static grab(card, card_view, location) {
-        console.log("dragging start");
+      static grab(card, card_view, location, event) {
         _Dragger.drop();
         _Dragger.card = card;
+        _Dragger.card_view = card_view;
         _Dragger.card_views = location === "deck" ? DeckView.card_views.get(_Dragger.card) : [card_view];
-        _Dragger.origin = card_view.parentElement;
-        _Dragger.location = location;
+        _Dragger.origin_element = card_view.parentElement;
+        _Dragger.origin = location;
+        _Dragger.starting_position = [event.x, event.y];
         document.body.classList.add("dragging");
       }
       static drag(event) {
-        if (_Dragger.card) {
-          console.log("dragging");
-          if (!_Dragger.dragging) {
-            _Dragger.dragging = _Dragger.render_card();
-            const { width, height } = _Dragger.dragging.getBoundingClientRect();
-            _Dragger.origin.style.setProperty("--stack-width", `${width}px`);
-            _Dragger.origin.style.setProperty("--stack-height", `${height}px`);
-            _Dragger.LAYER.classList.toggle("show-quantity", _Dragger.card_views.length > 1);
-            if (_Dragger.location === "deck") {
-              _Dragger.card_views.forEach((card_view) => card_view.classList.add("dragged"));
-            }
-            _Dragger.LAYER.append(_Dragger.dragging);
+        if (!_Dragger.card) return;
+        if (!_Dragger.dragging) {
+          const [x, y] = _Dragger.starting_position;
+          if (Math.hypot(event.x - x, event.y - y) < 8) return;
+          _Dragger.dragging = _Dragger.render_card();
+          const { top, left, width: width2, height: height2 } = _Dragger.card_view.getBoundingClientRect();
+          _Dragger.origin_element.style.setProperty("--stack-width", `${width2}px`);
+          _Dragger.origin_element.style.setProperty("--stack-height", `${height2}px`);
+          _Dragger.dragging.style.setProperty("transform", `translate(${left - x}px, ${top - y}px)`);
+          _Dragger.LAYER.classList.toggle("show-quantity", _Dragger.card_views.length > 1);
+          if (_Dragger.origin === "deck") {
+            _Dragger.card_views.forEach((card_view) => card_view.classList.add("dragged"));
           }
-          _Dragger.LAYER.style.setProperty("--drag-x", `${event.x}px`);
-          _Dragger.LAYER.style.setProperty("--drag-y", `${event.y}px`);
+          _Dragger.LAYER.append(_Dragger.dragging);
+        } else {
+          _Dragger.dragging.style.removeProperty("transform");
+        }
+        const { width, height } = _Dragger.dragging.getBoundingClientRect();
+        _Dragger.LAYER.style.setProperty("--drag-x", `${event.x - width / 2}px`);
+        _Dragger.LAYER.style.setProperty("--drag-y", `${event.y - height / 2}px`);
+        _Dragger.destination = _Dragger.destination_at(event.x, event.y);
+        if (_Dragger.destination === "deck") {
+          HTML.div({ id: "deck-cards", data_drop: _Dragger.origin });
+        } else {
+          HTML.div({ id: "deck-cards", data_drop: null });
+        }
+        if (_Dragger.destination === "panel") {
+          HTML.div({ id: CardPanel.id, data_drop: _Dragger.origin });
+        } else {
+          HTML.div({ id: CardPanel.id, data_drop: null });
         }
       }
       static drop(event) {
         if (_Dragger.dragging) {
-          console.log("dragging stop");
           _Dragger.dragging.remove();
+          _Dragger.dragging = null;
           _Dragger.card_views.forEach((card_view) => card_view.classList.remove("dragged"));
-          switch (_Dragger.location) {
+          switch (_Dragger.origin) {
             case "deck":
+              switch (_Dragger.destination) {
+                case "deck":
+                  break;
+                case "panel":
+                  CardPanel.open(_Dragger.card);
+                  break;
+              }
               break;
             case "search":
-              add_card: {
-                for (const card of Deck.CURRENT) {
-                  if (card.matches(_Dragger.card)) {
-                    card.quantity += _Dragger.card.quantity;
-                    break add_card;
+              switch (_Dragger.destination) {
+                case "deck":
+                  DeckAddCard.do(
+                    Deck.CURRENT,
+                    _Dragger.card,
+                    null,
+                    (new_card, existing_card) => existing_card.card?.id === new_card.card?.id
+                  );
+                  break;
+                case "panel":
+                  if (CardPanel.SELECTED) {
+                    CardSetPrinting.do(CardPanel.SELECTED, _Dragger.card.card);
                   }
-                }
-                Deck.CURRENT.push(DeckCard.from_card(_Dragger.card.card));
+                  break;
               }
               break;
           }
-          _Dragger.dragging = null;
-          DeckView.render();
         }
         _Dragger.card = null;
-        _Dragger.card_views = null;
-        _Dragger.origin = null;
         document.body.classList.remove("dragging");
+        HTML.div({ id: "deck-cards", data_drop: null });
+        HTML.div({ id: CardPanel.id, data_drop: null });
+      }
+      static destination_at(x, y) {
+        const is_inside = (element) => {
+          const { top, left, width, height } = element.getBoundingClientRect();
+          return x >= left && x < left + width && y >= top && y < top + height;
+        };
+        if (!is_inside(document.body)) return null;
+        if (is_inside(HTML.div({ id: "search" }))) return "search";
+        if (is_inside(CardPanel.element())) return "panel";
+        if (is_inside(DeckView.DECK_ELEMENT)) return "deck";
+        return null;
       }
       static render_card() {
         return _Dragger.card ? CardView.render(_Dragger.card, "dragging-card", { location: "dragger" }) : null;
@@ -1575,14 +1927,22 @@ var init_card_view = __esm({
           on_drag = null
         } = options;
         const card_class = /* @__PURE__ */ new Set(["card", "fade-in"]);
-        if (Dragger.dragging && Dragger.card === card && Dragger.dragging.id !== id) {
-          card_class.add("dragged");
-        }
         if (location === "deck") {
-          if (is_duplicate) card_class.add("duplicate");
-          if (card.quantity < 1) card_class.add("ghost");
-          if (DeckView.errors.some((error) => error.cards?.includes(card))) card_class.add("error");
-          if (card === CardPanel.SELECTED) card_class.add("select");
+          if (is_duplicate) {
+            card_class.add("duplicate");
+          }
+          if (card.quantity < 1) {
+            card_class.add("ghost");
+          }
+          if (DeckView.errors.some((error) => error.cards?.includes(card))) {
+            card_class.add("error");
+          }
+          if (card === CardPanel.SELECTED) {
+            card_class.add("select");
+          }
+          if (Dragger.dragging && Dragger.card === card) {
+            card_class.add("dragged");
+          }
         }
         const faces = [];
         const face_shadows = [];
@@ -1759,7 +2119,7 @@ var init_card_view = __esm({
           {
             id,
             class: [...card_class],
-            onpointerdown: on_drag && ((card_view) => Dragger.grab(card, card_view, location)),
+            onpointerdown: on_drag && ((card_view, event) => Dragger.grab(card, card_view, location, event)),
             onpointermove: (card_view, { x, y }) => {
               const { top, left, width, height } = card_view.getBoundingClientRect();
               const effective_height = height + Number.parseFloat(getComputedStyle(card_view).marginBottom);
@@ -1815,18 +2175,21 @@ var init_panel = __esm({
     init_xml();
     Panel = class {
       static id;
+      static element() {
+        return HTML.div({ id: this.id });
+      }
       static toggle(...args) {
-        if (HTML.div({ id: this.id }).classList.contains("collapsed")) {
+        if (this.element().classList.contains("collapsed")) {
           this.open(...args);
         } else {
           this.close(...args);
         }
       }
       static open(...args) {
-        HTML.div({ id: this.id }).classList.remove("collapsed");
+        this.element().classList.remove("collapsed");
       }
       static close(...args) {
-        HTML.div({ id: this.id }).classList.add("collapsed");
+        this.element().classList.add("collapsed");
       }
     };
   }
@@ -1843,7 +2206,7 @@ var init_search = __esm({
     init_text();
     init_panel();
     init_deck();
-    init_deck_view();
+    init_deck_add_card();
     Search = class _Search extends Panel {
       static id = "search-results";
       static HISTORY = /* @__PURE__ */ new Set();
@@ -1918,6 +2281,7 @@ var init_search = __esm({
         });
         console.log(`rendering ${Math.max(Math.ceil(window.innerWidth / 208), 5)} cards`);
         this.open();
+        this.element().scrollTo({ left: 0, behavior: "smooth" });
         HTML.div({ id: "search-status" }, "Searching...");
         HTML.div({ id: "search-results", class: "searching" }, HTML.div(
           { class: "groups" },
@@ -1950,18 +2314,12 @@ var init_search = __esm({
               { id: `search-stack-${i}`, class: "stack" },
               CardView.render(card, `search-result-${i}`, {
                 location: "search",
-                on_click: () => {
-                  add_card: {
-                    for (const existing of Deck.CURRENT) {
-                      if (card.matches(existing)) {
-                        existing.quantity += card.quantity;
-                        break add_card;
-                      }
-                    }
-                    Deck.CURRENT.push(DeckCard.from_card(card.card));
-                  }
-                  DeckView.render();
-                },
+                on_click: () => DeckAddCard.do(
+                  Deck.CURRENT,
+                  card,
+                  null,
+                  (new_card, existing_card) => existing_card.card?.id === new_card.card?.id
+                ),
                 on_drag: () => {
                 }
               })
@@ -2006,7 +2364,10 @@ var init_dropdown = __esm({
           ],
           lang: Language.detect_font(option.label)?.code(),
           onclick: !option.disabled && (() => this.select(option))
-        }, option.label))));
+        }, option.label.split(" // ").flatMap((name, i) => [
+          i > 0 && " ",
+          HTML.span((i > 0 ? "// " : "") + name)
+        ])))));
       }
       on_select;
       options;
@@ -2075,121 +2436,14 @@ var init_dropdown = __esm({
   }
 });
 
-// storage.ts
-var storage_exports = {};
-__export(storage_exports, {
-  Storage: () => Storage
-});
-var Storage;
-var init_storage = __esm({
-  "storage.ts"() {
-    init_deck();
-    Storage = class {
-      static store_deck() {
-        window.localStorage.setItem("deck", JSON.stringify(Deck.CURRENT.json()));
-      }
-      static async load_deck() {
-        const json = window.localStorage.getItem("deck");
-        if (json) await Deck.load_from_json(JSON.parse(json));
-      }
-    };
-  }
-});
-
-// history/history.ts
-var History;
-var init_history = __esm({
-  "history/history.ts"() {
-    init_storage();
-    History = class {
-      static past = [];
-      static future = [];
-      static reset() {
-        this.past = [];
-        this.future = [];
-      }
-      static undo() {
-        const action = this.past.pop();
-        if (action) {
-          const reverse = action.reverse();
-          console.log("undid", action.message(), "by", reverse.message());
-          reverse.execute();
-          this.future.push(reverse);
-          Storage.store_deck();
-        }
-      }
-      static redo() {
-        const action = this.future.pop();
-        if (action) {
-          const reverse = action.reverse();
-          console.log("redid", reverse.message(), ", undoing", action.message());
-          reverse.execute();
-          this.past.push(reverse);
-          Storage.store_deck();
-        }
-      }
-      static shift(backwards = false) {
-        if (backwards) {
-          this.redo();
-        } else {
-          this.undo();
-        }
-      }
-      static record(action) {
-        this.past.push(action);
-        this.future = [];
-        Storage.store_deck();
-      }
-    };
-    window.addEventListener("keydown", (event) => {
-      if (event.target instanceof HTMLInputElement) return;
-      if (event.ctrlKey || event.metaKey) {
-        switch (event.key) {
-          case "y":
-            History.shift(!event.shiftKey);
-            event.preventDefault();
-            break;
-          case "z":
-            History.shift(event.shiftKey);
-            event.preventDefault();
-            break;
-        }
-      }
-    });
-  }
-});
-
-// history/action.ts
-var Action;
-var init_action = __esm({
-  "history/action.ts"() {
-    init_history();
-    Action = class {
-      is_noop() {
-        return false;
-      }
-      do() {
-        if (!this.is_noop()) {
-          console.log(this.message());
-          this.execute();
-          History.record(this);
-        }
-      }
-      static do(...parameters) {
-        new this(...parameters).do();
-      }
-    };
-  }
-});
-
-// history/edit-card-name.ts
-var EditCardName, RevertCardName;
-var init_edit_card_name = __esm({
-  "history/edit-card-name.ts"() {
+// history/card-edit-name.ts
+var CardEditName, RevertCardName;
+var init_card_edit_name = __esm({
+  "history/card-edit-name.ts"() {
     init_action();
     init_language();
     init_deck();
-    EditCardName = class extends Action {
+    CardEditName = class extends Action {
       constructor(card, name, face_id = card.display_face_id, name_key = card.display_name_key) {
         super();
         this.card = card;
@@ -2271,145 +2525,12 @@ var init_edit_card_name = __esm({
         card.render_hooks();
       }
       reverse() {
-        return new EditCardName(
+        return new CardEditName(
           this.card,
           this.old_name,
           this.old_face_id,
           this.old_name_key
         );
-      }
-    };
-  }
-});
-
-// history/add-card.ts
-var AddCard;
-var init_add_card = __esm({
-  "history/add-card.ts"() {
-    init_action();
-    init_deck_view();
-    init_delete_card();
-    AddCard = class extends Action {
-      constructor(deck, card, index = null) {
-        super();
-        this.deck = deck;
-        this.card = card;
-        this.index = index;
-      }
-      deck;
-      card;
-      index;
-      message() {
-        return `Add card "${this.card.name}"`;
-      }
-      execute() {
-        const { deck, card, index } = this;
-        if (index === null) {
-          deck.push(card);
-        } else {
-          deck.splice(index, 0, card);
-        }
-        DeckView.render();
-      }
-      reverse() {
-        return new DeleteCard(
-          this.deck,
-          this.card
-        );
-      }
-      is_noop() {
-        const { deck, card } = this;
-        return deck.includes(card);
-      }
-    };
-  }
-});
-
-// history/delete-card.ts
-var DeleteCard;
-var init_delete_card = __esm({
-  "history/delete-card.ts"() {
-    init_action();
-    init_deck_view();
-    init_card_panel();
-    init_add_card();
-    DeleteCard = class extends Action {
-      constructor(deck, card) {
-        super();
-        this.deck = deck;
-        this.card = card;
-      }
-      deck;
-      card;
-      index;
-      message() {
-        return `Delete card "${this.card.name}"`;
-      }
-      execute() {
-        const { deck, card } = this;
-        this.index = deck.indexOf(card);
-        deck.splice(this.index, 1);
-        DeckView.render();
-        if (card === CardPanel.SELECTED) {
-          CardPanel.close();
-        }
-      }
-      reverse() {
-        return new AddCard(
-          this.deck,
-          this.card,
-          this.index
-        );
-      }
-      is_noop() {
-        const { deck, card } = this;
-        return deck.indexOf(card) < 0;
-      }
-    };
-  }
-});
-
-// history/edit-card-fields.ts
-var EditCardFields;
-var init_edit_card_fields = __esm({
-  "history/edit-card-fields.ts"() {
-    init_action();
-    init_deck();
-    EditCardFields = class _EditCardFields extends Action {
-      constructor(card, fields) {
-        super();
-        this.card = card;
-        this.fields = fields;
-      }
-      card;
-      fields;
-      old_fields;
-      message() {
-        return `Set card ${Object.entries(this.fields).map(([key, value]) => `${key} to ${value}`).join(", ")}`;
-      }
-      execute() {
-        const { card, fields } = this;
-        this.old_fields = {};
-        Object.keys(fields).forEach((key) => this.old_fields[key] = card[key]);
-        Object.assign(card, fields);
-        if ([
-          "name",
-          "set",
-          "collector_number",
-          "language"
-        ].some((field) => field in fields)) {
-          card.reload(Deck.CURRENT.game);
-        }
-        card.render_hooks();
-      }
-      reverse() {
-        return new _EditCardFields(
-          this.card,
-          this.old_fields
-        );
-      }
-      is_noop() {
-        return Object.entries(this.fields).every(([key, value]) => this.card[key] === value);
       }
     };
   }
@@ -2432,20 +2553,18 @@ var init_card_panel = __esm({
     init_search();
     init_deck_view();
     init_dropdown();
-    init_edit_card_name();
+    init_card_edit_name();
     init_deck();
-    init_delete_card();
-    init_edit_card_fields();
-    CardPanel = class extends Panel {
+    init_deck_delete_card();
+    init_card_edit_fields();
+    CardPanel = class _CardPanel extends Panel {
       static id = "card-panel";
       static SELECTED = null;
       static {
-        console.log("static");
         document.addEventListener("keydown", (event) => {
-          console.log("keydown", event.key);
-        });
-        document.addEventListener("keyup", (event) => {
-          console.log("keyup", event.key);
+          if (event.key === "Backspace") {
+            console.log("delete card");
+          }
         });
       }
       static open(card) {
@@ -2456,6 +2575,7 @@ var init_card_panel = __esm({
           DeckPanel.close();
         }
         super.open();
+        _CardPanel.element().scrollTo({ top: 0, behavior: "smooth" });
         HTML.div(
           { id: "card-panel-card-container" },
           CardView.render(card, `card-panel-card`, { location: "panel" })
@@ -2471,7 +2591,7 @@ var init_card_panel = __esm({
           onchange: (input) => {
             let quantity = Number.parseInt(input.value);
             if (is_nullish(quantity)) quantity = 1;
-            EditCardFields.do(card, { quantity });
+            CardEditFields.do(card, { quantity });
             input.value = `${quantity}`;
           },
           onkeydown
@@ -2479,21 +2599,21 @@ var init_card_panel = __esm({
         HTML.button({
           id: "quantity-decrement",
           disabled: card.quantity <= 0,
-          onclick: () => EditCardFields.do(card, { quantity: card.quantity - 1 })
+          onclick: () => CardEditFields.do(card, { quantity: card.quantity - 1 })
         });
         HTML.button({
           id: "quantity-increment",
           disabled: card.quantity >= 99,
-          onclick: () => EditCardFields.do(card, { quantity: card.quantity + 1 })
+          onclick: () => CardEditFields.do(card, { quantity: card.quantity + 1 })
         });
         new Dropdown(
           {
             id: "name-input",
             value: card.name || "",
-            onchange: (input) => EditCardName.do(card, input.value || null),
+            onchange: (input) => CardEditName.do(card, input.value || null),
             lang: Language.detect_font(card.name)?.code()
           },
-          ({ label, value }) => EditCardName.do(card, label, value.face_id, value.name_key),
+          ({ label, value }) => CardEditName.do(card, label, value.face_id, value.name_key),
           Object.entries(card.selectable_names()).map(([name, face]) => ({
             label: name,
             value: face
@@ -2505,7 +2625,7 @@ var init_card_panel = __esm({
           value: card.set?.toUpperCase() || "",
           onchange: (input) => {
             const set = API.SETS.normalise(input.value);
-            EditCardFields.do(card, { set: set || null });
+            CardEditFields.do(card, { set: set || null });
             input.value = set.toUpperCase();
           },
           onkeydown
@@ -2514,7 +2634,7 @@ var init_card_panel = __esm({
           id: "collector-number-input",
           class: card.invalid_collector_number() && "error",
           value: card.collector_number ?? "",
-          onchange: (input) => EditCardFields.do(card, { collector_number: input.value || null }),
+          onchange: (input) => CardEditFields.do(card, { collector_number: input.value || null }),
           onkeydown
         });
         HTML.button({
@@ -2535,7 +2655,7 @@ var init_card_panel = __esm({
         HTML.button({
           id: "print-clear",
           disabled: !card.set,
-          onclick: () => EditCardFields.do(card, { set: null, collector_number: null })
+          onclick: () => CardEditFields.do(card, { set: null, collector_number: null })
         });
         new Dropdown(
           {
@@ -2544,7 +2664,7 @@ var init_card_panel = __esm({
             value: card.language.name,
             readonly: true
           },
-          ({ value }) => EditCardFields.do(card, { language: value }),
+          ({ value }) => CardEditFields.do(card, { language: value }),
           Language.all().map((language) => ({
             label: language.name,
             value: language
@@ -2556,7 +2676,7 @@ var init_card_panel = __esm({
             value: card.finish.name,
             readonly: true
           },
-          ({ value }) => EditCardFields.do(card, { finish: value }),
+          ({ value }) => CardEditFields.do(card, { finish: value }),
           Finish.all().map((finish) => ({
             label: finish.name,
             value: finish,
@@ -2569,7 +2689,7 @@ var init_card_panel = __esm({
             value: card.condition?.name || "",
             readonly: true
           },
-          ({ value }) => EditCardFields.do(card, { condition: value }),
+          ({ value }) => CardEditFields.do(card, { condition: value }),
           [
             {
               label: "Unspecified",
@@ -2590,7 +2710,7 @@ var init_card_panel = __esm({
             value: card.zone.name,
             readonly: true
           },
-          ({ value }) => EditCardFields.do(card, { zone: value }),
+          ({ value }) => CardEditFields.do(card, { zone: value }),
           Zone.all().filter((zone) => zone.can_include(card)).map((zone) => ({
             label: zone.name,
             value: zone
@@ -2598,7 +2718,7 @@ var init_card_panel = __esm({
         );
         HTML.button({
           id: "delete-card",
-          onclick: () => DeleteCard.do(Deck.CURRENT, card)
+          onclick: () => DeckDeleteCard.do(Deck.CURRENT, card)
         });
       }
       static close() {
@@ -2761,7 +2881,7 @@ var init_deck_card = __esm({
           finish: Finish.first_for_card(card) ?? Finish.DEFAULT
         }).hydrate();
         deck_card.zone = Zone.default_for(deck_card);
-        return deck_card;
+        return deck_card.cache();
       }
       static from_json(json, id) {
         return new _DeckCard({
@@ -2872,7 +2992,7 @@ var init_deck_card = __esm({
       }
       hydrate_printing(card) {
         this.card = card;
-        this.name = this.deck_list_name();
+        this.name = this.display_name();
         this.set = card.set;
         this.collector_number = card.collector_number;
         this.language = Language.match(card.lang);
@@ -2887,7 +3007,7 @@ var init_deck_card = __esm({
           }
           if (this.name) {
             let max_similarity = 0;
-            Object.entries(this.selectable_names()).some(([name, { face_id, name_key }]) => {
+            Object.entries(this.selectable_names()).forEach(([name, { face_id, name_key }]) => {
               const target = face_id === null ? this.name : this.name.split(/\s+\/+\s+/g)[0];
               const similarity = name === target ? 1 : trigram(
                 normalise(name, null, /[^\s\d\p{L}]/giu),
@@ -2901,7 +3021,7 @@ var init_deck_card = __esm({
               }
             });
           }
-          this.name = this.deck_list_name();
+          this.name = this.display_name();
         }
         this.render_hooks();
         return this;
@@ -2971,17 +3091,17 @@ var init_deck_card = __esm({
       selectable_names() {
         const names = {};
         [
-          "flavor_name",
+          "name",
           "printed_name",
-          "name"
+          "flavor_name"
         ].forEach((key) => {
-          names[this.card_name(key)] = {
+          names[this.card_name(key)] ??= {
             face_id: null,
             name_key: key
           };
           this.all_names(key).forEach((name, id) => {
             if (this.is_layout("prepare") && id > 0) return;
-            names[name] = {
+            names[name] ??= {
               face_id: id,
               name_key: key
             };
@@ -2989,7 +3109,7 @@ var init_deck_card = __esm({
         });
         return names;
       }
-      deck_list_name() {
+      display_name() {
         return this.display_face().card_name(this.display_name_key) || this.name;
       }
       is_basic_land() {
@@ -3122,7 +3242,7 @@ var init_deck_card = __esm({
             } else {
               return full;
             }
-          }).replace(/^(name)\??$/i, (_, name) => preserve_case(this.deck_list_name(), name)).replace(/^(\/+\s*)(back)$/i, (_, slash, back) => this.display_face_id === null ? "" : this.all_names().filter((_2, i) => i !== this.display_face_id).map((face) => slash + preserve_case(face, back)).join("")).replace(/^(set)(\?)?$/i, (_, set, opt) => opt && !(this.card?.set ?? this.set) ? "" : preserve_case(this.card?.set ?? this.set, set))
+          }).replace(/^(name)\??$/i, (_, name) => preserve_case(this.display_name(), name)).replace(/^(\/+\s+)(back)$/i, (_, slash, back) => this.display_face_id === null ? "" : this.all_names().filter((_2, i) => i !== this.display_face_id).map((face) => slash + preserve_case(face, back)).join("")).replace(/^(set)(\?)?$/i, (_, set, opt) => opt && !(this.card?.set ?? this.set) ? "" : preserve_case(this.card?.set ?? this.set, set))
         ).replaceAll(/\s+/g, " ").replaceAll(/^\s|\s$/g, "");
       }
       toString() {
@@ -3641,7 +3761,7 @@ var init_deck = __esm({
       format = null;
       game = null;
       push(...cards) {
-        let max_id = this.reduce((max, { id }) => Math.max(max, id), -1);
+        let max_id = Math.max(...this.map(({ id }) => id), -1);
         cards.forEach((card) => card.id = ++max_id);
         return super.push(...cards);
       }
@@ -4009,6 +4129,7 @@ var init_deck_view = __esm({
       static DECK_ELEMENT = HTML.div({ id: "deck" });
       static render(deck = Deck.CURRENT) {
         this.errors = new DeckValidator(deck).validate();
+        console.log(this.errors);
         _DeckView.card_views = /* @__PURE__ */ new WeakMap();
         const show_zones = this.BY_ZONE && deck.some((card) => !card.zone.is_default());
         return HTML.div(
@@ -4591,7 +4712,7 @@ var init_name = __esm({
     Name = class extends CardClassifier {
       static name = "Name";
       compare(a, b) {
-        return this.compare_card_string(a, b, (_, card) => card.deck_list_name());
+        return this.compare_card_string(a, b, (_, card) => card.display_name());
       }
     };
   }
@@ -4816,15 +4937,15 @@ var init_type_primary = __esm({
   }
 });
 
-// history/edit-deck-field.ts
-var EditDeckField;
-var init_edit_deck_field = __esm({
-  "history/edit-deck-field.ts"() {
+// history/deck-edit-field.ts
+var DeckEditField;
+var init_deck_edit_field = __esm({
+  "history/deck-edit-field.ts"() {
     init_action();
     init_deck();
     init_deck_panel();
     init_deck_view();
-    EditDeckField = class _EditDeckField extends Action {
+    DeckEditField = class _DeckEditField extends Action {
       constructor(field, value) {
         super();
         this.field = field;
@@ -4847,7 +4968,7 @@ var init_edit_deck_field = __esm({
         }
       }
       reverse() {
-        return new _EditDeckField(
+        return new _DeckEditField(
           this.field,
           this.old_value
         );
@@ -4886,7 +5007,7 @@ var init_deck_panel = __esm({
     init_deck();
     init_deck_card();
     init_dropdown();
-    init_edit_deck_field();
+    init_deck_edit_field();
     init_format();
     init_game();
     DeckPanel = class extends Panel {
@@ -4939,7 +5060,7 @@ var init_deck_panel = __esm({
         HTML.h2({
           id: "deck-title",
           contenteditable: true,
-          onblur: (element) => EditDeckField.do("title", element.innerText),
+          onblur: (element) => DeckEditField.do("title", element.innerText),
           onkeydown: (element, event) => {
             if (event.key === "Enter") {
               element.blur();
@@ -4999,7 +5120,7 @@ var init_deck_panel = __esm({
             value: Deck.CURRENT.format?.name ?? "",
             readonly: true
           },
-          ({ value }) => EditDeckField.do("format", value),
+          ({ value }) => DeckEditField.do("format", value),
           [
             {
               label: "Unspecified",
@@ -5019,7 +5140,7 @@ var init_deck_panel = __esm({
             value: Deck.CURRENT.game?.name ?? "",
             readonly: true
           },
-          ({ value }) => EditDeckField.do("game", value),
+          ({ value }) => DeckEditField.do("game", value),
           [
             {
               label: "Unspecified",

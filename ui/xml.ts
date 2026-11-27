@@ -105,6 +105,8 @@ function create_element<T extends string>(
     listeners.refresh?.(undefined);
 
     Object.entries(attributes).forEach(([key, value]) => {
+        key = key.replaceAll('_', '-');
+
         if (is_nullish(value) || value === false) {
             if (key.startsWith('on')) {
                 const event = key.slice(2);
@@ -115,8 +117,6 @@ function create_element<T extends string>(
             }
             return;
         }
-
-        key = key.replaceAll('_', '-');
 
         switch (key) {
             case 'class':

@@ -36,7 +36,7 @@ export class Deck extends CardList {
     game: Game = null;
 
     push(...cards: DeckCard[]): number {
-        let max_id = this.reduce((max, {id}) => Math.max(max, id), -1);
+        let max_id = Math.max(...this.map(({id}) => id), -1);
         cards.forEach(card => card.id = ++max_id);
         return super.push(...cards);
     }

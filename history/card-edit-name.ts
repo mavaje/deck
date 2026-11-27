@@ -4,7 +4,7 @@ import {Language} from "../designation/language";
 import {Deck} from "../deck";
 import {NameKey} from "../face";
 
-export class EditCardName extends Action {
+export class CardEditName extends Action {
 
     private old_values: Partial<DeckCard>;
     private reset_card: boolean;
@@ -91,7 +91,7 @@ class RevertCardName extends Action {
     }
 
     reverse(): Action {
-        return new EditCardName(
+        return new CardEditName(
             this.card,
             this.old_name,
             this.old_face_id,

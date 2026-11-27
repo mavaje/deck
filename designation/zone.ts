@@ -46,7 +46,7 @@ export class Zone extends Designation {
         super(name, codes);
 
         if (this.card_types) {
-            this.filters.push(card => this.card_types.some(type => {
+            this.filters.push(card => !card.card || this.card_types.some(type => {
                 const [card_type, subtype] = type.split(' - ');
                 return card.is_card_type(card_type)
                     && (!subtype || card.is_type(subtype));

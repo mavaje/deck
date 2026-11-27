@@ -40,7 +40,11 @@ export class Dropdown<T = any> {
                 ],
                 lang: Language.detect_font(option.label)?.code(),
                 onclick: !option.disabled && (() => this.select(option)),
-            }, option.label))));
+            }, option.label.split(' // ')
+                .flatMap((name, i) => [
+                    i > 0 && ' ',
+                    HTML.span((i > 0 ? '// ' : '') + name),
+                ])))));
     }
 
     event_listeners(): Attributes<HTMLElement, HTMLElementEventMap> {

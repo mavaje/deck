@@ -5,7 +5,7 @@ import {CardView} from "../card-view";
 import {count_plural} from "../../text";
 import {Panel} from "../panel";
 import {Deck} from "../../deck";
-import {DeckView} from "../deck/deck-view";
+import {DeckAddCard} from "../../history/deck-add-card";
 
 export class Search extends Panel {
     static id: string = 'search-results';
@@ -97,6 +97,8 @@ export class Search extends Panel {
         console.log(`rendering ${Math.max(Math.ceil(window.innerWidth / 208), 5)} cards`);
 
         this.open();
+        this.element().scrollTo({left: 0, behavior: 'smooth'});
+
         HTML.div({id: 'search-status'}, 'Searching...');
         HTML.div({id: 'search-results', class: 'searching'}, HTML.div(
             {class: 'groups'},
@@ -137,20 +139,13 @@ export class Search extends Panel {
                         {id: `search-stack-${i}`, class: 'stack'},
                         CardView.render(card, `search-result-${i}`, {
                             location: 'search',
-                            on_click: () => {
-                                add_card:
-                                {
-                                    for (const existing of Deck.CURRENT) {
-                                        if (card.matches(existing)) {
-                                            existing.quantity += card.quantity;
-                                            break add_card;
-                                        }
-                                    }
-                                    Deck.CURRENT.push(DeckCard.from_card(card.card));
-                                }
-
-                                DeckView.render();
-                            },
+                            on_click: () => DeckAddCard.do(
+                                Deck.CURRENT,
+                                card,
+                                null,
+                                (new_card, existing_card) =>
+                                    existing_card.card?.id === new_card.card?.id,
+                            ),
                             on_drag: () => {},
                         }),
                     )),

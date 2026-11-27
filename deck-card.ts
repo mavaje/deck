@@ -205,7 +205,7 @@ export class DeckCard extends Face {
 
         deck_card.zone = Zone.default_for(deck_card);
 
-        return deck_card;
+        return deck_card.cache();
     }
 
     static from_json(json: JSONCard, id?: number): DeckCard {
@@ -348,7 +348,7 @@ export class DeckCard extends Face {
 
     hydrate_printing(card: Card) {
         this.card = card;
-        this.name = this.deck_list_name();
+        this.name = this.display_name();
         this.set = card.set;
         this.collector_number = card.collector_number;
         this.language = Language.match(card.lang);
@@ -368,7 +368,7 @@ export class DeckCard extends Face {
                 let max_similarity = 0;
 
                 Object.entries(this.selectable_names())
-                    .some(([name, {face_id, name_key}]) => {
+                    .forEach(([name, {face_id, name_key}]) => {
                         const target = face_id === null
                             ? this.name
                             : this.name.split(/\s+\/+\s+/g)[0];
@@ -387,7 +387,7 @@ export class DeckCard extends Face {
                     });
             }
 
-            this.name = this.deck_list_name();
+            this.name = this.display_name();
         }
 
         this.render_hooks();
@@ -489,18 +489,18 @@ export class DeckCard extends Face {
         }> = {};
 
         ([
-            'flavor_name',
-            'printed_name',
             'name',
+            'printed_name',
+            'flavor_name',
         ] as NameKey[]).forEach(key => {
-            names[this.card_name(key)] = {
+            names[this.card_name(key)] ??= {
                 face_id: null,
                 name_key: key,
             };
 
             this.all_names(key).forEach((name, id) => {
                 if (this.is_layout('prepare') && id > 0) return;
-                names[name] = {
+                names[name] ??= {
                     face_id: id,
                     name_key: key,
                 };
@@ -510,7 +510,7 @@ export class DeckCard extends Face {
         return names;
     }
 
-    deck_list_name(): string {
+    display_name(): string {
         return this.display_face().card_name(this.display_name_key) || this.name;
     }
 
@@ -715,8 +715,8 @@ export class DeckCard extends Face {
                     }
                 })
                 .replace(/^(name)\??$/i, (_, name) =>
-                    preserve_case(this.deck_list_name(), name))
-                .replace(/^(\/+\s*)(back)$/i, (_, slash, back) =>
+                    preserve_case(this.display_name(), name))
+                .replace(/^(\/+\s+)(back)$/i, (_, slash, back) =>
                     this.display_face_id === null ? ''
                         : this.all_names()
                             .filter((_, i) => i !== this.display_face_id)

@@ -2,7 +2,7 @@ import {Action} from "./action";
 import {DeckCard} from "../deck-card";
 import {Deck} from "../deck";
 
-export class EditCardFields extends Action {
+export class CardEditFields extends Action {
 
     private old_fields: Partial<DeckCard>;
 
@@ -36,7 +36,7 @@ export class EditCardFields extends Action {
     }
 
     reverse(): Action {
-        return new EditCardFields(
+        return new CardEditFields(
             this.card,
             this.old_fields,
         );

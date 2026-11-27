@@ -3,8 +3,12 @@ import {HTML} from "./xml";
 export class Panel {
     static id: string;
 
+    static element() {
+        return HTML.div({id: this.id});
+    }
+
     static toggle(...args: any[]) {
-        if (HTML.div({id: this.id}).classList.contains('collapsed')) {
+        if (this.element().classList.contains('collapsed')) {
             this.open(...args);
         } else {
             this.close(...args);
@@ -12,10 +16,10 @@ export class Panel {
     }
 
     static open(...args: any[]): void {
-        HTML.div({id: this.id}).classList.remove('collapsed');
+        this.element().classList.remove('collapsed');
     }
 
     static close(...args: any[]): void {
-        HTML.div({id: this.id}).classList.add('collapsed');
+        this.element().classList.add('collapsed');
     }
 }
